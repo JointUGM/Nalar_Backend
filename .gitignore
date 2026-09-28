@@ -1,0 +1,33 @@
+# Docs, plans, CLAUDE.md and READMEs are local only (team rule)
+*.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Material and eval outputs
+*.pdf
+evals/**/out/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
