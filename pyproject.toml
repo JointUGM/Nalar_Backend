@@ -1,0 +1,62 @@
+[project]
+name = "nalar"
+version = "0.1.0"
+description = "NALAR backend: API and worker"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "dishka>=1.10.1",
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pgvector>=0.5.0",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "pyjwt[crypto]>=2.15.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["src/nalar/application/ports/ai_contract.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["nalar", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ASYNC110"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+mypy_path = "src"
+explicit_package_bases = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["pgvector.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "asyncpg-stubs>=0.31.3",
+    "datamodel-code-generator>=0.83.0",
+    "import-linter>=2.15",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.9",
+]

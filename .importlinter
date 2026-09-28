@@ -1,0 +1,37 @@
+[importlinter]
+root_package = nalar
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = Clean architecture layers
+type = layers
+layers =
+    nalar.bootstrap
+    nalar.presentation | nalar.infrastructure
+    nalar.application
+    nalar.domain
+
+[importlinter:contract:pure-domain]
+name = Domain is pure Python
+type = forbidden
+source_modules =
+    nalar.domain
+forbidden_modules =
+    asyncpg
+    fastapi
+    httpx
+    jwt
+    pydantic
+    starlette
+
+[importlinter:contract:framework-free-application]
+name = Application does not touch frameworks or I/O libraries
+type = forbidden
+source_modules =
+    nalar.application
+forbidden_modules =
+    asyncpg
+    fastapi
+    httpx
+    jwt
+    starlette
