@@ -139,8 +139,9 @@ async def create_knowledge_base(
     conn: asyncpg.Connection, school_id: UUID, subject_id: UUID, owner_id: UUID
 ) -> UUID:
     kb_id: UUID = await conn.fetchval(
-        "insert into knowledge_bases (school_id, school_subject_id, owner_teacher_id)"
-        " values ($1, $2, $3) returning id",
+        "insert into knowledge_bases"
+        " (school_id, school_subject_id, owner_teacher_id, topic_key, topic_title)"
+        " values ($1, $2, $3, 'gaya-dan-gerak', 'Gaya dan Gerak') returning id",
         school_id,
         subject_id,
         owner_id,
@@ -188,6 +189,7 @@ async def create_mission_version(
     school_id: UUID,
     kb_id: UUID,
     creator_id: UUID,
+    reviewed: bool = True,
 ) -> tuple[UUID, UUID]:
     mission_id: UUID = await conn.fetchval(
         "insert into missions (school_id, knowledge_base_id, created_by, title, learning_objective)"
@@ -198,13 +200,16 @@ async def create_mission_version(
     )
     version_id: UUID = await conn.fetchval(
         "insert into mission_versions (school_id, mission_id, version_number, anchor_problem,"
-        " rubric, probe_plan, created_by)"
-        " values ($1, $2, 1, 'Kenapa kelereng berhenti?', $3::jsonb, '{}'::jsonb, $4)"
-        " returning id",
+        " rubric, probe_plan, created_by, reference_reasoning, context_pack, reviewed_at)"
+        " values ($1, $2, 1, 'Kenapa kelereng berhenti?', $3::jsonb, '{}'::jsonb, $4,"
+        " case when $5 then 'Gaya gesek memperlambat kelereng' end,"
+        " case when $5 then '{}'::jsonb end,"
+        " case when $5 then now() end) returning id",
         school_id,
         mission_id,
         json.dumps(RUBRIC),
         creator_id,
+        reviewed,
     )
     return mission_id, version_id
 
@@ -260,8 +265,9 @@ async def create_session(
     student_id: UUID,
 ) -> UUID:
     session_id: UUID = await conn.fetchval(
-        "insert into sessions (school_id, publication_id, run_id, student_id, attempt_number)"
-        " values ($1, $2, $3, $4, 1) returning id",
+        "insert into sessions"
+        " (school_id, publication_id, run_id, student_id, attempt_number, deadline_at)"
+        " values ($1, $2, $3, $4, 1, now() + interval '20 minutes') returning id",
         school_id,
         publication_id,
         run_id,
@@ -310,7 +316,7 @@ async def build_world(conn: asyncpg.Connection, school_name: str = "SMP Uji") ->
         concept_id,
     )
     publication_id = await publish(conn, school_id, version_id, class_id, teacher_id)
-    run_id = await create_run(conn, school_id, publication_id, join_code="WORLD1")
+    run_id = await create_run(conn, school_id, publication_id)
     session_id = await create_session(conn, school_id, publication_id, run_id, student_id)
     return World(
         school_id=school_id,
