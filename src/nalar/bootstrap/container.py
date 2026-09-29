@@ -43,6 +43,7 @@ from nalar.application.ports.auth import TokenVerifier
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.queue import QueueConsumer
+from nalar.application.ports.readiness import ReadinessProbe
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
@@ -52,6 +53,7 @@ from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
+from nalar.infrastructure.readiness import PoolAndAiProbe
 from nalar.presentation.api.rate_limit import RateLimiter
 
 
@@ -113,9 +115,14 @@ class InfrastructureProvider(Provider):
             min_size=self._settings.db_pool_min_size,
             max_size=self._settings.db_pool_max_size,
             statement_cache_size=self._settings.db_statement_cache_size,
+            command_timeout=self._settings.db_command_timeout_s,
         )
         yield pool
         await pool.close()
+
+    @provide(scope=Scope.APP)
+    def readiness(self, pool: asyncpg.Pool) -> ReadinessProbe:
+        return PoolAndAiProbe(pool, self._settings.ai_base_url)
 
     @provide(scope=Scope.REQUEST)
     def unit_of_work(self, pool: asyncpg.Pool) -> UnitOfWork:
