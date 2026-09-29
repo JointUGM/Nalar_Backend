@@ -8,14 +8,6 @@ import pytest
 
 from nalar.infrastructure.queue.pgmq import PgmqConsumer, PgmqSender
 from nalar.presentation.worker.runner import Handler, QueueLoop
-from tests.integration.conftest import TEST_DATABASE_URL
-
-
-@pytest.fixture
-async def pool() -> AsyncIterator[asyncpg.Pool]:
-    pool = await asyncpg.create_pool(TEST_DATABASE_URL, min_size=1, max_size=4)
-    yield pool
-    await pool.close()
 
 
 @pytest.fixture

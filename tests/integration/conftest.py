@@ -26,3 +26,10 @@ async def conn() -> AsyncIterator[asyncpg.Connection]:
 @pytest.fixture
 async def world(conn: asyncpg.Connection) -> World:
     return await build_world(conn)
+
+
+@pytest.fixture
+async def pool() -> AsyncIterator[asyncpg.Pool]:
+    pool = await asyncpg.create_pool(TEST_DATABASE_URL, min_size=1, max_size=6)
+    yield pool
+    await pool.close()

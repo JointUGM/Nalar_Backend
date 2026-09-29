@@ -11,12 +11,14 @@ from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
+from nalar.application.ports.runs import RunsRepo
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
 from nalar.infrastructure.db.repositories.identity import PgIdentityRepo
 from nalar.infrastructure.db.repositories.jobs import PgJobStore
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
+from nalar.infrastructure.db.repositories.runs import PgRunsRepo
 from nalar.infrastructure.queue.pgmq import PgmqSender
 
 type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
@@ -29,6 +31,7 @@ class PgUnitOfWork:
     queue: QueueSender
     identity: IdentityRepo
     publications: PublicationsRepo
+    runs: RunsRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -53,6 +56,7 @@ class PgUnitOfWork:
         self.queue = PgmqSender(conn)
         self.identity = PgIdentityRepo(conn)
         self.publications = PgPublicationsRepo(conn)
+        self.runs = PgRunsRepo(conn)
         return self
 
     async def __aexit__(

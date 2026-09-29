@@ -7,6 +7,7 @@ from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
+from nalar.application.ports.runs import RunsRepo
 
 
 class UnitOfWork(Protocol):
@@ -18,6 +19,7 @@ class UnitOfWork(Protocol):
     queue: QueueSender
     identity: IdentityRepo
     publications: PublicationsRepo
+    runs: RunsRepo
 
     async def __aenter__(self) -> Self: ...
 
