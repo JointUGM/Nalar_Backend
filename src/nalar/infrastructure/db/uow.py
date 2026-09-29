@@ -32,8 +32,15 @@ class PgUnitOfWork:
     async def __aenter__(self) -> Self:
         self._lease = self._acquire()
         conn = await self._lease.__aenter__()
-        self._transaction = conn.transaction()
-        await self._transaction.start()
+        try:
+            self._transaction = conn.transaction()
+            await self._transaction.start()
+        except BaseException as exc:
+            # __aexit__ never runs when __aenter__ raises; without this the pool loses a slot.
+            await self._lease.__aexit__(type(exc), exc, exc.__traceback__)
+            self._lease = None
+            self._transaction = None
+            raise
         self.authz = PgAuthz(conn)
         self.ai_invocations = PgAiInvocationLog(conn)
         self.jobs = PgJobStore(conn)
