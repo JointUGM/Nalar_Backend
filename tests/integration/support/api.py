@@ -7,14 +7,16 @@ import httpx
 from dishka import Provider, Scope, provide
 
 from nalar.application.errors import Unauthenticated
+from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import AuthUser, TokenVerifier
+from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.container import build_container
 from nalar.bootstrap.settings import Settings
 from tests.integration.support.uow import uow_on
-from tests.unit.application.fakes import FakeClock
+from tests.unit.application.fakes import FakeClock, RecordingBackground, ScriptedAiGateway
 
 
 class UserIdTokens:
@@ -26,10 +28,18 @@ class UserIdTokens:
 
 
 class HarnessAdapters(Provider):
-    def __init__(self, conn: asyncpg.Connection, clock: FakeClock) -> None:
+    def __init__(
+        self,
+        conn: asyncpg.Connection,
+        clock: FakeClock,
+        ai: ScriptedAiGateway,
+        background: RecordingBackground,
+    ) -> None:
         super().__init__()
         self._conn = conn
         self._clock = clock
+        self._ai = ai
+        self._background = background
 
     @provide(scope=Scope.APP)
     def verifier(self) -> TokenVerifier:
@@ -39,6 +49,14 @@ class HarnessAdapters(Provider):
     def clock(self) -> Clock:
         return self._clock
 
+    @provide(scope=Scope.APP)
+    def ai(self) -> AiGateway:
+        return self._ai
+
+    @provide(scope=Scope.APP)
+    def background(self) -> BackgroundWork:
+        return self._background
+
     @provide(scope=Scope.REQUEST)
     def uow(self) -> UnitOfWork:
         return uow_on(self._conn)
@@ -46,10 +64,16 @@ class HarnessAdapters(Provider):
 
 @asynccontextmanager
 async def api_client(
-    conn: asyncpg.Connection, clock: FakeClock | None = None
+    conn: asyncpg.Connection,
+    clock: FakeClock | None = None,
+    ai: ScriptedAiGateway | None = None,
+    background: RecordingBackground | None = None,
 ) -> AsyncIterator[httpx.AsyncClient]:
     settings = Settings()
-    container = build_container(settings, HarnessAdapters(conn, clock or FakeClock()))
+    adapters = HarnessAdapters(
+        conn, clock or FakeClock(), ai or ScriptedAiGateway(), background or RecordingBackground()
+    )
+    container = build_container(settings, adapters)
     transport = httpx.ASGITransport(app=create_app(settings, container), raise_app_exceptions=False)
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://test/api/v1") as http:

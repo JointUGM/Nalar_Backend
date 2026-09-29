@@ -12,11 +12,17 @@ from nalar.application.features.publications.queries.teacher_assignments import 
 from nalar.application.features.publications.queries.teacher_publications import (
     TeacherPublicationsQuery,
 )
+from nalar.application.features.runs.commands.close_run import CloseRunHandler
+from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
+from nalar.application.features.runs.commands.start_run import StartRunHandler
+from nalar.application.features.runs.commands.warm_run import WarmRunHandler
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
+from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.uow import UnitOfWork
+from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
@@ -38,6 +44,14 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def clock(self) -> Clock:
         return SystemClock()
+
+    @provide(scope=Scope.APP)
+    def background(self, container: AsyncContainer) -> BackgroundWork:
+        return InProcessBackground(container)
+
+    @provide(scope=Scope.APP)
+    def join_codes(self) -> JoinCodes:
+        return JoinCodes()
 
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
@@ -98,6 +112,10 @@ class ApplicationProvider(Provider):
         PublishHandler,
         TeacherAssignmentsQuery,
         TeacherPublicationsQuery,
+        OpenLobbyHandler,
+        StartRunHandler,
+        CloseRunHandler,
+        WarmRunHandler,
     )
 
 
