@@ -5,15 +5,18 @@ from typing import Self
 
 from asyncpg.transaction import Transaction
 
+from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
+from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
 
 type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
 
 
 class PgUnitOfWork:
     authz: Authz
+    ai_invocations: AiInvocationLog
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -26,6 +29,7 @@ class PgUnitOfWork:
         self._transaction = conn.transaction()
         await self._transaction.start()
         self.authz = PgAuthz(conn)
+        self.ai_invocations = PgAiInvocationLog(conn)
         return self
 
     async def __aexit__(
