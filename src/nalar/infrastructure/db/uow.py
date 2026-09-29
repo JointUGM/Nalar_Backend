@@ -14,6 +14,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.sessions import SessionsRepo
+from nalar.application.ports.turns import TurnsRepo
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
@@ -23,6 +24,7 @@ from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
 from nalar.infrastructure.db.repositories.runs import PgRunsRepo
 from nalar.infrastructure.db.repositories.sessions import PgSessionsRepo
+from nalar.infrastructure.db.repositories.turns import PgTurnsRepo
 from nalar.infrastructure.queue.pgmq import PgmqSender
 
 type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
@@ -38,6 +40,7 @@ class PgUnitOfWork:
     runs: RunsRepo
     participants: ParticipantsRepo
     sessions: SessionsRepo
+    turns: TurnsRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -65,6 +68,7 @@ class PgUnitOfWork:
         self.runs = PgRunsRepo(conn)
         self.participants = PgParticipantsRepo(conn)
         self.sessions = PgSessionsRepo(conn)
+        self.turns = PgTurnsRepo(conn)
         return self
 
     async def __aexit__(

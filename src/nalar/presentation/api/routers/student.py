@@ -3,26 +3,34 @@ from uuid import UUID
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
-from nalar.application.errors import TooManyRequests
+from nalar.application.errors import InvalidInput, TooManyRequests
 from nalar.application.features.sessions.commands.join_run import JoinRun, JoinRunHandler
 from nalar.application.features.sessions.commands.start_window_session import (
     StartWindowSession,
     StartWindowSessionHandler,
+)
+from nalar.application.features.sessions.commands.submit_answer import (
+    SubmitAnswer,
+    SubmitAnswerHandler,
 )
 from nalar.application.features.sessions.commands.submit_warmup import (
     SubmitWarmup,
     SubmitWarmupHandler,
 )
 from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.domain.labels import ParticipantStatus
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.rate_limit import RateLimiter
 from nalar.presentation.api.schemas.student import (
+    AnswerAccepted,
+    AnswerIn,
     JoinIn,
     JoinOut,
     MissionCardOut,
     PromptOut,
+    StateOut,
     StudentLobbyOut,
     StudentMissionsOut,
     WarmupChoiceIn,
@@ -118,4 +126,38 @@ async def window_session(
         started_at=session.started_at,
         deadline_at=session.deadline_at,
         prompt=PromptOut(kind="anchor", text=session.anchor_text, turn_index=0),
+    )
+
+
+@router.post("/sessions/{session_id}/answers", status_code=202, response_model=AnswerAccepted)
+async def submit_answer(
+    session_id: UUID, body: AnswerIn, user: CurrentUser, handler: FromDishka[SubmitAnswerHandler]
+) -> AnswerAccepted:
+    text = body.answer_text.strip()
+    if not text:
+        raise InvalidInput(details={"answer_text": "empty"})
+    await handler.execute(
+        SubmitAnswer(user.id, session_id, body.turn_index, text, body.client_submission_id)
+    )
+    return AnswerAccepted(next_prompt_url=f"/api/v1/student/sessions/{session_id}/state")
+
+
+@router.get("/sessions/{session_id}/state", response_model=StateOut)
+async def session_state(
+    session_id: UUID, user: CurrentUser, query: FromDishka[SessionStateQuery]
+) -> StateOut:
+    state = await query.execute(user.id, session_id)
+    prompt = state.prompt
+    return StateOut(
+        status=state.status,
+        turn_index=state.turn_index,
+        probe_number=state.probe_number,
+        probe_total=state.probe_total,
+        started_at=state.started_at,
+        deadline_at=state.deadline_at,
+        prompt=PromptOut(kind=prompt.kind, text=prompt.text, turn_index=prompt.turn_index)
+        if prompt
+        else None,
+        safety_message=state.safety_message,
+        reflection_ready=state.reflection_ready,
     )

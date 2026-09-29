@@ -3,7 +3,7 @@ from uuid import UUID
 
 import asyncpg
 
-from nalar.application.ports.sessions import SessionRef, StudentMissionRow
+from nalar.application.ports.sessions import SessionRef, StateView, StudentMissionRow
 from nalar.domain.labels import RunMode, RunStatus, SessionStatus
 from nalar.infrastructure.db.pool import DbConnection
 
@@ -27,6 +27,21 @@ _STUDENT_MISSIONS = """
       join school_subjects ss on ss.id = kb.school_subject_id
      where ce.student_id = $1 and ce.status = 'active'
      order by coalesce(r.opens_at, p.created_at) desc
+"""
+
+_STATE_VIEW = """
+    select s.status::text as status, s.started_at, s.deadline_at, mv.max_turns,
+           t.turn_index as latest_turn_index, t.prompt_kind::text as latest_kind,
+           t.prompt_text as latest_text, t.answer_submitted_at as latest_answered_at,
+           exists (select 1 from session_evaluations e where e.session_id = s.id) as evaluated,
+           exists (select 1 from session_reflections r where r.session_id = s.id)
+             as reflection_ready
+      from sessions s
+      join publications p on p.id = s.publication_id
+      join mission_versions mv on mv.id = p.mission_version_id
+      join lateral (select * from session_turns st where st.session_id = s.id
+                     order by st.turn_index desc limit 1) t on true
+     where s.id = $1
 """
 
 
@@ -114,3 +129,24 @@ class PgSessionsRepo:
 
     async def student_mission_rows(self, student_id: UUID) -> list[StudentMissionRow]:
         return [_mission_row(r) for r in await self._conn.fetch(_STUDENT_MISSIONS, student_id)]
+
+    async def touch(self, session_id: UUID, now: datetime) -> None:
+        await self._conn.execute(
+            "update sessions set last_activity_at = $2 where id = $1", session_id, now
+        )
+
+    async def time_out(self, session_id: UUID, now: datetime) -> bool:
+        row = await self._conn.fetchrow(
+            "update sessions set status = 'timed_out', end_reason = 'max_duration_reached',"
+            " ended_at = deadline_at where id = $1 and status in ('in_progress', 'paused_safety')"
+            " and deadline_at <= $2 returning id",
+            session_id,
+            now,
+        )
+        return row is not None
+
+    async def state_view(self, session_id: UUID) -> StateView | None:
+        row = await self._conn.fetchrow(_STATE_VIEW, session_id)
+        if row is None:
+            return None
+        return StateView(**{**dict(row), "status": SessionStatus(row["status"])})
