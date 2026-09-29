@@ -1,7 +1,9 @@
 from collections.abc import AsyncIterator
+from uuid import UUID
 
 import httpx
 import pytest
+from dishka import Provider, Scope, make_async_container, provide
 from fastapi import FastAPI
 
 from nalar.application.errors import (
@@ -11,14 +13,30 @@ from nalar.application.errors import (
     Forbidden,
     InvalidInput,
     NotFound,
+    Unauthenticated,
     Unprocessable,
 )
+from nalar.application.ports.auth import AuthUser, TokenVerifier
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.settings import Settings
+from nalar.presentation.api.deps import CurrentUser
+
+
+class FakeVerifier:
+    async def verify(self, token: str) -> AuthUser:
+        if token != "good":
+            raise Unauthenticated()
+        return AuthUser(id=UUID(int=1))
+
+
+class FakeAuthProvider(Provider):
+    @provide(scope=Scope.APP)
+    def verifier(self) -> TokenVerifier:
+        return FakeVerifier()
 
 
 def build_test_app() -> FastAPI:
-    app = create_app(Settings())
+    app = create_app(Settings(), make_async_container(FakeAuthProvider()))
 
     @app.get("/boom/{kind}")
     async def boom(kind: str) -> None:
@@ -37,6 +55,10 @@ def build_test_app() -> FastAPI:
     @app.get("/number/{value}")
     async def number(value: int) -> dict[str, int]:
         return {"value": value}
+
+    @app.get("/me")
+    async def me(user: CurrentUser) -> dict[str, str]:
+        return {"id": str(user.id)}
 
     return app
 
@@ -113,3 +135,20 @@ async def test_invalid_incoming_request_id_is_replaced(client: httpx.AsyncClient
     response = await client.get("/health", headers={"X-Request-Id": "bad id with spaces"})
     assert response.headers["X-Request-Id"] != "bad id with spaces"
     assert len(response.headers["X-Request-Id"]) == 32
+
+
+async def test_missing_bearer_token_is_401(client: httpx.AsyncClient) -> None:
+    response = await client.get("/me")
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHENTICATED"
+
+
+async def test_rejected_token_is_401(client: httpx.AsyncClient) -> None:
+    response = await client.get("/me", headers={"Authorization": "Bearer bad"})
+    assert response.status_code == 401
+
+
+async def test_accepted_token_reaches_the_route(client: httpx.AsyncClient) -> None:
+    response = await client.get("/me", headers={"Authorization": "Bearer good"})
+    assert response.status_code == 200
+    assert response.json() == {"id": "00000000-0000-0000-0000-000000000001"}
