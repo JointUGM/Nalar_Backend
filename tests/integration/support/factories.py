@@ -18,6 +18,7 @@ SEED: dict[str, Any] = json.loads(
     )
 )
 SAMPLE_PACK: dict[str, Any] = SEED["pack"]
+LIVE_WARMUP: dict[str, Any] = SEED["mission"]["live_warmup"]
 
 
 def sample_pack(concept_ids: list[UUID], misconception_ids: list[UUID]) -> dict[str, Any]:
@@ -226,9 +227,9 @@ async def create_mission_version(
     version_id: UUID = await conn.fetchval(
         "insert into mission_versions (school_id, mission_id, version_number, anchor_problem,"
         " rubric, probe_plan, max_turns, created_by, reference_reasoning, context_pack,"
-        " reviewed_at) values ($1, $2, 1, 'Kenapa kelereng berhenti?', $3::jsonb, '{}'::jsonb,"
-        " 6, $4, case when $5 then 'Gaya gesek memperlambat kelereng' end,"
-        " case when $5 then $6::jsonb end,"
+        " live_warmup, reviewed_at) values ($1, $2, 1, 'Kenapa kelereng berhenti?', $3::jsonb,"
+        " '{}'::jsonb, 6, $4, case when $5 then 'Gaya gesek memperlambat kelereng' end,"
+        " case when $5 then $6::jsonb end, $7::jsonb,"
         " case when $5 then now() end) returning id",
         school_id,
         mission_id,
@@ -236,6 +237,7 @@ async def create_mission_version(
         creator_id,
         reviewed,
         json.dumps(context_pack) if context_pack is not None else "{}",
+        json.dumps(LIVE_WARMUP),
     )
     return mission_id, version_id
 
