@@ -24,7 +24,7 @@ def problems(score_checks: list[ScoreCheck], outcome_checks: list[OutcomeCheck])
         outcome_checks,
         turn_ids={TURN, UNANSWERED},
         target_ids={T1, T2},
-        misconception_ids={M},
+        misconception_concepts={M: T2},
     )
 
 
@@ -54,9 +54,10 @@ def test_outcomes_must_be_targets_and_consistent() -> None:
 
 def test_outcome_references_must_exist_in_this_session_and_pack() -> None:
     assert problems(scores(), [OutcomeCheck(T2, "misconception", uuid4())])
+    assert problems(scores(), [OutcomeCheck(T1, "misconception", M)])
     assert problems(scores(), [OutcomeCheck(T1, "mastered", None, evidence_turn_id=uuid4())])
     assert problems(scores(), [OutcomeCheck(T1, "mastered", None, resolved_in_session=True)])
     assert not problems(
         scores(),
-        [OutcomeCheck(T1, "mastered", None, M, resolved_in_session=True, evidence_turn_id=TURN)],
+        [OutcomeCheck(T2, "developing", None, M, resolved_in_session=True, evidence_turn_id=TURN)],
     )

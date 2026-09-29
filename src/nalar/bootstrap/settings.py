@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     db_pool_min_size: int = 1
     db_pool_max_size: int = 20
     db_statement_cache_size: int = 100
+    db_command_timeout_s: float = 10.0
 
     supabase_url: str = "http://127.0.0.1:54321"
     supabase_service_role_key: SecretStr = SecretStr("")
@@ -42,6 +43,25 @@ class Settings(BaseSettings):
 
     resend_api_key: SecretStr | None = None
     email_from: str | None = None
+
+    @model_validator(mode="after")
+    def deployed_needs_secrets(self) -> Self:
+        if self.env not in ("staging", "prod"):
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("NALAR_AI_SERVICE_KEY", self.ai_service_key),
+                ("NALAR_SUPABASE_SERVICE_ROLE_KEY", self.supabase_service_role_key),
+            )
+            if not value.get_secret_value()
+        ]
+        url = self.database_url.get_secret_value()
+        if "127.0.0.1" in url or "localhost" in url:
+            missing.append("NALAR_DATABASE_URL")
+        if missing:
+            raise ValueError(f"missing settings for {self.env}: {', '.join(missing)}")
+        return self
 
     @property
     def jwks_url(self) -> str:

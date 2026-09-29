@@ -7,6 +7,7 @@ import pytest
 from nalar.application.features.evaluation.commands.evaluate_session import EvaluateSessionHandler
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import EvaluateOut
+from tests.contract.forbidden import forbidden_keys, json_keys
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import World
 from tests.integration.support.uow import uow_on
@@ -57,7 +58,11 @@ def evaluation(
             {
                 "concept_id": str(world.concept_ids[1]),
                 "outcome": "misconception",
-                "misconception_id": str(world.misconception_ids[1]),
+                "misconception_id": next(
+                    m["id"]
+                    for m in world.pack["misconceptions"]
+                    if m["concept_id"] == str(world.concept_ids[1])
+                ),
                 "initial_misconception_id": None,
                 "resolved_in_session": False,
                 "evidence_turn_id": str(turn_id),
@@ -196,6 +201,7 @@ async def test_reflection_is_pending_then_stored_and_stable(
         first, second = await api.get(url, headers=headers), await api.get(url, headers=headers)
     assert first.status_code == 200
     assert first.json() == second.json()
+    assert not forbidden_keys(json_keys(first.json()))
     assert set(first.json()) == {"mission_title", "completed_at", "content", "opening_guess"}
 
 

@@ -13,6 +13,7 @@ from nalar.application.features.sessions.commands.submit_answer import (
     SubmitAnswerHandler,
 )
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from tests.contract.forbidden import forbidden_keys, json_keys
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import World, build_world
 from tests.unit.application.fakes import FakeClock, RecordingBackground
@@ -107,6 +108,7 @@ async def test_state_shows_the_open_prompt_and_nothing_hidden(
 ) -> None:
     async with api_client(conn) as api:
         body = (await api.get(state_url(world), headers=as_user(world.student_id))).json()
+    assert not forbidden_keys(json_keys(body))
     assert body["status"] == "awaiting_answer"
     assert body["prompt"] == {
         "kind": "anchor",

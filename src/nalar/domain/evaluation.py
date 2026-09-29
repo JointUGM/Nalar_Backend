@@ -30,7 +30,7 @@ def output_problems(
     *,
     turn_ids: set[UUID],
     target_ids: set[UUID],
-    misconception_ids: set[UUID],
+    misconception_concepts: Mapping[UUID, UUID],
 ) -> list[str]:
     """The backend's re-check of S4 output: literal quotes (AI-6 evidence), shape, and every
     reference the database would otherwise reject."""
@@ -57,8 +57,8 @@ def output_problems(
         if (outcome.outcome == "misconception") != (outcome.misconception_id is not None):
             problems.append(f"outcome {outcome.outcome} and its misconception disagree")
         for m in (outcome.misconception_id, outcome.initial_misconception_id):
-            if m is not None and m not in misconception_ids:
-                problems.append(f"misconception {m} is not in the pack")
+            if m is not None and misconception_concepts.get(m) != outcome.concept_id:
+                problems.append(f"misconception {m} is not in the pack for {outcome.concept_id}")
         if outcome.resolved_in_session and outcome.initial_misconception_id is None:
             problems.append(f"{outcome.concept_id}: resolved without an initial misconception")
         if outcome.evidence_turn_id is not None and outcome.evidence_turn_id not in turn_ids:

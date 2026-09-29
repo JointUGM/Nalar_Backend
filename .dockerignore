@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+**/__pycache__
+.mypy_cache
+.ruff_cache
+.pytest_cache
+tests
+docs
+supabase
+scripts
+contracts
+*.md
+.env
+openapi.json

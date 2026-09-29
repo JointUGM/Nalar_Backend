@@ -2,6 +2,7 @@ from types import TracebackType
 from typing import Protocol, Self
 
 from nalar.application.ports.ai import AiInvocationLog
+from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
 from nalar.application.ports.evaluations import EvaluationsRepo
 from nalar.application.ports.identity import IdentityRepo
@@ -10,6 +11,7 @@ from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
+from nalar.application.ports.results import ResultsRepo
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.scheduler import SchedulerRepo
 from nalar.application.ports.sessions import SessionsRepo
@@ -34,6 +36,8 @@ class UnitOfWork(Protocol):
     telemetry: TelemetryRepo
     scheduler: SchedulerRepo
     evaluations: EvaluationsRepo
+    results: ResultsRepo
+    audit: AuditRepo
 
     async def __aenter__(self) -> Self: ...
 

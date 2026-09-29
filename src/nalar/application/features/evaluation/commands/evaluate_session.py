@@ -145,5 +145,7 @@ def _problems(data: EvaluationInput, result: EvaluateOut) -> list[str]:
         ],
         turn_ids={t.id for t in data.turns},
         target_ids=set(target_ids_from_pack(pack)),
-        misconception_ids={UUID(str(m["id"])) for m in pack.get("misconceptions") or []},
+        misconception_concepts={
+            UUID(str(m["id"])): UUID(str(m["concept_id"])) for m in pack.get("misconceptions") or []
+        },
     )

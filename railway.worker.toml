@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python -m nalar.bootstrap.worker"
+restartPolicyType = "ALWAYS"

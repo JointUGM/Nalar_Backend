@@ -4,6 +4,7 @@ from uuid import UUID
 import asyncpg
 
 from nalar.domain import join_code
+from tests.contract.forbidden import forbidden_keys, json_keys
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import (
     World,
@@ -41,6 +42,7 @@ async def test_lobby_join_creates_a_waiting_participant_and_a_rejoin_reuses_it(
             "/student/runs/join", json={"join_code": code}, headers=as_user(student)
         )
     assert first.status_code == 200
+    assert not forbidden_keys(json_keys([first.json(), second.json()]))
     assert first.json()["run_status"] == "lobby"
     assert first.json()["session_id"] is None
     assert [c["id"] for c in first.json()["warmup"]["choices"]] == ["a", "b", "c"]
