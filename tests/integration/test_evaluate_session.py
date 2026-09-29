@@ -57,7 +57,11 @@ def evaluation(
             {
                 "concept_id": str(world.concept_ids[1]),
                 "outcome": "misconception",
-                "misconception_id": str(world.misconception_ids[1]),
+                "misconception_id": next(
+                    m["id"]
+                    for m in world.pack["misconceptions"]
+                    if m["concept_id"] == str(world.concept_ids[1])
+                ),
                 "initial_misconception_id": None,
                 "resolved_in_session": False,
                 "evidence_turn_id": str(turn_id),
