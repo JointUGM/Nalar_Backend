@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     default_concurrency: int = 4
 
     default_planner_mode: Literal["table", "hybrid"] = "table"
+    join_rate_limit_per_minute: int = 10
     embedding_model: str = "text-embedding-3-small"
     cors_origins: list[str] = ["http://localhost:3000"]
 

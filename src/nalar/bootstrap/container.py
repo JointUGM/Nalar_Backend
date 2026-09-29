@@ -16,6 +16,13 @@ from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
+from nalar.application.features.sessions.commands.join_run import JoinRunHandler
+from nalar.application.features.sessions.commands.start_window_session import (
+    StartWindowSessionHandler,
+)
+from nalar.application.features.sessions.commands.submit_warmup import SubmitWarmupHandler
+from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
 from nalar.application.ports.background import BackgroundWork
@@ -30,6 +37,7 @@ from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
+from nalar.presentation.api.rate_limit import RateLimiter
 
 
 class InfrastructureProvider(Provider):
@@ -52,6 +60,10 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def join_codes(self) -> JoinCodes:
         return JoinCodes()
+
+    @provide(scope=Scope.APP)
+    def join_limiter(self) -> RateLimiter:
+        return RateLimiter(self._settings.join_rate_limit_per_minute)
 
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
@@ -116,6 +128,11 @@ class ApplicationProvider(Provider):
         StartRunHandler,
         CloseRunHandler,
         WarmRunHandler,
+        JoinRunHandler,
+        SubmitWarmupHandler,
+        StartWindowSessionHandler,
+        LobbyStateQuery,
+        StudentMissionsQuery,
     )
 
 

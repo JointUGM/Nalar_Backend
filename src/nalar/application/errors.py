@@ -47,6 +47,11 @@ class Unprocessable(AppError):
     message = "Data tidak dapat diproses."
 
 
+class TooManyRequests(AppError):
+    code = "RATE_LIMITED"
+    message = "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi."
+
+
 class DependencyUnavailable(AppError):
     code = "DEPENDENCY_UNAVAILABLE"
     message = "Layanan sedang tidak tersedia. Coba lagi sebentar."

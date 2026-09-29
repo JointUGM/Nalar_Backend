@@ -13,6 +13,7 @@ from nalar.application.errors import (
     Forbidden,
     InvalidInput,
     NotFound,
+    TooManyRequests,
     Unauthenticated,
     Unprocessable,
 )
@@ -24,6 +25,7 @@ _STATUS_BY_ERROR: Mapping[type[AppError], int] = {
     NotFound: 404,
     Conflict: 409,
     Unprocessable: 422,
+    TooManyRequests: 429,
     DependencyUnavailable: 503,
 }
 
