@@ -1,0 +1,4061 @@
+{
+  "components": {
+    "schemas": {
+      "AiPurpose": {
+        "enum": [
+          "kb_extract",
+          "kb_misconceptions",
+          "cp_align",
+          "kb_dedup",
+          "embedding",
+          "turn_analyze",
+          "probe_plan",
+          "session_evaluation",
+          "reflection_generation"
+        ],
+        "title": "AiPurpose",
+        "type": "string"
+      },
+      "AlignCpIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlignItemIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AlignCpIn",
+        "type": "object"
+      },
+      "AlignCpOut": {
+        "properties": {
+          "alignments": {
+            "items": {
+              "$ref": "#/components/schemas/CpAlignmentOut"
+            },
+            "title": "Alignments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "alignments"
+        ],
+        "title": "AlignCpOut",
+        "type": "object"
+      },
+      "AlignItemIn": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CpCandidateIn"
+            },
+            "maxItems": 10,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "concept_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Concept Ref",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_ref",
+          "name"
+        ],
+        "title": "AlignItemIn",
+        "type": "object"
+      },
+      "AnalysisOut": {
+        "description": "The latest answer: answer_state, misconceptions and frustration for its turn row.",
+        "properties": {
+          "answer_type": {
+            "$ref": "#/components/schemas/AnswerType"
+          },
+          "frustration": {
+            "title": "Frustration",
+            "type": "boolean"
+          },
+          "key_phrase": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Phrase"
+          },
+          "misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Misconception Id"
+          },
+          "secondary_misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondary Misconception Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ClassificationSource"
+          }
+        },
+        "required": [
+          "answer_type",
+          "source",
+          "misconception_id",
+          "secondary_misconception_id",
+          "frustration",
+          "key_phrase"
+        ],
+        "title": "AnalysisOut",
+        "type": "object"
+      },
+      "AnswerType": {
+        "description": "The prober's label for one answer. The backend maps it onto answer_state (Q-S3-1).",
+        "enum": [
+          "correct_reasoned",
+          "correct_unreasoned",
+          "misconception",
+          "mixed",
+          "evasive",
+          "manipulation",
+          "unsure",
+          "safety"
+        ],
+        "title": "AnswerType",
+        "type": "string"
+      },
+      "BankQuestionIn": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stored as question_bank_id",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Misconception Id"
+          },
+          "move": {
+            "$ref": "#/components/schemas/ProbeStrategy"
+          },
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "move",
+          "text"
+        ],
+        "title": "BankQuestionIn",
+        "type": "object"
+      },
+      "Body_chunk_section_v1_s1_sections_chunk_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "spec": {
+            "description": "JSON: {page_start, page_end, title, next_title}",
+            "title": "Spec",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "spec"
+        ],
+        "title": "Body_chunk_section_v1_s1_sections_chunk_post",
+        "type": "object"
+      },
+      "Body_detect_sections_v1_s1_sections_detect_post": {
+        "properties": {
+          "fallback_title": {
+            "default": "Materi",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Fallback Title",
+            "type": "string"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_detect_sections_v1_s1_sections_detect_post",
+        "type": "object"
+      },
+      "CallStatus": {
+        "description": "Mapped by the backend onto its ai_call_status labels.",
+        "enum": [
+          "success",
+          "error"
+        ],
+        "title": "CallStatus",
+        "type": "string"
+      },
+      "CandidateIn": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "similarity": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Similarity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "concept_id",
+          "name",
+          "similarity"
+        ],
+        "title": "CandidateIn",
+        "type": "object"
+      },
+      "ChunkKind": {
+        "enum": [
+          "explanation",
+          "example",
+          "activity",
+          "exercise",
+          "answer_key",
+          "summary",
+          "sidebar",
+          "other"
+        ],
+        "title": "ChunkKind",
+        "type": "string"
+      },
+      "ChunkOut": {
+        "properties": {
+          "chunk_kind": {
+            "$ref": "#/components/schemas/ChunkKind"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "content_sha256": {
+            "title": "Content Sha256",
+            "type": "string"
+          },
+          "embedding": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Embedding",
+            "type": "array"
+          },
+          "heading_path": {
+            "title": "Heading Path",
+            "type": "string"
+          },
+          "local_index": {
+            "title": "Local Index",
+            "type": "integer"
+          },
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "token_count": {
+            "title": "Token Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "local_index",
+          "page_start",
+          "page_end",
+          "heading_path",
+          "chunk_kind",
+          "content",
+          "token_count",
+          "content_sha256",
+          "embedding"
+        ],
+        "title": "ChunkOut",
+        "type": "object"
+      },
+      "ChunkRefIn": {
+        "description": "A stored material_chunks row, as the backend read it (ids are real UUIDs).",
+        "properties": {
+          "content": {
+            "maxLength": 40000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "heading_path": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Heading Path",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChunkKind"
+          },
+          "page_end": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page End"
+          },
+          "page_start": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Start"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content"
+        ],
+        "title": "ChunkRefIn",
+        "type": "object"
+      },
+      "ChunkSectionOut": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkOut"
+            },
+            "title": "Chunks",
+            "type": "array"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "skipped_pages": {
+            "items": {
+              "$ref": "#/components/schemas/SkippedPageOut"
+            },
+            "title": "Skipped Pages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "chunks",
+          "skipped_pages",
+          "embedding_model"
+        ],
+        "title": "ChunkSectionOut",
+        "type": "object"
+      },
+      "ClassificationSource": {
+        "enum": [
+          "prefilter",
+          "model",
+          "fallback"
+        ],
+        "title": "ClassificationSource",
+        "type": "string"
+      },
+      "ConceptDraftOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "embedding": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Embedding",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "prerequisite_existing_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Prerequisite Existing Ids",
+            "type": "array"
+          },
+          "prerequisite_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Prerequisite Keys",
+            "type": "array"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description",
+          "source_chunk_ids",
+          "prerequisite_keys",
+          "prerequisite_existing_ids",
+          "embedding"
+        ],
+        "title": "ConceptDraftOut",
+        "type": "object"
+      },
+      "ConceptForMisconceptionsIn": {
+        "properties": {
+          "concept_ref": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Concept Ref",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "existing_statements": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Existing Statements",
+            "type": "array"
+          },
+          "library_candidates": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryCandidateIn"
+            },
+            "maxItems": 10,
+            "title": "Library Candidates",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concept_ref",
+          "name",
+          "source_chunk_ids"
+        ],
+        "title": "ConceptForMisconceptionsIn",
+        "type": "object"
+      },
+      "ConceptOutcome": {
+        "description": "concept_outcome (NALAR-Schema.sql).",
+        "enum": [
+          "mastered",
+          "developing",
+          "misconception",
+          "not_observed"
+        ],
+        "title": "ConceptOutcome",
+        "type": "string"
+      },
+      "ConceptResultOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "evidence_turn_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Turn Id"
+          },
+          "initial_misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Misconception Id"
+          },
+          "misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Misconception Id"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ConceptOutcome"
+          },
+          "resolved_in_session": {
+            "title": "Resolved In Session",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "concept_id",
+          "outcome",
+          "misconception_id",
+          "evidence_turn_id",
+          "initial_misconception_id",
+          "resolved_in_session"
+        ],
+        "title": "ConceptResultOut",
+        "type": "object"
+      },
+      "ContextPackIn": {
+        "description": "The frozen mission package, written before publication and sent on every turn.",
+        "properties": {
+          "anchor_problem": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Anchor Problem",
+            "type": "string"
+          },
+          "answer_terms": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Answer Terms",
+            "type": "array"
+          },
+          "max_duration_minutes": {
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Max Duration Minutes",
+            "type": "integer"
+          },
+          "max_probes": {
+            "description": "mission_versions.max_turns",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Probes",
+            "type": "integer"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionIn"
+            },
+            "maxItems": 30,
+            "title": "Misconceptions",
+            "type": "array"
+          },
+          "pack_version": {
+            "const": 1,
+            "title": "Pack Version",
+            "type": "integer"
+          },
+          "question_bank": {
+            "items": {
+              "$ref": "#/components/schemas/BankQuestionIn"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Question Bank",
+            "type": "array"
+          },
+          "reference_reasoning": {
+            "description": "Hidden model answer; never sent to the writer",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Reference Reasoning",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetConceptIn"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pack_version",
+          "anchor_problem",
+          "reference_reasoning",
+          "max_probes",
+          "max_duration_minutes",
+          "targets",
+          "question_bank",
+          "answer_terms"
+        ],
+        "title": "ContextPackIn",
+        "type": "object"
+      },
+      "CoverageOut": {
+        "properties": {
+          "challenged": {
+            "title": "Challenged",
+            "type": "boolean"
+          },
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_id",
+          "challenged"
+        ],
+        "title": "CoverageOut",
+        "type": "object"
+      },
+      "CpAlignmentOut": {
+        "properties": {
+          "basis": {
+            "$ref": "#/components/schemas/CpBasis"
+          },
+          "concept_ref": {
+            "title": "Concept Ref",
+            "type": "string"
+          },
+          "outcome_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_ref",
+          "outcome_id",
+          "basis",
+          "reason"
+        ],
+        "title": "CpAlignmentOut",
+        "type": "object"
+      },
+      "CpBasis": {
+        "enum": [
+          "judge",
+          "no_candidates"
+        ],
+        "title": "CpBasis",
+        "type": "string"
+      },
+      "CpCandidateIn": {
+        "properties": {
+          "description": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "element": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Element"
+          },
+          "outcome_id": {
+            "format": "uuid",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "similarity": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Similarity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "outcome_id",
+          "description",
+          "similarity"
+        ],
+        "title": "CpCandidateIn",
+        "type": "object"
+      },
+      "DedupBasis": {
+        "enum": [
+          "name_match",
+          "similarity",
+          "judge",
+          "no_candidate"
+        ],
+        "title": "DedupBasis",
+        "type": "string"
+      },
+      "DedupDecisionOut": {
+        "properties": {
+          "action": {
+            "enum": [
+              "link",
+              "create"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/DedupBasis"
+          },
+          "existing_concept_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existing Concept Id"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Similarity"
+          }
+        },
+        "required": [
+          "key",
+          "action",
+          "existing_concept_id",
+          "basis",
+          "similarity",
+          "reason"
+        ],
+        "title": "DedupDecisionOut",
+        "type": "object"
+      },
+      "DedupItemIn": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/CandidateIn"
+            },
+            "maxItems": 10,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ],
+        "title": "DedupItemIn",
+        "type": "object"
+      },
+      "DedupeIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DedupItemIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DedupeIn",
+        "type": "object"
+      },
+      "DedupeOut": {
+        "properties": {
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/DedupDecisionOut"
+            },
+            "title": "Decisions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decisions"
+        ],
+        "title": "DedupeOut",
+        "type": "object"
+      },
+      "DetectSectionsOut": {
+        "properties": {
+          "has_toc": {
+            "title": "Has Toc",
+            "type": "boolean"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "pages_without_text": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Pages Without Text",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "page_count",
+          "has_toc",
+          "sections",
+          "pages_without_text"
+        ],
+        "title": "DetectSectionsOut",
+        "type": "object"
+      },
+      "DroppedOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "reason"
+        ],
+        "title": "DroppedOut",
+        "type": "object"
+      },
+      "EmbedIn": {
+        "properties": {
+          "tag": {
+            "enum": [
+              "query",
+              "chunk",
+              "concept",
+              "misconception",
+              "cp_statement",
+              "library"
+            ],
+            "title": "Tag",
+            "type": "string"
+          },
+          "texts": {
+            "items": {
+              "maxLength": 30000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Texts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "texts",
+          "tag"
+        ],
+        "title": "EmbedIn",
+        "type": "object"
+      },
+      "EmbedOut": {
+        "properties": {
+          "dimensions": {
+            "title": "Dimensions",
+            "type": "integer"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "vectors": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Vectors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vectors",
+          "embedding_model",
+          "dimensions"
+        ],
+        "title": "EmbedOut",
+        "type": "object"
+      },
+      "EndReason": {
+        "enum": [
+          "coverage_complete",
+          "turn_limit",
+          "time_limit"
+        ],
+        "title": "EndReason",
+        "type": "string"
+      },
+      "Envelope_AlignCpOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AlignCpOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[AlignCpOut]",
+        "type": "object"
+      },
+      "Envelope_ChunkSectionOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ChunkSectionOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[ChunkSectionOut]",
+        "type": "object"
+      },
+      "Envelope_DedupeOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/DedupeOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[DedupeOut]",
+        "type": "object"
+      },
+      "Envelope_DetectSectionsOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/DetectSectionsOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[DetectSectionsOut]",
+        "type": "object"
+      },
+      "Envelope_EmbedOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/EmbedOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[EmbedOut]",
+        "type": "object"
+      },
+      "Envelope_EvaluateOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/EvaluateOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[EvaluateOut]",
+        "type": "object"
+      },
+      "Envelope_ExtractConceptsOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ExtractConceptsOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[ExtractConceptsOut]",
+        "type": "object"
+      },
+      "Envelope_GenerateMisconceptionsOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/GenerateMisconceptionsOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[GenerateMisconceptionsOut]",
+        "type": "object"
+      },
+      "Envelope_NextTurnOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/NextTurnOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[NextTurnOut]",
+        "type": "object"
+      },
+      "Envelope_WarmOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/WarmOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[WarmOut]",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "description": "Every error response (design doc §12.2), with the invocations already paid for.",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          },
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          }
+        },
+        "required": [
+          "error",
+          "request_id",
+          "invocations"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "EvalMisconceptionIn": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "detection_cues": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "statement"
+        ],
+        "title": "EvalMisconceptionIn",
+        "type": "object"
+      },
+      "EvalTargetIn": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "EvalTargetIn",
+        "type": "object"
+      },
+      "EvalTurnIn": {
+        "description": "One session_turns row. S3's analysis of the answer is deliberately not accepted.",
+        "properties": {
+          "answer_text": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "session_turns.answer_text; null or empty when the turn was not answered",
+            "title": "Answer Text"
+          },
+          "kind": {
+            "enum": [
+              "anchor",
+              "probe"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "move": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbeStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "prompt_strategy"
+          },
+          "question_text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question Text",
+            "type": "string"
+          },
+          "target_concept_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Concept Id"
+          },
+          "turn_id": {
+            "description": "session_turns.id, returned on every quote",
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          },
+          "turn_index": {
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Turn Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_id",
+          "turn_index",
+          "kind",
+          "question_text"
+        ],
+        "title": "EvalTurnIn",
+        "type": "object"
+      },
+      "EvaluateIn": {
+        "properties": {
+          "context_pack": {
+            "$ref": "#/components/schemas/EvaluationPackIn"
+          },
+          "rubric": {
+            "$ref": "#/components/schemas/RubricIn"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/EvalTurnIn"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "context_pack",
+          "rubric",
+          "turns"
+        ],
+        "title": "EvaluateIn",
+        "type": "object"
+      },
+      "EvaluateOut": {
+        "properties": {
+          "concept_results": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptResultOut"
+            },
+            "title": "Concept Results",
+            "type": "array"
+          },
+          "reflection": {
+            "$ref": "#/components/schemas/SessionReflectionOut"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/RubricScoreOut"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "summary": {
+            "description": "session_evaluations.summary",
+            "title": "Summary",
+            "type": "string"
+          },
+          "turn_quality": {
+            "description": "session_evaluations.turn_quality",
+            "items": {
+              "$ref": "#/components/schemas/TurnQualityOut"
+            },
+            "title": "Turn Quality",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "scores",
+          "concept_results",
+          "turn_quality",
+          "reflection"
+        ],
+        "title": "EvaluateOut",
+        "type": "object"
+      },
+      "EvaluationPackIn": {
+        "description": "mission_versions.context_pack, sent unchanged. Only the fields S4 reads are declared;\nthe rest (question bank, limits) is accepted and ignored.",
+        "properties": {
+          "anchor_problem": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Anchor Problem",
+            "type": "string"
+          },
+          "answer_terms": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Answer Terms",
+            "type": "array"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/EvalMisconceptionIn"
+            },
+            "maxItems": 30,
+            "title": "Misconceptions",
+            "type": "array"
+          },
+          "pack_version": {
+            "const": 1,
+            "title": "Pack Version",
+            "type": "integer"
+          },
+          "reference_reasoning": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Reference Reasoning",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/EvalTargetIn"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pack_version",
+          "anchor_problem",
+          "reference_reasoning",
+          "targets",
+          "answer_terms"
+        ],
+        "title": "EvaluationPackIn",
+        "type": "object"
+      },
+      "ExistingConceptIn": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ExistingConceptIn",
+        "type": "object"
+      },
+      "ExistingLinkOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concept_id",
+          "source_chunk_ids"
+        ],
+        "title": "ExistingLinkOut",
+        "type": "object"
+      },
+      "ExtractConceptsIn": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkRefIn"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Chunks",
+            "type": "array"
+          },
+          "existing_concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ExistingConceptIn"
+            },
+            "maxItems": 1000,
+            "title": "Existing Concepts",
+            "type": "array"
+          },
+          "existing_prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/PrerequisiteEdgeIn"
+            },
+            "maxItems": 5000,
+            "title": "Existing Prerequisites",
+            "type": "array"
+          },
+          "phase": {
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Phase",
+            "type": "string"
+          },
+          "rejected_concepts": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedConceptIn"
+            },
+            "maxItems": 1000,
+            "title": "Rejected Concepts",
+            "type": "array"
+          },
+          "section_title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Section Title",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "phase",
+          "section_title",
+          "chunks"
+        ],
+        "title": "ExtractConceptsIn",
+        "type": "object"
+      },
+      "ExtractConceptsOut": {
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptDraftOut"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "dropped": {
+            "items": {
+              "$ref": "#/components/schemas/DroppedOut"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "existing_links": {
+            "items": {
+              "$ref": "#/components/schemas/ExistingLinkOut"
+            },
+            "title": "Existing Links",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concepts",
+          "existing_links",
+          "dropped",
+          "embedding_model"
+        ],
+        "title": "ExtractConceptsOut",
+        "type": "object"
+      },
+      "FailedConceptOut": {
+        "properties": {
+          "concept_ref": {
+            "title": "Concept Ref",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_ref",
+          "error"
+        ],
+        "title": "FailedConceptOut",
+        "type": "object"
+      },
+      "GenerateMisconceptionsIn": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkRefIn"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Chunks",
+            "type": "array"
+          },
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptForMisconceptionsIn"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Concepts",
+            "type": "array"
+          },
+          "phase": {
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Phase",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "phase",
+          "chunks",
+          "concepts"
+        ],
+        "title": "GenerateMisconceptionsIn",
+        "type": "object"
+      },
+      "GenerateMisconceptionsOut": {
+        "properties": {
+          "dropped": {
+            "items": {
+              "$ref": "#/components/schemas/DroppedOut"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "embedding_model": {
+            "title": "Embedding Model",
+            "type": "string"
+          },
+          "failed": {
+            "items": {
+              "$ref": "#/components/schemas/FailedConceptOut"
+            },
+            "title": "Failed",
+            "type": "array"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionOut"
+            },
+            "title": "Misconceptions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "misconceptions",
+          "dropped",
+          "failed",
+          "embedding_model"
+        ],
+        "title": "GenerateMisconceptionsOut",
+        "type": "object"
+      },
+      "GuardResult": {
+        "enum": [
+          "passed",
+          "blocked_shape",
+          "blocked_verdict",
+          "blocked_new_terms",
+          "blocked_similarity",
+          "blocked_drift",
+          "not_run"
+        ],
+        "title": "GuardResult",
+        "type": "string"
+      },
+      "HealthOut": {
+        "properties": {
+          "service": {
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "version"
+        ],
+        "title": "HealthOut",
+        "type": "object"
+      },
+      "HistoryTurnIn": {
+        "description": "One stored session_turns row with its prober trace. The last turn holds the new answer.",
+        "properties": {
+          "answer_text": {
+            "maxLength": 20000,
+            "title": "Answer Text",
+            "type": "string"
+          },
+          "answer_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The stored analysis; null for the latest answer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/TurnKind"
+          },
+          "misconception_ids": {
+            "description": "detected_misconception_id, then secondary_misconception_id",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Misconception Ids",
+            "type": "array"
+          },
+          "move": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbeStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "prompt_strategy"
+          },
+          "question_bank_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Bank Id"
+          },
+          "question_text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question Text",
+            "type": "string"
+          },
+          "target_concept_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Concept Id"
+          },
+          "turn_index": {
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Turn Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_index",
+          "kind",
+          "question_text",
+          "answer_text"
+        ],
+        "title": "HistoryTurnIn",
+        "type": "object"
+      },
+      "InvocationOut": {
+        "description": "One ai_invocations row for the backend to insert unchanged (AI-6).",
+        "properties": {
+          "cache_read_tokens": {
+            "title": "Cache Read Tokens",
+            "type": "integer"
+          },
+          "cache_write_tokens": {
+            "title": "Cache Write Tokens",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AiPurpose"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retrieval": {
+            "items": {
+              "$ref": "#/components/schemas/RetrievalRefOut"
+            },
+            "title": "Retrieval",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CallStatus"
+          }
+        },
+        "required": [
+          "purpose",
+          "model",
+          "prompt_version",
+          "provider",
+          "status",
+          "input_tokens",
+          "output_tokens",
+          "cache_read_tokens",
+          "cache_write_tokens",
+          "latency_ms",
+          "cost_usd",
+          "request_id",
+          "error_message",
+          "retrieval"
+        ],
+        "title": "InvocationOut",
+        "type": "object"
+      },
+      "LibraryCandidateIn": {
+        "properties": {
+          "correct_understanding": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Correct Understanding",
+            "type": "string"
+          },
+          "counter_examples": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "library_id": {
+            "format": "uuid",
+            "title": "Library Id",
+            "type": "string"
+          },
+          "similarity": {
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Similarity",
+            "type": "number"
+          },
+          "statement": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          },
+          "student_phrasings": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Student Phrasings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "library_id",
+          "statement",
+          "correct_understanding",
+          "similarity"
+        ],
+        "title": "LibraryCandidateIn",
+        "type": "object"
+      },
+      "MisconceptionIn": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "detection_cues": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "statement": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "statement"
+        ],
+        "title": "MisconceptionIn",
+        "type": "object"
+      },
+      "MisconceptionOut": {
+        "properties": {
+          "concept_ref": {
+            "title": "Concept Ref",
+            "type": "string"
+          },
+          "correct_understanding": {
+            "title": "Correct Understanding",
+            "type": "string"
+          },
+          "counter_examples": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "embedding": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Embedding",
+            "type": "array"
+          },
+          "library_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Library Id"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_ref",
+          "statement",
+          "correct_understanding",
+          "detection_cues",
+          "counter_examples",
+          "source_chunk_ids",
+          "library_id",
+          "embedding"
+        ],
+        "title": "MisconceptionOut",
+        "type": "object"
+      },
+      "MoveReasonCode": {
+        "enum": [
+          "default",
+          "mixed_answer",
+          "second_wrong_idea",
+          "no_change_after_example",
+          "frustration",
+          "already_covered",
+          "check_deeper"
+        ],
+        "title": "MoveReasonCode",
+        "type": "string"
+      },
+      "MoveSource": {
+        "enum": [
+          "planner",
+          "default",
+          "fixed_rule",
+          "prefilter",
+          "fallback_invalid",
+          "fallback_error"
+        ],
+        "title": "MoveSource",
+        "type": "string"
+      },
+      "NextTurnIn": {
+        "properties": {
+          "context_pack": {
+            "$ref": "#/components/schemas/ContextPackIn"
+          },
+          "elapsed_seconds": {
+            "maximum": 86400.0,
+            "minimum": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "integer"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryTurnIn"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "History",
+            "type": "array"
+          },
+          "planner_mode": {
+            "$ref": "#/components/schemas/PlannerMode",
+            "description": "publication_runs.planner_mode"
+          }
+        },
+        "required": [
+          "planner_mode",
+          "context_pack",
+          "history",
+          "elapsed_seconds"
+        ],
+        "title": "NextTurnIn",
+        "type": "object"
+      },
+      "NextTurnOut": {
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/TurnAction"
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisOut"
+          },
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageOut"
+            },
+            "title": "Coverage",
+            "type": "array"
+          },
+          "end_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EndReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProbeOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "safety_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Message"
+          }
+        },
+        "required": [
+          "action",
+          "analysis",
+          "probe",
+          "end_reason",
+          "safety_message",
+          "coverage"
+        ],
+        "title": "NextTurnOut",
+        "type": "object"
+      },
+      "PlannerMode": {
+        "enum": [
+          "table",
+          "hybrid"
+        ],
+        "title": "PlannerMode",
+        "type": "string"
+      },
+      "PrerequisiteEdgeIn": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "prerequisite_concept_id": {
+            "format": "uuid",
+            "title": "Prerequisite Concept Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_id",
+          "prerequisite_concept_id"
+        ],
+        "title": "PrerequisiteEdgeIn",
+        "type": "object"
+      },
+      "ProbeOut": {
+        "description": "The next session_turns row.",
+        "properties": {
+          "allowed_moves": {
+            "items": {
+              "$ref": "#/components/schemas/ProbeStrategy"
+            },
+            "title": "Allowed Moves",
+            "type": "array"
+          },
+          "guard_result": {
+            "$ref": "#/components/schemas/GuardResult"
+          },
+          "move": {
+            "$ref": "#/components/schemas/ProbeStrategy"
+          },
+          "move_source": {
+            "$ref": "#/components/schemas/MoveSource"
+          },
+          "question_bank_id": {
+            "title": "Question Bank Id",
+            "type": "string"
+          },
+          "question_source": {
+            "$ref": "#/components/schemas/QuestionSource"
+          },
+          "question_text": {
+            "title": "Question Text",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/MoveReasonCode"
+          },
+          "target_concept_id": {
+            "format": "uuid",
+            "title": "Target Concept Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "move",
+          "allowed_moves",
+          "target_concept_id",
+          "question_bank_id",
+          "question_text",
+          "question_source",
+          "move_source",
+          "reason_code",
+          "reason",
+          "guard_result"
+        ],
+        "title": "ProbeOut",
+        "type": "object"
+      },
+      "ProbeStrategy": {
+        "description": "probe_strategy: the five NALAR-Schema.sql labels plus three from migration 002.",
+        "enum": [
+          "transfer",
+          "request_justification",
+          "counter_example",
+          "decompose",
+          "refuse_and_redirect",
+          "deeper_reason",
+          "explain_mechanism",
+          "simpler_reason"
+        ],
+        "title": "ProbeStrategy",
+        "type": "string"
+      },
+      "QuestionSource": {
+        "enum": [
+          "adapted",
+          "approved"
+        ],
+        "title": "QuestionSource",
+        "type": "string"
+      },
+      "RejectedConceptIn": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "RejectedConceptIn",
+        "type": "object"
+      },
+      "RetrievalPath": {
+        "enum": [
+          "link",
+          "search",
+          "teacher_confirmed"
+        ],
+        "title": "RetrievalPath",
+        "type": "string"
+      },
+      "RetrievalRefOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "path": {
+            "$ref": "#/components/schemas/RetrievalPath"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RetrievalSource"
+          }
+        },
+        "required": [
+          "source",
+          "id",
+          "path",
+          "rank",
+          "score"
+        ],
+        "title": "RetrievalRefOut",
+        "type": "object"
+      },
+      "RetrievalSource": {
+        "enum": [
+          "material_chunk",
+          "cp_outcome",
+          "library",
+          "concept"
+        ],
+        "title": "RetrievalSource",
+        "type": "string"
+      },
+      "RubricDimension": {
+        "description": "rubric_dimension (NALAR-Schema.sql).",
+        "enum": [
+          "claim",
+          "evidence",
+          "mechanism",
+          "transfer"
+        ],
+        "title": "RubricDimension",
+        "type": "string"
+      },
+      "RubricIn": {
+        "description": "mission_versions.rubric: five descriptors per dimension; list position is the level.",
+        "properties": {
+          "claim": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Claim",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "mechanism": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Mechanism",
+            "type": "array"
+          },
+          "transfer": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Transfer",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim",
+          "evidence",
+          "mechanism",
+          "transfer"
+        ],
+        "title": "RubricIn",
+        "type": "object"
+      },
+      "RubricScoreOut": {
+        "properties": {
+          "dimension": {
+            "$ref": "#/components/schemas/RubricDimension"
+          },
+          "evidence": {
+            "description": "score_evidence rows; at least one",
+            "items": {
+              "$ref": "#/components/schemas/ScoreEvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "level": {
+            "description": "evaluation_scores.ai_level and final_level",
+            "title": "Level",
+            "type": "integer"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dimension",
+          "level",
+          "rationale",
+          "evidence"
+        ],
+        "title": "RubricScoreOut",
+        "type": "object"
+      },
+      "ScoreEvidenceOut": {
+        "properties": {
+          "quote": {
+            "description": "The student's own words, verbatim from that turn's answer",
+            "title": "Quote",
+            "type": "string"
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turn_id",
+          "quote"
+        ],
+        "title": "ScoreEvidenceOut",
+        "type": "object"
+      },
+      "SectionOut": {
+        "properties": {
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "parent_ordinal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Ordinal"
+          },
+          "suggested": {
+            "title": "Suggested",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "level",
+          "title",
+          "page_start",
+          "page_end",
+          "parent_ordinal",
+          "suggested"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
+      "SessionReflectionOut": {
+        "properties": {
+          "content": {
+            "description": "session_reflections.content",
+            "title": "Content",
+            "type": "string"
+          },
+          "source": {
+            "description": "Not stored; 'template' after two blocked tries",
+            "enum": [
+              "model",
+              "template"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "source"
+        ],
+        "title": "SessionReflectionOut",
+        "type": "object"
+      },
+      "SkippedPageOut": {
+        "properties": {
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "scanned",
+              "blank"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page",
+          "reason"
+        ],
+        "title": "SkippedPageOut",
+        "type": "object"
+      },
+      "TargetConceptIn": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TargetConceptIn",
+        "type": "object"
+      },
+      "TurnAction": {
+        "enum": [
+          "probe",
+          "end",
+          "safety_pause"
+        ],
+        "title": "TurnAction",
+        "type": "string"
+      },
+      "TurnKind": {
+        "enum": [
+          "anchor",
+          "probe"
+        ],
+        "title": "TurnKind",
+        "type": "string"
+      },
+      "TurnQualityOut": {
+        "properties": {
+          "quality": {
+            "description": "0 empty or evasive … 4 correct with a clear mechanism",
+            "title": "Quality",
+            "type": "integer"
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_id",
+          "turn_index",
+          "quality"
+        ],
+        "title": "TurnQualityOut",
+        "type": "object"
+      },
+      "WarmIn": {
+        "properties": {
+          "context_pack": {
+            "$ref": "#/components/schemas/ContextPackIn"
+          }
+        },
+        "required": [
+          "context_pack"
+        ],
+        "title": "WarmIn",
+        "type": "object"
+      },
+      "WarmOut": {
+        "properties": {
+          "warmed": {
+            "title": "Warmed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "warmed"
+        ],
+        "title": "WarmOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "summary": "Stateless AI service for NALAR. Called by nalar-backend only.",
+    "title": "NALAR AI Service",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/embeddings": {
+      "post": {
+        "description": "Embeddings for seeds (CP statements, library), queries and hand-added items.",
+        "operationId": "embed_v1_embeddings_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbedIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EmbedOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Embed",
+        "tags": [
+          "embeddings"
+        ]
+      }
+    },
+    "/v1/s1/concepts/align-cp": {
+      "post": {
+        "description": "Label each concept with one CP statement from match_cp_outcomes candidates (cp_align).\n\nAlso used to re-align concepts listed in v_concepts_needing_cp_realign after an SA-7 remap.",
+        "operationId": "align_cp_v1_s1_concepts_align_cp_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlignCpIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AlignCpOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Align Cp",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/concepts/dedupe": {
+      "post": {
+        "description": "Link or create each new concept, given match_kb_concepts candidates (kb_dedup).",
+        "operationId": "dedupe_concepts_v1_s1_concepts_dedupe_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DedupeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DedupeOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Dedupe Concepts",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/concepts/extract": {
+      "post": {
+        "description": "List a chapter's key concepts and prerequisites from its chunks (TC-1, kb_extract).\n\nSend the chapter's stored chunks, the knowledge base's existing and rejected concepts and\nexisting prerequisite edges. New concepts come back with embeddings for match_kb_concepts.",
+        "operationId": "extract_concepts_v1_s1_concepts_extract_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractConceptsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ExtractConceptsOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Extract Concepts",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/misconceptions/generate": {
+      "post": {
+        "description": "Propose 1-4 misconceptions per new concept (kb_misconceptions).\n\nSend the chapter's chunks, and per concept its source chunks, match_misconception_library\ncandidates and existing statements. Concepts in `failed` can be re-sent on their own.",
+        "operationId": "generate_misconceptions_v1_s1_misconceptions_generate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateMisconceptionsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_GenerateMisconceptionsOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Generate Misconceptions",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/sections/chunk": {
+      "post": {
+        "description": "Parse, clean, structure, chunk, classify and embed one section (TC-1).\n\nStore each chunk with chunk_index = section.ordinal * 10_000 + local_index.",
+        "operationId": "chunk_section_v1_s1_sections_chunk_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_chunk_section_v1_s1_sections_chunk_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ChunkSectionOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Chunk Section",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/sections/detect": {
+      "post": {
+        "description": "Find the chapters of an uploaded PDF (TC-1). Makes no model calls.\n\nBuild a level-1 section or its level-2 children, never both (they overlap).",
+        "operationId": "detect_sections_v1_s1_sections_detect_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_detect_sections_v1_s1_sections_detect_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DetectSectionsOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Detect Sections",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s3/runs/warm": {
+      "post": {
+        "description": "Warm the prompt cache when the teacher starts a run (TC-7). Call it once per run.\n\nA failed warm-up is not an error: the run works without it, only the first turns are\nslower. Failures come back as warnings.",
+        "operationId": "warm_v1_s3_runs_warm_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_WarmOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Warm",
+        "tags": [
+          "s3"
+        ]
+      }
+    },
+    "/v1/s3/turns/next": {
+      "post": {
+        "description": "Decide what follows the student's latest answer (ST-4): a probe, the end, or a safety pause.\n\nA model failure never fails the turn: it degrades to a teacher-approved question shown\nverbatim and is reported in `warnings`.",
+        "operationId": "next_turn_v1_s3_turns_next_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextTurnIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_NextTurnOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Next Turn",
+        "tags": [
+          "s3"
+        ]
+      }
+    },
+    "/v1/s4/sessions/evaluate": {
+      "post": {
+        "description": "Score a finished session and write the student's reflection (TC-10, ST-6).\n\nCall it once per session (NFR-R2). Every quote is verified to be the student's own words;\nan answer that cannot be verified fails with `ai_output_invalid` rather than being stored.",
+        "operationId": "evaluate_session_v1_s4_sessions_evaluate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EvaluateOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Evaluate Session",
+        "tags": [
+          "s4"
+        ]
+      }
+    }
+  }
+}

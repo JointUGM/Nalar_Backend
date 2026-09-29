@@ -4,9 +4,11 @@ import asyncpg
 import httpx
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
 
+from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.settings import Settings
+from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
@@ -46,6 +48,23 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def unit_of_work(self, pool: asyncpg.Pool) -> UnitOfWork:
         return PgUnitOfWork(pool.acquire)
+
+    @provide(scope=Scope.APP)
+    async def ai_gateway(self) -> AsyncIterator[AiGateway]:
+        s = self._settings
+        async with httpx.AsyncClient(
+            base_url=s.ai_base_url,
+            headers={"X-Service-Key": s.ai_service_key.get_secret_value()},
+        ) as http:
+            yield AiServiceClient(
+                http,
+                AiTimeouts(
+                    turn_s=s.ai_turn_timeout_s,
+                    warm_s=s.ai_warm_timeout_s,
+                    evaluate_s=s.ai_evaluate_timeout_s,
+                    embed_s=s.ai_embed_timeout_s,
+                ),
+            )
 
 
 def build_container(settings: Settings, *extra: Provider) -> AsyncContainer:
