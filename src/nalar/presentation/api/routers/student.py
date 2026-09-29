@@ -1,9 +1,14 @@
+import json
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
 from nalar.application.errors import InvalidInput, TooManyRequests
+from nalar.application.features.sessions.commands.ingest_telemetry import (
+    IngestTelemetry,
+    IngestTelemetryHandler,
+)
 from nalar.application.features.sessions.commands.join_run import JoinRun, JoinRunHandler
 from nalar.application.features.sessions.commands.start_window_session import (
     StartWindowSession,
@@ -33,6 +38,8 @@ from nalar.presentation.api.schemas.student import (
     StateOut,
     StudentLobbyOut,
     StudentMissionsOut,
+    TelemetryAccepted,
+    TelemetryIn,
     WarmupChoiceIn,
     WarmupChoiceOut,
     WarmupOut,
@@ -161,3 +168,19 @@ async def session_state(
         safety_message=state.safety_message,
         reflection_ready=state.reflection_ready,
     )
+
+
+@router.post("/sessions/{session_id}/telemetry", response_model=TelemetryAccepted)
+async def telemetry(
+    session_id: UUID,
+    body: TelemetryIn,
+    user: CurrentUser,
+    handler: FromDishka[IngestTelemetryHandler],
+) -> TelemetryAccepted:
+    events_json = json.dumps([e.model_dump(mode="json") for e in body.events])
+    seq = await handler.execute(
+        IngestTelemetry(
+            user.id, session_id, body.client_seq, body.turn_index, events_json, body.client_sent_at
+        )
+    )
+    return TelemetryAccepted(accepted_client_seq=seq)

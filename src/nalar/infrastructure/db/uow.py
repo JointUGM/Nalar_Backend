@@ -15,6 +15,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.sessions import SessionsRepo
+from nalar.application.ports.telemetry import TelemetryRepo
 from nalar.application.ports.turns import TurnsRepo
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
@@ -26,6 +27,7 @@ from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
 from nalar.infrastructure.db.repositories.runs import PgRunsRepo
 from nalar.infrastructure.db.repositories.sessions import PgSessionsRepo
+from nalar.infrastructure.db.repositories.telemetry import PgTelemetryRepo
 from nalar.infrastructure.db.repositories.turns import PgTurnsRepo
 from nalar.infrastructure.queue.pgmq import PgmqSender
 
@@ -44,6 +46,7 @@ class PgUnitOfWork:
     sessions: SessionsRepo
     turns: TurnsRepo
     notifications: NotificationsRepo
+    telemetry: TelemetryRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -73,6 +76,7 @@ class PgUnitOfWork:
         self.sessions = PgSessionsRepo(conn)
         self.turns = PgTurnsRepo(conn)
         self.notifications = PgNotificationsRepo(conn)
+        self.telemetry = PgTelemetryRepo(conn)
         return self
 
     async def __aexit__(

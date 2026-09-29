@@ -11,6 +11,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.sessions import SessionsRepo
+from nalar.application.ports.telemetry import TelemetryRepo
 from nalar.application.ports.turns import TurnsRepo
 
 
@@ -28,6 +29,7 @@ class UnitOfWork(Protocol):
     sessions: SessionsRepo
     turns: TurnsRepo
     notifications: NotificationsRepo
+    telemetry: TelemetryRepo
 
     async def __aenter__(self) -> Self: ...
 

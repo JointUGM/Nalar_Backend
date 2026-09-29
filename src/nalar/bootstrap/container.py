@@ -17,6 +17,7 @@ from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
+from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
 from nalar.application.features.sessions.commands.start_window_session import (
@@ -145,6 +146,7 @@ class ApplicationProvider(Provider):
         SubmitAnswerHandler,
         SessionStateQuery,
         RunTurnStepHandler,
+        IngestTelemetryHandler,
     )
 
 
