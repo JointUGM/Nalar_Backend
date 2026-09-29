@@ -2,15 +2,25 @@ from collections.abc import AsyncIterator
 
 import asyncpg
 import httpx
-from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
+from dishka import AsyncContainer, Provider, Scope, make_async_container, provide, provide_all
 
+from nalar.application.features.identity.queries.me import MeQuery
+from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
+from nalar.application.features.publications.queries.teacher_assignments import (
+    TeacherAssignmentsQuery,
+)
+from nalar.application.features.publications.queries.teacher_publications import (
+    TeacherPublicationsQuery,
+)
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
+from nalar.application.ports.clock import Clock
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
+from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
@@ -24,6 +34,14 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def settings(self) -> Settings:
         return self._settings
+
+    @provide(scope=Scope.APP)
+    def clock(self) -> Clock:
+        return SystemClock()
+
+    @provide(scope=Scope.APP)
+    def publish_defaults(self) -> PublishDefaults:
+        return PublishDefaults(planner_mode=self._settings.default_planner_mode)
 
     @provide(scope=Scope.APP)
     async def token_verifier(self) -> AsyncIterator[TokenVerifier]:
@@ -73,5 +91,15 @@ class InfrastructureProvider(Provider):
             )
 
 
+class ApplicationProvider(Provider):
+    scope = Scope.REQUEST
+    handlers = provide_all(
+        MeQuery,
+        PublishHandler,
+        TeacherAssignmentsQuery,
+        TeacherPublicationsQuery,
+    )
+
+
 def build_container(settings: Settings, *extra: Provider) -> AsyncContainer:
-    return make_async_container(InfrastructureProvider(settings), *extra)
+    return make_async_container(InfrastructureProvider(settings), ApplicationProvider(), *extra)

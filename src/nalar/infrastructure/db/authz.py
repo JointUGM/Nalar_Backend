@@ -153,3 +153,11 @@ class PgAuthz:
             user_id,
             school_id,
         )
+
+    async def is_school_teacher(self, user_id: UUID, school_id: UUID) -> bool:
+        return await self._check(
+            "select exists (select 1 from school_memberships where school_id = $2"
+            " and user_id = $1 and role = 'teacher' and status = 'active')",
+            user_id,
+            school_id,
+        )
