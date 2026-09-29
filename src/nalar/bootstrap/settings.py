@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     supabase_url: str = "http://127.0.0.1:54321"
     supabase_service_role_key: SecretStr = SecretStr("")
+    supabase_anon_key: SecretStr = SecretStr("")
+    seed_password: SecretStr = SecretStr("")
     supabase_jwt_secret: SecretStr | None = None
     jwt_audience: str = "authenticated"
 
