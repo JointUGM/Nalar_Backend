@@ -1,9 +1,10 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
-from nalar.domain.labels import RunMode, RunStatus, SessionStatus
+from nalar.domain.labels import RunMode, RunStatus, SessionEndReason, SessionStatus
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,35 @@ class StateView:
     latest_answered_at: datetime | None
     evaluated: bool
     reflection_ready: bool
+
+
+@dataclass(frozen=True)
+class StoredTurn:
+    id: UUID
+    turn_index: int
+    kind: str
+    question_text: str
+    answer_text: str | None
+    answer_state: str | None
+    move: str | None
+    target_concept_id: UUID | None
+    question_bank_id: str | None
+    detected_misconception_id: UUID | None
+    secondary_misconception_id: UUID | None
+
+
+@dataclass(frozen=True)
+class TurnContext:
+    session_id: UUID
+    school_id: UUID
+    publication_id: UUID
+    status: SessionStatus
+    started_at: datetime
+    deadline_at: datetime
+    max_turns: int
+    context_pack: Mapping[str, Any]
+    planner_mode: str
+    turns: tuple[StoredTurn, ...]
 
 
 @dataclass(frozen=True)
@@ -77,3 +107,17 @@ class SessionsRepo(Protocol):
         ...
 
     async def state_view(self, session_id: UUID) -> StateView | None: ...
+
+    async def turn_context(self, session_id: UUID) -> TurnContext | None: ...
+
+    async def lock_if_in_progress(self, session_id: UUID) -> bool:
+        """Lock the session row FOR UPDATE until commit; True when it is still in progress."""
+        ...
+
+    async def end(
+        self, session_id: UUID, status: SessionStatus, reason: SessionEndReason, now: datetime
+    ) -> bool:
+        """In progress → a terminal status, once; True for the caller that did it."""
+        ...
+
+    async def pause_for_safety(self, session_id: UUID) -> bool: ...

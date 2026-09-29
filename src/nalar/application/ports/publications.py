@@ -77,6 +77,10 @@ class PublicationSummary:
 
 
 class PublicationsRepo(Protocol):
+    async def teacher_ids(self, publication_id: UUID) -> list[UUID]:
+        """Active teachers assigned to the publication's class and subject."""
+        ...
+
     async def version_for_publish(self, version_id: UUID) -> VersionForPublish | None: ...
 
     async def class_ref(self, class_id: UUID) -> ClassRef | None: ...

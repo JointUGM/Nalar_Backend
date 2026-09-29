@@ -5,11 +5,13 @@ from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
 from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
+from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.sessions import SessionsRepo
+from nalar.application.ports.telemetry import TelemetryRepo
 from nalar.application.ports.turns import TurnsRepo
 
 
@@ -26,6 +28,8 @@ class UnitOfWork(Protocol):
     participants: ParticipantsRepo
     sessions: SessionsRepo
     turns: TurnsRepo
+    notifications: NotificationsRepo
+    telemetry: TelemetryRepo
 
     async def __aenter__(self) -> Self: ...
 

@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, NonNegativeInt
 
 from nalar.presentation.api.schemas.common import Body
 
@@ -105,3 +105,48 @@ class StateOut(BaseModel):
     prompt: PromptOut | None
     safety_message: str | None
     reflection_ready: bool
+
+
+class TypingValue(Body):
+    duration_ms: NonNegativeInt
+    chars: NonNegativeInt
+
+
+class PasteEvent(Body):
+    type: Literal["paste"]
+    at: AwareDatetime
+    value: NonNegativeInt
+
+
+class HiddenEvent(Body):
+    type: Literal["visibility_hidden"]
+    at: AwareDatetime
+    value: NonNegativeInt
+
+
+class ConnectionEvent(Body):
+    type: Literal["disconnect", "reconnect"]
+    at: AwareDatetime
+
+
+class TypingEvent(Body):
+    type: Literal["typing"]
+    at: AwareDatetime
+    value: TypingValue
+
+
+# NFR-S11: closed event shapes with integer values only, so no key content can get through.
+TelemetryEvent = Annotated[
+    PasteEvent | HiddenEvent | ConnectionEvent | TypingEvent, Field(discriminator="type")
+]
+
+
+class TelemetryIn(Body):
+    client_seq: int = Field(ge=0, le=2**31 - 1)
+    turn_index: int | None = Field(default=None, ge=0, le=50)
+    client_sent_at: AwareDatetime | None = None
+    events: list[TelemetryEvent] = Field(min_length=1, max_length=200)
+
+
+class TelemetryAccepted(BaseModel):
+    accepted_client_seq: int
