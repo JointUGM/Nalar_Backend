@@ -3,6 +3,7 @@ from typing import Protocol, Self
 
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
+from nalar.application.ports.evaluations import EvaluationsRepo
 from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.notifications import NotificationsRepo
@@ -32,6 +33,7 @@ class UnitOfWork(Protocol):
     notifications: NotificationsRepo
     telemetry: TelemetryRepo
     scheduler: SchedulerRepo
+    evaluations: EvaluationsRepo
 
     async def __aenter__(self) -> Self: ...
 

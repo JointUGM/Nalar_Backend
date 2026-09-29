@@ -3,6 +3,7 @@ from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from nalar.application.errors import InvalidInput, TooManyRequests
 from nalar.application.features.sessions.commands.ingest_telemetry import (
@@ -23,6 +24,7 @@ from nalar.application.features.sessions.commands.submit_warmup import (
     SubmitWarmupHandler,
 )
 from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.domain.labels import ParticipantStatus
@@ -34,7 +36,9 @@ from nalar.presentation.api.schemas.student import (
     JoinIn,
     JoinOut,
     MissionCardOut,
+    OpeningGuessOut,
     PromptOut,
+    ReflectionOut,
     StateOut,
     StudentLobbyOut,
     StudentMissionsOut,
@@ -184,3 +188,25 @@ async def telemetry(
         )
     )
     return TelemetryAccepted(accepted_client_seq=seq)
+
+
+@router.get(
+    "/sessions/{session_id}/reflection",
+    response_model=ReflectionOut,
+    responses={202: {"description": "Evaluation still pending"}},
+)
+async def reflection(
+    session_id: UUID, user: CurrentUser, query: FromDishka[ReflectionQuery]
+) -> ReflectionOut | JSONResponse:
+    found = await query.execute(user.id, session_id)
+    if found is None:
+        return JSONResponse({"status": "pending"}, status_code=202)
+    guess = found.opening_guess
+    return ReflectionOut(
+        mission_title=found.mission_title,
+        completed_at=found.completed_at,
+        content=found.content,
+        opening_guess=OpeningGuessOut(choice_id=guess.choice_id, text=guess.text)
+        if guess
+        else None,
+    )

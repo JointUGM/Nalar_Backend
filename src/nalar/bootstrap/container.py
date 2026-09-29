@@ -5,6 +5,9 @@ import asyncpg
 import httpx
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide, provide_all
 
+from nalar.application.features.evaluation.commands.evaluate_session import (
+    EvaluateSessionHandler,
+)
 from nalar.application.features.identity.queries.me import MeQuery
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
@@ -27,6 +30,7 @@ from nalar.application.features.sessions.commands.start_window_session import (
 from nalar.application.features.sessions.commands.submit_answer import SubmitAnswerHandler
 from nalar.application.features.sessions.commands.submit_warmup import SubmitWarmupHandler
 from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.application.features.sessions.timing import TurnTiming
@@ -156,6 +160,8 @@ class ApplicationProvider(Provider):
         RunTurnStepHandler,
         IngestTelemetryHandler,
         TickHandler,
+        EvaluateSessionHandler,
+        ReflectionQuery,
     )
 
 

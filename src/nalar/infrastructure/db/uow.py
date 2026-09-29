@@ -7,6 +7,7 @@ from asyncpg.transaction import Transaction
 
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
+from nalar.application.ports.evaluations import EvaluationsRepo
 from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.notifications import NotificationsRepo
@@ -21,6 +22,7 @@ from nalar.application.ports.turns import TurnsRepo
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
+from nalar.infrastructure.db.repositories.evaluations import PgEvaluationsRepo
 from nalar.infrastructure.db.repositories.identity import PgIdentityRepo
 from nalar.infrastructure.db.repositories.jobs import PgJobStore
 from nalar.infrastructure.db.repositories.notifications import PgNotificationsRepo
@@ -50,6 +52,7 @@ class PgUnitOfWork:
     notifications: NotificationsRepo
     telemetry: TelemetryRepo
     scheduler: SchedulerRepo
+    evaluations: EvaluationsRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -81,6 +84,7 @@ class PgUnitOfWork:
         self.notifications = PgNotificationsRepo(conn)
         self.telemetry = PgTelemetryRepo(conn)
         self.scheduler = PgSchedulerRepo(conn)
+        self.evaluations = PgEvaluationsRepo(conn)
         return self
 
     async def __aexit__(
