@@ -7,9 +7,13 @@ from asyncpg.transaction import Transaction
 
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
+from nalar.application.ports.jobs import JobStore
+from nalar.application.ports.queue import QueueSender
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
+from nalar.infrastructure.db.repositories.jobs import PgJobStore
+from nalar.infrastructure.queue.pgmq import PgmqSender
 
 type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
 
@@ -17,6 +21,8 @@ type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
 class PgUnitOfWork:
     authz: Authz
     ai_invocations: AiInvocationLog
+    jobs: JobStore
+    queue: QueueSender
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -30,6 +36,8 @@ class PgUnitOfWork:
         await self._transaction.start()
         self.authz = PgAuthz(conn)
         self.ai_invocations = PgAiInvocationLog(conn)
+        self.jobs = PgJobStore(conn)
+        self.queue = PgmqSender(conn)
         return self
 
     async def __aexit__(

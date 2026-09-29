@@ -6,12 +6,14 @@ from dishka import AsyncContainer, Provider, Scope, make_async_container, provid
 
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
+from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from nalar.infrastructure.queue.pgmq import PgmqConsumer
 
 
 class InfrastructureProvider(Provider):
@@ -48,6 +50,10 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def unit_of_work(self, pool: asyncpg.Pool) -> UnitOfWork:
         return PgUnitOfWork(pool.acquire)
+
+    @provide(scope=Scope.APP)
+    def queue_consumer(self, pool: asyncpg.Pool) -> QueueConsumer:
+        return PgmqConsumer(pool)
 
     @provide(scope=Scope.APP)
     async def ai_gateway(self) -> AsyncIterator[AiGateway]:
