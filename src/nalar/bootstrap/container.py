@@ -17,6 +17,7 @@ from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
+from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
@@ -74,6 +75,13 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def turn_timing(self) -> TurnTiming:
         return TurnTiming(timedelta(seconds=self._settings.turn_recovery_after_s))
+
+    @provide(scope=Scope.APP)
+    def scheduler_timing(self) -> SchedulerTiming:
+        return SchedulerTiming(
+            recovery_after=timedelta(seconds=self._settings.turn_recovery_after_s),
+            evaluation_sweep_after=timedelta(seconds=self._settings.evaluation_sweep_after_s),
+        )
 
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
@@ -147,6 +155,7 @@ class ApplicationProvider(Provider):
         SessionStateQuery,
         RunTurnStepHandler,
         IngestTelemetryHandler,
+        TickHandler,
     )
 
 

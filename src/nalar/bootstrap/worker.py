@@ -6,7 +6,7 @@ from nalar.application.ports.queue import DEFAULT_QUEUE, EVAL_QUEUE, KB_QUEUE, Q
 from nalar.bootstrap.container import build_container
 from nalar.bootstrap.settings import Settings
 from nalar.presentation.worker.runner import QueueLoop
-from nalar.presentation.worker.tick import CRON_HANDLERS
+from nalar.presentation.worker.tick import cron_handlers
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ async def run_worker(settings: Settings, stop: asyncio.Event) -> None:
             QueueLoop(
                 DEFAULT_QUEUE,
                 consumer,
-                CRON_HANDLERS,
+                cron_handlers(container),
                 settings.default_concurrency,
                 visibility_timeout_s=120,
             ),
