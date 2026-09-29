@@ -1,9 +1,12 @@
 from contextlib import nullcontext
+from uuid import uuid4
 
 import asyncpg
 import pytest
 
+from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from tests.integration.support.factories import World
 
 
 async def test_unit_of_work_commits_on_success_and_rolls_back_on_error(
@@ -20,3 +23,23 @@ async def test_unit_of_work_commits_on_success_and_rolls_back_on_error(
             raise RuntimeError
 
     assert [row["x"] for row in await conn.fetch("select x from uow_probe")] == [1]
+
+
+async def test_failed_work_is_rolled_back_with_its_queue_message(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    jobs_before = await conn.fetchval("select count(*) from jobs")
+    queued_before = await conn.fetchval("select count(*) from pgmq.q_nalar_default")
+    with pytest.raises(RuntimeError):
+        async with PgUnitOfWork(lambda: nullcontext(conn)) as uow:
+            await uow.jobs.create(
+                kind="kb_build_section",
+                entity_type="material_section",
+                entity_id=uuid4(),
+                school_id=world.school_id,
+                requested_by=world.teacher_id,
+            )
+            await uow.queue.send(DEFAULT_QUEUE, {"kind": "scheduler_tick"})
+            raise RuntimeError("use case failed")
+    assert await conn.fetchval("select count(*) from jobs") == jobs_before
+    assert await conn.fetchval("select count(*) from pgmq.q_nalar_default") == queued_before
