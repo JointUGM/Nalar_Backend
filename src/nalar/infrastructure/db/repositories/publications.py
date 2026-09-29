@@ -27,6 +27,21 @@ class PgPublicationsRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 
+    async def teacher_ids(self, publication_id: UUID) -> list[UUID]:
+        rows = await self._conn.fetch(
+            "select distinct ta.teacher_id from publications p"
+            " join mission_versions mv on mv.id = p.mission_version_id"
+            " join missions mi on mi.id = mv.mission_id"
+            " join knowledge_bases kb on kb.id = mi.knowledge_base_id"
+            " join teaching_assignments ta on ta.class_id = p.class_id"
+            "  and ta.school_subject_id = kb.school_subject_id"
+            " join school_memberships m on m.school_id = ta.school_id"
+            "  and m.user_id = ta.teacher_id and m.role = 'teacher' and m.status = 'active'"
+            " where p.id = $1",
+            publication_id,
+        )
+        return [r["teacher_id"] for r in rows]
+
     async def version_for_publish(self, version_id: UUID) -> VersionForPublish | None:
         row = await self._conn.fetchrow(
             "select mv.id, mv.school_id, mv.created_by, kb.school_subject_id,"

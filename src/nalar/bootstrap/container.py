@@ -18,6 +18,7 @@ from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenL
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
+from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
 from nalar.application.features.sessions.commands.start_window_session import (
     StartWindowSessionHandler,
 )
@@ -143,6 +144,7 @@ class ApplicationProvider(Provider):
         StudentMissionsQuery,
         SubmitAnswerHandler,
         SessionStateQuery,
+        RunTurnStepHandler,
     )
 
 

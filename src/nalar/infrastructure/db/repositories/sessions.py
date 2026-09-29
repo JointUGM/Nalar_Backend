@@ -1,13 +1,38 @@
+import json
 from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 
-from nalar.application.ports.sessions import SessionRef, StateView, StudentMissionRow
-from nalar.domain.labels import RunMode, RunStatus, SessionStatus
+from nalar.application.ports.sessions import (
+    SessionRef,
+    StateView,
+    StoredTurn,
+    StudentMissionRow,
+    TurnContext,
+)
+from nalar.domain.labels import RunMode, RunStatus, SessionEndReason, SessionStatus
 from nalar.infrastructure.db.pool import DbConnection
 
 _REF = "select id, run_id, status::text as status, started_at, deadline_at from sessions"
+
+_TURN_CONTEXT = """
+    select s.id as session_id, s.school_id, s.publication_id, s.status::text as status,
+           s.started_at, s.deadline_at, mv.max_turns, mv.context_pack,
+           r.planner_mode::text as planner_mode
+      from sessions s
+      join publications p on p.id = s.publication_id
+      join mission_versions mv on mv.id = p.mission_version_id
+      join publication_runs r on r.id = s.run_id
+     where s.id = $1
+"""
+
+_STORED_TURNS = """
+    select id, turn_index, prompt_kind::text as kind, prompt_text as question_text, answer_text,
+           answer_state::text as answer_state, prompt_strategy::text as move, target_concept_id,
+           question_bank_id, detected_misconception_id, secondary_misconception_id
+      from session_turns where session_id = $1 order by turn_index
+"""
 
 _STUDENT_MISSIONS = """
     select p.id as publication_id, mi.title as mission_title, ss.name as subject_name,
@@ -150,3 +175,48 @@ class PgSessionsRepo:
         if row is None:
             return None
         return StateView(**{**dict(row), "status": SessionStatus(row["status"])})
+
+    async def turn_context(self, session_id: UUID) -> TurnContext | None:
+        row = await self._conn.fetchrow(_TURN_CONTEXT, session_id)
+        if row is None:
+            return None
+        turns = await self._conn.fetch(_STORED_TURNS, session_id)
+        data = dict(row)
+        return TurnContext(
+            **{
+                **data,
+                "status": SessionStatus(data["status"]),
+                "context_pack": json.loads(data["context_pack"]),
+            },
+            turns=tuple(StoredTurn(**dict(t)) for t in turns),
+        )
+
+    async def lock_if_in_progress(self, session_id: UUID) -> bool:
+        return bool(
+            await self._conn.fetchval(
+                "select true from sessions where id = $1 and status = 'in_progress' for update",
+                session_id,
+            )
+        )
+
+    async def end(
+        self, session_id: UUID, status: SessionStatus, reason: SessionEndReason, now: datetime
+    ) -> bool:
+        row = await self._conn.fetchrow(
+            "update sessions set status = $2::session_status, end_reason = $3::session_end_reason,"
+            " ended_at = $4, last_activity_at = $4 where id = $1 and status = 'in_progress'"
+            " returning id",
+            session_id,
+            status.value,
+            reason.value,
+            now,
+        )
+        return row is not None
+
+    async def pause_for_safety(self, session_id: UUID) -> bool:
+        row = await self._conn.fetchrow(
+            "update sessions set status = 'paused_safety' where id = $1 and status = 'in_progress'"
+            " returning id",
+            session_id,
+        )
+        return row is not None
