@@ -24,7 +24,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.118.0
       - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor
       - run: uv sync --locked
       - run: uv run pytest tests/integration
