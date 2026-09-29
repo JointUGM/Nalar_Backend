@@ -10,7 +10,7 @@ from nalar.bootstrap.container import build_container
 from nalar.bootstrap.settings import Settings
 from nalar.presentation.api.middleware.errors import install_error_handlers
 from nalar.presentation.api.middleware.request_context import RequestContextMiddleware
-from nalar.presentation.api.routers import health, me, runs, student, teacher
+from nalar.presentation.api.routers import health, me, results, runs, student, teacher
 
 API_PREFIX = "/api/v1"
 
@@ -38,7 +38,7 @@ def create_app(
     app.add_middleware(RequestContextMiddleware)
     install_error_handlers(app)
     app.include_router(health.router)
-    for router in (me.router, teacher.router, runs.router, student.router):
+    for router in (me.router, teacher.router, runs.router, student.router, results.router):
         app.include_router(router, prefix=API_PREFIX)
     setup_dishka(container, app)
     return app

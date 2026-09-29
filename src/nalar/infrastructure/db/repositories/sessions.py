@@ -220,3 +220,22 @@ class PgSessionsRepo:
             session_id,
         )
         return row is not None
+
+    async def resume(self, session_id: UUID, now: datetime) -> bool:
+        row = await self._conn.fetchrow(
+            "update sessions set status = 'in_progress', last_activity_at = $2"
+            " where id = $1 and status = 'paused_safety' and deadline_at > $2 returning id",
+            session_id,
+            now,
+        )
+        return row is not None
+
+    async def end_safety(self, session_id: UUID, now: datetime) -> bool:
+        row = await self._conn.fetchrow(
+            "update sessions set status = 'ended_safety', end_reason = 'safety_pause',"
+            " ended_at = $2, last_activity_at = $2 where id = $1 and status = 'paused_safety'"
+            " returning id",
+            session_id,
+            now,
+        )
+        return row is not None

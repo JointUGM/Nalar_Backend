@@ -16,6 +16,9 @@ from nalar.application.features.publications.queries.teacher_assignments import 
 from nalar.application.features.publications.queries.teacher_publications import (
     TeacherPublicationsQuery,
 )
+from nalar.application.features.results.queries.class_map import ClassMapQuery
+from nalar.application.features.results.queries.monitor import MonitorQuery
+from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
@@ -24,6 +27,7 @@ from nalar.application.features.scheduler.commands.tick import SchedulerTiming, 
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
+from nalar.application.features.sessions.commands.safety_action import SafetyActionHandler
 from nalar.application.features.sessions.commands.start_window_session import (
     StartWindowSessionHandler,
 )
@@ -162,6 +166,10 @@ class ApplicationProvider(Provider):
         TickHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
+        MonitorQuery,
+        SessionReportQuery,
+        ClassMapQuery,
+        SafetyActionHandler,
     )
 
 
