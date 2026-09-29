@@ -52,7 +52,7 @@ class StudentLobbyOut(BaseModel):
 
 
 class PromptOut(BaseModel):
-    kind: Literal["anchor"]
+    kind: str
     text: str
     turn_index: int
 
@@ -82,3 +82,26 @@ class StudentMissionsOut(BaseModel):
     upcoming: list[MissionCardOut]
     open: list[MissionCardOut]
     completed: list[MissionCardOut]
+
+
+class AnswerIn(Body):
+    turn_index: int = Field(ge=0, le=50)
+    answer_text: str = Field(min_length=1, max_length=4000)
+    client_submission_id: UUID
+
+
+class AnswerAccepted(BaseModel):
+    status: Literal["processing"] = "processing"
+    next_prompt_url: str
+
+
+class StateOut(BaseModel):
+    status: str
+    turn_index: int
+    probe_number: int
+    probe_total: int
+    started_at: datetime
+    deadline_at: datetime
+    prompt: PromptOut | None
+    safety_message: str | None
+    reflection_ready: bool

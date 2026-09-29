@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from datetime import timedelta
 
 import asyncpg
 import httpx
@@ -20,9 +21,12 @@ from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.start_window_session import (
     StartWindowSessionHandler,
 )
+from nalar.application.features.sessions.commands.submit_answer import SubmitAnswerHandler
 from nalar.application.features.sessions.commands.submit_warmup import SubmitWarmupHandler
 from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
+from nalar.application.features.sessions.timing import TurnTiming
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import TokenVerifier
 from nalar.application.ports.background import BackgroundWork
@@ -64,6 +68,10 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def join_limiter(self) -> RateLimiter:
         return RateLimiter(self._settings.join_rate_limit_per_minute)
+
+    @provide(scope=Scope.APP)
+    def turn_timing(self) -> TurnTiming:
+        return TurnTiming(timedelta(seconds=self._settings.turn_recovery_after_s))
 
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
@@ -133,6 +141,8 @@ class ApplicationProvider(Provider):
         StartWindowSessionHandler,
         LobbyStateQuery,
         StudentMissionsQuery,
+        SubmitAnswerHandler,
+        SessionStateQuery,
     )
 
 

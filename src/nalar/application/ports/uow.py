@@ -10,6 +10,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.sessions import SessionsRepo
+from nalar.application.ports.turns import TurnsRepo
 
 
 class UnitOfWork(Protocol):
@@ -24,6 +25,7 @@ class UnitOfWork(Protocol):
     runs: RunsRepo
     participants: ParticipantsRepo
     sessions: SessionsRepo
+    turns: TurnsRepo
 
     async def __aenter__(self) -> Self: ...
 

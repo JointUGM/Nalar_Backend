@@ -35,6 +35,7 @@ class Settings(BaseSettings):
 
     default_planner_mode: Literal["table", "hybrid"] = "table"
     join_rate_limit_per_minute: int = 10
+    turn_recovery_after_s: float = 15.0
     embedding_model: str = "text-embedding-3-small"
     cors_origins: list[str] = ["http://localhost:3000"]
 
