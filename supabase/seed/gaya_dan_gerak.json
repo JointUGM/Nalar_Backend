@@ -1,0 +1,283 @@
+{
+  "school": {
+    "id": "c35910e3-e00d-51e4-b210-5d0f472dc545",
+    "name": "SMP Demo NALAR"
+  },
+  "academic_year": {
+    "id": "61bbbcc7-db3a-50b1-b536-2b7f35ce81a2",
+    "label": "2026/2027",
+    "starts_on": "2026-07-13",
+    "ends_on": "2027-06-30"
+  },
+  "class": {
+    "id": "cc0fc239-acf6-53dc-9a26-5236c89f476d",
+    "name": "8A",
+    "grade_level": 8
+  },
+  "subject": {
+    "id": "8a7cd1dc-74f6-54f9-bc4d-662425f5aeac",
+    "name": "IPA"
+  },
+  "users": {
+    "teacher": {
+      "email": "guru@demo.nalar.id",
+      "full_name": "Bu Sari Wulandari"
+    },
+    "admin": {
+      "email": "admin@demo.nalar.id",
+      "full_name": "Pak Admin Sekolah"
+    },
+    "students": {
+      "count": 32,
+      "email": "siswa{n:02d}@demo.nalar.id",
+      "full_name": "Siswa {n:02d}",
+      "nisn": "99000{n:05d}"
+    },
+    "parents": [
+      {
+        "email": "ortu01@demo.nalar.id",
+        "full_name": "Orang Tua 01",
+        "children": [
+          1
+        ]
+      },
+      {
+        "email": "ortu02@demo.nalar.id",
+        "full_name": "Orang Tua 02",
+        "children": [
+          2,
+          3
+        ]
+      },
+      {
+        "email": "ortu03@demo.nalar.id",
+        "full_name": "Orang Tua 03",
+        "children": [
+          4
+        ]
+      }
+    ]
+  },
+  "knowledge_base": {
+    "id": "3fb97de5-5bb2-581f-a346-bfe6084a80dd",
+    "topic_key": "gaya-dan-gerak",
+    "topic_title": "Gaya dan Gerak"
+  },
+  "mission": {
+    "id": "c67cd839-84c3-55df-bec3-efa502edf8a6",
+    "version_id": "daef422d-5f60-5a02-bba7-8df175bc4467",
+    "title": "Gaya dan Gerak",
+    "learning_objective": "Menjelaskan pengaruh gaya gesek terhadap gerak benda.",
+    "max_turns": 6,
+    "max_duration_minutes": 20,
+    "live_warmup": {
+      "prompt": "Apa dugaan awalmu?",
+      "choices": [
+        {
+          "id": "a",
+          "text": "Benda berhenti karena gayanya habis."
+        },
+        {
+          "id": "b",
+          "text": "Benda berhenti karena ada gaya yang melawan gerakannya."
+        },
+        {
+          "id": "c",
+          "text": "Aku belum yakin."
+        }
+      ]
+    }
+  },
+  "pack": {
+    "pack_version": 1,
+    "anchor_problem": "Kelereng didorong di lantai lalu dilepas. Kelereng itu makin pelan lalu berhenti. Kenapa kelereng itu berhenti?",
+    "reference_reasoning": "Kelereng melambat lalu berhenti karena ada gaya gesek antara kelereng dan lantai yang arahnya melawan gerak. Tanpa gaya yang melawan, benda yang bergerak akan terus bergerak dengan kecepatan tetap karena kelembaman.",
+    "max_probes": 5,
+    "max_duration_minutes": 15,
+    "targets": [
+      {
+        "id": "00000000-0000-0000-0000-000000000011",
+        "name": "Gaya gesek",
+        "description": "Gaya yang melawan gerak benda di permukaan."
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000012",
+        "name": "Kelembaman",
+        "description": "Benda bergerak tetap bergerak tanpa gaya."
+      }
+    ],
+    "misconceptions": [
+      {
+        "id": "00000000-0000-0000-0000-000000000021",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "statement": "Benda berhenti karena gaya dorongnya habis.",
+        "detection_cues": [
+          "gayanya habis",
+          "dorongannya hilang",
+          "tenaganya sudah tidak ada"
+        ]
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000022",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "statement": "Gesekan hanya terjadi pada permukaan yang kasar.",
+        "detection_cues": [
+          "lantainya licin jadi tidak ada gesekan",
+          "cuma permukaan kasar yang menahan"
+        ]
+      }
+    ],
+    "question_bank": [
+      {
+        "id": "gesek-transfer",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "transfer",
+        "misconception_id": null,
+        "text": "Bayangkan kelereng yang sama digelindingkan di atas es. Apa yang berbeda, dan kenapa?"
+      },
+      {
+        "id": "gesek-request_justification",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "request_justification",
+        "misconception_id": null,
+        "text": "Apa yang membuatmu yakin? Apa saja yang menyentuh kelereng saat menggelinding?"
+      },
+      {
+        "id": "gesek-counter_example",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "counter_example",
+        "misconception_id": "00000000-0000-0000-0000-000000000022",
+        "text": "Lantai keramik itu licin dan halus, tapi kelereng tetap berhenti. Kenapa bisa begitu?"
+      },
+      {
+        "id": "gesek-decompose",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "decompose",
+        "misconception_id": null,
+        "text": "Kita pelan-pelan. Setelah tanganmu lepas, apa saja yang masih menyentuh kelereng?"
+      },
+      {
+        "id": "gesek-refuse_and_redirect",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "refuse_and_redirect",
+        "misconception_id": null,
+        "text": "Aku tidak bisa memberi jawabannya, tapi aku penasaran pendapatmu. Kenapa kelereng itu akhirnya berhenti?"
+      },
+      {
+        "id": "gesek-deeper_reason",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "deeper_reason",
+        "misconception_id": null,
+        "text": "Kalau lantainya diganti karpet, apa yang berubah pada gerak kelereng, dan kenapa?"
+      },
+      {
+        "id": "gesek-explain_mechanism",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "explain_mechanism",
+        "misconception_id": null,
+        "text": "Coba ceritakan apa yang terjadi pada kelereng dari lepas sampai berhenti?"
+      },
+      {
+        "id": "gesek-simpler_reason",
+        "concept_id": "00000000-0000-0000-0000-000000000011",
+        "move": "simpler_reason",
+        "misconception_id": null,
+        "text": "Dengan kata-katamu sendiri, kenapa kelereng tidak menggelinding selamanya?"
+      },
+      {
+        "id": "lembam-transfer",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "transfer",
+        "misconception_id": null,
+        "text": "Sebuah bola ditendang di luar angkasa yang tidak ada udaranya. Apa yang terjadi pada bola itu, dan kenapa?"
+      },
+      {
+        "id": "lembam-request_justification",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "request_justification",
+        "misconception_id": null,
+        "text": "Kenapa kamu berpikir begitu? Apa yang terjadi pada dorongan tanganmu setelah kelereng lepas?"
+      },
+      {
+        "id": "lembam-counter_example",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "counter_example",
+        "misconception_id": "00000000-0000-0000-0000-000000000021",
+        "text": "Kalau dorongannya habis, kenapa pesawat luar angkasa tetap melaju walau mesinnya mati?"
+      },
+      {
+        "id": "lembam-decompose",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "decompose",
+        "misconception_id": null,
+        "text": "Kita pecah jadi kecil. Saat kelereng sudah lepas, apakah tanganmu masih mendorongnya?"
+      },
+      {
+        "id": "lembam-refuse_and_redirect",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "refuse_and_redirect",
+        "misconception_id": null,
+        "text": "Aku tidak bisa memberi tahu jawabannya. Menurutmu, apa yang membuat benda tetap bergerak setelah didorong?"
+      },
+      {
+        "id": "lembam-deeper_reason",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "deeper_reason",
+        "misconception_id": null,
+        "text": "Kalau tidak ada yang menghambat sama sekali, apa yang terjadi pada kelereng, dan kenapa?"
+      },
+      {
+        "id": "lembam-explain_mechanism",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "explain_mechanism",
+        "misconception_id": null,
+        "text": "Coba jelaskan, apa yang membuat kelereng masih bergerak setelah lepas dari tanganmu?"
+      },
+      {
+        "id": "lembam-simpler_reason",
+        "concept_id": "00000000-0000-0000-0000-000000000012",
+        "move": "simpler_reason",
+        "misconception_id": null,
+        "text": "Pakai contoh sehari-hari, kenapa benda yang sudah bergerak bisa terus bergerak?"
+      }
+    ],
+    "answer_terms": [
+      "gesekan",
+      "gaya gesek",
+      "kelembaman",
+      "inersia",
+      "hukum newton"
+    ]
+  },
+  "rubric": {
+    "claim": [
+      "Tidak ada klaim.",
+      "Klaim tidak jelas.",
+      "Klaim sebagian benar.",
+      "Klaim benar.",
+      "Klaim benar dan tepat sasaran."
+    ],
+    "evidence": [
+      "Tidak ada bukti.",
+      "Bukti tidak relevan.",
+      "Satu bukti relevan.",
+      "Beberapa bukti relevan.",
+      "Bukti relevan dan dikaitkan dengan klaim."
+    ],
+    "mechanism": [
+      "Tidak ada mekanisme.",
+      "Mekanisme keliru.",
+      "Mekanisme sebagian.",
+      "Mekanisme benar.",
+      "Mekanisme benar dan runtut."
+    ],
+    "transfer": [
+      "Tidak mencoba situasi baru.",
+      "Situasi baru dijawab keliru.",
+      "Situasi baru dijawab sebagian.",
+      "Situasi baru dijawab benar.",
+      "Situasi baru dijawab benar dengan alasan."
+    ]
+  },
+  "correct_understanding": "Kelereng melambat lalu berhenti karena ada gaya gesek antara kelereng dan lantai yang arahnya melawan gerak. Tanpa gaya yang melawan, benda yang bergerak akan terus bergerak dengan kecepatan tetap karena kelembaman."
+}
