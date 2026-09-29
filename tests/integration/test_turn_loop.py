@@ -6,6 +6,7 @@ import asyncpg
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from tests.contract.forbidden import forbidden_keys, json_keys
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import World, build_world
 from tests.integration.support.uow import uow_on
@@ -89,9 +90,11 @@ async def test_a_whole_session_runs_against_the_scripted_ai(
             )
             assert response.status_code == 202
             state = (await api.get(f"{url}/state", headers=headers)).json()
+            assert not forbidden_keys(json_keys([response.json(), state]))
             assert state["status"] == "processing"
             await step.execute(world.session_id, turn_index)
         final = (await api.get(f"{url}/state", headers=headers)).json()
+    assert not forbidden_keys(json_keys(final))
     queued = await conn.fetchval(
         "select count(*) from pgmq.q_nalar_eval where message->>'session_id' = $1",
         str(world.session_id),
