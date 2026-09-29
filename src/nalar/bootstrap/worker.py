@@ -5,8 +5,9 @@ import signal
 from nalar.application.ports.queue import DEFAULT_QUEUE, EVAL_QUEUE, KB_QUEUE, QueueConsumer
 from nalar.bootstrap.container import build_container
 from nalar.bootstrap.settings import Settings
+from nalar.presentation.worker.consumers.eval import eval_handlers
 from nalar.presentation.worker.runner import QueueLoop
-from nalar.presentation.worker.tick import CRON_HANDLERS
+from nalar.presentation.worker.tick import cron_handlers
 
 log = logging.getLogger(__name__)
 
@@ -17,13 +18,19 @@ async def run_worker(settings: Settings, stop: asyncio.Event) -> None:
         consumer = await container.get(QueueConsumer)
         loops = [
             QueueLoop(KB_QUEUE, consumer, {}, settings.kb_concurrency, visibility_timeout_s=900),
+            # Two evaluation attempts of up to 330 s each must finish before the message reappears,
+            # or a second worker pays for the same evaluation.
             QueueLoop(
-                EVAL_QUEUE, consumer, {}, settings.eval_concurrency, visibility_timeout_s=400
+                EVAL_QUEUE,
+                consumer,
+                eval_handlers(container),
+                settings.eval_concurrency,
+                visibility_timeout_s=700,
             ),
             QueueLoop(
                 DEFAULT_QUEUE,
                 consumer,
-                CRON_HANDLERS,
+                cron_handlers(container),
                 settings.default_concurrency,
                 visibility_timeout_s=120,
             ),

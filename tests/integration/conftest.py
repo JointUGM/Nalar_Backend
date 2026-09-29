@@ -33,3 +33,13 @@ async def pool() -> AsyncIterator[asyncpg.Pool]:
     pool = await asyncpg.create_pool(TEST_DATABASE_URL, min_size=1, max_size=6)
     yield pool
     await pool.close()
+
+
+@pytest.fixture
+async def eval_queue_guard(pool: asyncpg.Pool) -> AsyncIterator[None]:
+    """Committed tests may queue evaluations (also for stale committed worlds); drop them after."""
+    async with pool.acquire() as c:
+        before = await c.fetchval("select coalesce(max(msg_id), 0) from pgmq.q_nalar_eval")
+    yield
+    async with pool.acquire() as c:
+        await c.execute("delete from pgmq.q_nalar_eval where msg_id > $1", before)

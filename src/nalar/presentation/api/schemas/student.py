@@ -150,3 +150,15 @@ class TelemetryIn(Body):
 
 class TelemetryAccepted(BaseModel):
     accepted_client_seq: int
+
+
+class OpeningGuessOut(BaseModel):
+    choice_id: str
+    text: str
+
+
+class ReflectionOut(BaseModel):
+    mission_title: str
+    completed_at: datetime | None
+    content: str
+    opening_guess: OpeningGuessOut | None

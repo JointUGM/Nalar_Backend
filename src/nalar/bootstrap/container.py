@@ -5,6 +5,9 @@ import asyncpg
 import httpx
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide, provide_all
 
+from nalar.application.features.evaluation.commands.evaluate_session import (
+    EvaluateSessionHandler,
+)
 from nalar.application.features.identity.queries.me import MeQuery
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
@@ -17,6 +20,7 @@ from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
+from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
@@ -26,6 +30,7 @@ from nalar.application.features.sessions.commands.start_window_session import (
 from nalar.application.features.sessions.commands.submit_answer import SubmitAnswerHandler
 from nalar.application.features.sessions.commands.submit_warmup import SubmitWarmupHandler
 from nalar.application.features.sessions.queries.lobby_state import LobbyStateQuery
+from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.application.features.sessions.timing import TurnTiming
@@ -74,6 +79,13 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def turn_timing(self) -> TurnTiming:
         return TurnTiming(timedelta(seconds=self._settings.turn_recovery_after_s))
+
+    @provide(scope=Scope.APP)
+    def scheduler_timing(self) -> SchedulerTiming:
+        return SchedulerTiming(
+            recovery_after=timedelta(seconds=self._settings.turn_recovery_after_s),
+            evaluation_sweep_after=timedelta(seconds=self._settings.evaluation_sweep_after_s),
+        )
 
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
@@ -147,6 +159,9 @@ class ApplicationProvider(Provider):
         SessionStateQuery,
         RunTurnStepHandler,
         IngestTelemetryHandler,
+        TickHandler,
+        EvaluateSessionHandler,
+        ReflectionQuery,
     )
 
 
