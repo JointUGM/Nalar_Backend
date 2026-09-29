@@ -103,6 +103,21 @@ async def test_connection_failure_is_unreachable() -> None:
 @pytest.mark.parametrize(
     "response",
     [
+        httpx.Response(200, json={"result": {"dimensions": "many"}, "invocations": [INVOCATION]}),
+        httpx.Response(500, json={"detail": "not our envelope", "invocations": [INVOCATION]}),
+    ],
+)
+async def test_bad_response_keeps_the_paid_invocations(response: httpx.Response) -> None:
+    with pytest.raises(AiServiceError) as caught:
+        await make_client(lambda request: response).embed(EMBED, request_id="req-1")
+
+    assert caught.value.code == "bad_response"
+    assert [i.purpose.value for i in caught.value.invocations] == ["embedding"]
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
         httpx.Response(502, text="<html>bad gateway</html>"),
         httpx.Response(200, json={"unexpected": True}),
         httpx.Response(500, json={"detail": "not our envelope"}),

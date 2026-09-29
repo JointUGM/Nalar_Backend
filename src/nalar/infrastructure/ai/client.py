@@ -19,6 +19,20 @@ from nalar.application.ports.ai_contract import (
 )
 
 
+# AI-6: a rejected response may still carry billed invocations, which must be persisted.
+def _paid_invocations(payload: Any) -> list[InvocationOut]:
+    raw = payload.get("invocations") if isinstance(payload, dict) else None
+    if not isinstance(raw, list):
+        return []
+    paid: list[InvocationOut] = []
+    for item in raw:
+        try:
+            paid.append(InvocationOut.model_validate(item))
+        except ValidationError:
+            continue
+    return paid
+
+
 @dataclass(frozen=True)
 class AiTimeouts:
     turn_s: float
@@ -86,13 +100,15 @@ class AiServiceClient:
                 )
             except (KeyError, TypeError, ValidationError) as exc:
                 raise AiServiceError(
-                    "bad_response", response.status_code, message=str(exc)
+                    "bad_response", response.status_code, _paid_invocations(payload), str(exc)
                 ) from exc
 
         try:
             envelope = ErrorEnvelope.model_validate(payload)
         except ValidationError as exc:
-            raise AiServiceError("bad_response", response.status_code, message=str(exc)) from exc
+            raise AiServiceError(
+                "bad_response", response.status_code, _paid_invocations(payload), str(exc)
+            ) from exc
         raise AiServiceError(
             envelope.error.code,
             response.status_code,
