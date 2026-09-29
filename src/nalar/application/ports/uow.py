@@ -3,7 +3,9 @@ from typing import Protocol, Self
 
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.authz import Authz
+from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
+from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 
 
@@ -14,6 +16,8 @@ class UnitOfWork(Protocol):
     ai_invocations: AiInvocationLog
     jobs: JobStore
     queue: QueueSender
+    identity: IdentityRepo
+    publications: PublicationsRepo
 
     async def __aenter__(self) -> Self: ...
 

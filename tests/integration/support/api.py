@@ -1,0 +1,62 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from uuid import UUID
+
+import asyncpg
+import httpx
+from dishka import Provider, Scope, provide
+
+from nalar.application.errors import Unauthenticated
+from nalar.application.ports.auth import AuthUser, TokenVerifier
+from nalar.application.ports.clock import Clock
+from nalar.application.ports.uow import UnitOfWork
+from nalar.bootstrap.app import create_app
+from nalar.bootstrap.container import build_container
+from nalar.bootstrap.settings import Settings
+from tests.integration.support.uow import uow_on
+from tests.unit.application.fakes import FakeClock
+
+
+class UserIdTokens:
+    async def verify(self, token: str) -> AuthUser:
+        try:
+            return AuthUser(id=UUID(token))
+        except ValueError as exc:
+            raise Unauthenticated() from exc
+
+
+class HarnessAdapters(Provider):
+    def __init__(self, conn: asyncpg.Connection, clock: FakeClock) -> None:
+        super().__init__()
+        self._conn = conn
+        self._clock = clock
+
+    @provide(scope=Scope.APP)
+    def verifier(self) -> TokenVerifier:
+        return UserIdTokens()
+
+    @provide(scope=Scope.APP)
+    def clock(self) -> Clock:
+        return self._clock
+
+    @provide(scope=Scope.REQUEST)
+    def uow(self) -> UnitOfWork:
+        return uow_on(self._conn)
+
+
+@asynccontextmanager
+async def api_client(
+    conn: asyncpg.Connection, clock: FakeClock | None = None
+) -> AsyncIterator[httpx.AsyncClient]:
+    settings = Settings()
+    container = build_container(settings, HarnessAdapters(conn, clock or FakeClock()))
+    transport = httpx.ASGITransport(app=create_app(settings, container), raise_app_exceptions=False)
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://test/api/v1") as http:
+            yield http
+    finally:
+        await container.close()
+
+
+def as_user(user_id: UUID) -> dict[str, str]:
+    return {"Authorization": f"Bearer {user_id}"}

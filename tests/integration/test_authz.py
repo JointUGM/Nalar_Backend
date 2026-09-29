@@ -115,3 +115,11 @@ async def test_unknown_ids_are_denied(conn: asyncpg.Connection, world: World) ->
     authz = PgAuthz(conn)
     assert not await authz.teaches_publication(world.teacher_id, uuid4())
     assert not await authz.can_read_kb(world.teacher_id, uuid4())
+
+
+async def test_school_teacher_membership(conn: asyncpg.Connection, world: World) -> None:
+    other = await build_world(conn, "SMP Lain")
+    authz = PgAuthz(conn)
+    assert await authz.is_school_teacher(world.teacher_id, world.school_id)
+    assert not await authz.is_school_teacher(other.teacher_id, world.school_id)
+    assert not await authz.is_school_teacher(world.student_id, world.school_id)
