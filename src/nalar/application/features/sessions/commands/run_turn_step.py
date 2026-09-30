@@ -55,7 +55,13 @@ class RunTurnStepHandler:
                 request, request_id=f"turn-{session_id}-{answered_turn_index}"
             )
         except AiServiceError as error:
-            log.warning("turn step fell back", extra=context | {"code": error.code})
+            log.warning(
+                "turn step fell back: %s %s %s",
+                error.code,
+                error.http_status,
+                error.message[:200],
+                extra=context | {"code": error.code},
+            )
             await self._fallback(ctx, answered, error.invocations, now)
             return
         await self._apply(ctx, answered, reply, now)

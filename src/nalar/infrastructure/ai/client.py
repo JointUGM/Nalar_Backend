@@ -77,7 +77,8 @@ class AiServiceClient:
         try:
             response = await self._http.post(
                 path,
-                content=body.model_dump_json(),
+                # The AI rejects null for optional fields it types as non-nullable (e.g. lists).
+                content=body.model_dump_json(exclude_none=True),
                 headers={"Content-Type": "application/json", "X-Request-Id": request_id},
                 timeout=timeout_s,
             )
