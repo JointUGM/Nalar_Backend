@@ -49,6 +49,7 @@ class StudentLobbyOut(BaseModel):
     session_id: UUID | None
     started_at: datetime | None
     deadline_at: datetime | None
+    server_now: datetime
 
 
 class PromptOut(BaseModel):
@@ -105,6 +106,7 @@ class StateOut(BaseModel):
     prompt: PromptOut | None
     safety_message: str | None
     reflection_ready: bool
+    server_now: datetime
 
 
 class TypingValue(Body):

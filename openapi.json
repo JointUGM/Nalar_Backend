@@ -630,6 +630,11 @@
           "run": {
             "$ref": "#/components/schemas/MonitorRunOut"
           },
+          "server_now": {
+            "format": "date-time",
+            "title": "Server Now",
+            "type": "string"
+          },
           "students": {
             "items": {
               "$ref": "#/components/schemas/MonitorStudentOut"
@@ -645,7 +650,8 @@
         "required": [
           "run",
           "waiting_count",
-          "students"
+          "students",
+          "server_now"
         ],
         "title": "MonitorOut",
         "type": "object"
@@ -1737,6 +1743,11 @@
             ],
             "title": "Safety Message"
           },
+          "server_now": {
+            "format": "date-time",
+            "title": "Server Now",
+            "type": "string"
+          },
           "started_at": {
             "format": "date-time",
             "title": "Started At",
@@ -1760,7 +1771,8 @@
           "deadline_at",
           "prompt",
           "safety_message",
-          "reflection_ready"
+          "reflection_ready",
+          "server_now"
         ],
         "title": "StateOut",
         "type": "object"
@@ -1785,6 +1797,11 @@
           },
           "run_status": {
             "title": "Run Status",
+            "type": "string"
+          },
+          "server_now": {
+            "format": "date-time",
+            "title": "Server Now",
             "type": "string"
           },
           "session_id": {
@@ -1829,7 +1846,8 @@
           "warmup_choice_id",
           "session_id",
           "started_at",
-          "deadline_at"
+          "deadline_at",
+          "server_now"
         ],
         "title": "StudentLobbyOut",
         "type": "object"
