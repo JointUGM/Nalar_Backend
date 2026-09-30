@@ -158,15 +158,24 @@ async def main(args: argparse.Namespace) -> bool:
             for n in range(1, args.students + 1)
         ]
         run_id = args.run_id or await publish(api, teacher)
-        lobby = (await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)).json()
-        for headers in students:
-            joined = await api.post(
-                "/student/runs/join", json={"join_code": lobby["join_code"]}, headers=headers
-            )
-            joined.raise_for_status()
-        started = (await api.post(f"/runs/{run_id}/start", headers=teacher)).json()
-        print(f"run {run_id}: started {started['started_count']} sessions")
+        lobby = await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)
+        if lobby.status_code == 409 and not args.run_id:
+            # Publishing is idempotent, so an interrupted test hands back its still-open run.
+            await api.post(f"/runs/{run_id}/close", headers=teacher)
+            run_id = await publish(api, teacher)
+            lobby = await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)
+        lobby.raise_for_status()
         try:
+            for headers in students:
+                joined = await api.post(
+                    "/student/runs/join",
+                    json={"join_code": lobby.json()["join_code"]},
+                    headers=headers,
+                )
+                joined.raise_for_status()
+            started = await api.post(f"/runs/{run_id}/start", headers=teacher)
+            started.raise_for_status()
+            print(f"run {run_id}: started {started.json()['started_count']} sessions")
             await asyncio.gather(
                 *(play(api, headers, run_id, args.turns, timings) for headers in students)
             )
