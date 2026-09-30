@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from uuid import UUID
 
+import fakeredis
 import httpx
 import pytest
 from dishka import Provider, Scope, make_async_container, provide
@@ -16,9 +17,10 @@ from nalar.application.errors import (
     Unauthenticated,
     Unprocessable,
 )
-from nalar.application.ports.auth import AuthUser, TokenVerifier
+from nalar.application.ports.auth import AuthUser, SessionRevocations, TokenVerifier
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.settings import Settings
+from nalar.infrastructure.auth.redis_state import RedisAuthState
 from nalar.presentation.api.deps import CurrentUser
 
 
@@ -33,6 +35,10 @@ class FakeAuthProvider(Provider):
     @provide(scope=Scope.APP)
     def verifier(self) -> TokenVerifier:
         return FakeVerifier()
+
+    @provide(scope=Scope.APP)
+    def revocations(self) -> SessionRevocations:
+        return RedisAuthState(fakeredis.FakeAsyncRedis(), 3600, 10)
 
 
 def build_test_app() -> FastAPI:

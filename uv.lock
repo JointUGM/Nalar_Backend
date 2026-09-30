@@ -388,6 +388,19 @@ wheels = [
 ]
 
 [[package]]
+name = "fakeredis"
+version = "2.38.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "redis" },
+    { name = "sortedcontainers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bf/6b/ad7db311fea3a62f7e359720cc8c064f06f8f0006e65272f50d3a23d37f6/fakeredis-2.38.0.tar.gz", hash = "sha256:d2abfd24652f86501044499bf08c9d639db050f695eefc06b8b8b6f0bb24dbd6", size = 271116, upload-time = "2026-09-08T21:15:04.806Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/8e/9a80a8808e8a723aacb3a5d9df07890b46b363a056b372d3cd2e655259fe/fakeredis-2.38.0-py3-none-any.whl", hash = "sha256:d9fb0518c4eaa35f1f2c94df6b4a4c97ff3ca9f43d6cc8112317a9037d244301", size = 167360, upload-time = "2026-09-08T21:15:03.219Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
@@ -902,6 +915,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "redis" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -909,6 +923,7 @@ dependencies = [
 dev = [
     { name = "asyncpg-stubs" },
     { name = "datamodel-code-generator" },
+    { name = "fakeredis" },
     { name = "import-linter" },
     { name = "mypy" },
     { name = "pytest" },
@@ -926,6 +941,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15.0" },
+    { name = "redis", specifier = ">=5.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0" },
 ]
 
@@ -933,6 +949,7 @@ requires-dist = [
 dev = [
     { name = "asyncpg-stubs", specifier = ">=0.31.3" },
     { name = "datamodel-code-generator", specifier = ">=0.83.0" },
+    { name = "fakeredis", specifier = ">=2.38.0" },
     { name = "import-linter", specifier = ">=2.15" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -1235,6 +1252,15 @@ wheels = [
 ]
 
 [[package]]
+name = "redis"
+version = "8.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/99/604f0b666d4c616d891cf77ebb9db6bb21601344c051aebf1b72b9ff915f/redis-8.1.0.tar.gz", hash = "sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25", size = 5254356, upload-time = "2026-07-30T08:51:00.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/9d/c5731f6e3608663d4d3656fd8d3aecee8b509c3082818f5a13eae925baea/redis-8.1.0-py3-none-any.whl", hash = "sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb", size = 560618, upload-time = "2026-07-30T08:50:58.497Z" },
+]
+
+[[package]]
 name = "rich"
 version = "15.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1270,6 +1296,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/fe/734ec7527029ac757ecf821f143c9f3fcf69149c21f53a044a899b430f5a/ruff-0.16.9-py3-none-win32.whl", hash = "sha256:0e1dbc2073624dee6618d41d0098690a7244654af746704b64759e12b6b6b385", size = 10152355, upload-time = "2026-09-24T20:37:43.025Z" },
     { url = "https://files.pythonhosted.org/packages/14/21/26e4643629b3ebb44f0a06f9c9a53058d63d989415f63a9a3c28e2ee7f22/ruff-0.16.9-py3-none-win_amd64.whl", hash = "sha256:6bd40fec8cd4c8a3d4dd589bd8ad4e6320c13c29234159bfd959a40d529d597b", size = 10592965, upload-time = "2026-09-24T20:37:44.944Z" },
     { url = "https://files.pythonhosted.org/packages/51/60/5fb1a39dbb5ae314d5f59bc7348a63c1d5c20f3cd83914c4b5cb0be31d2d/ruff-0.16.9-py3-none-win_arm64.whl", hash = "sha256:ed1a252039200f57a59eebc063b54beabea67bfbaaca0eeaa7f54b5fbcda2284", size = 10458649, upload-time = "2026-09-24T20:37:46.882Z" },
+]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88", size = 30594, upload-time = "2021-05-16T22:03:42.897Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0", size = 29575, upload-time = "2021-05-16T22:03:41.177Z" },
 ]
 
 [[package]]

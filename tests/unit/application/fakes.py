@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel
 
+from nalar.application.errors import InvalidCredentials, Unauthenticated
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import (
     EmbedIn,
@@ -21,6 +22,7 @@ from nalar.application.ports.ai_contract import (
     WarmIn,
     WarmOut,
 )
+from nalar.application.ports.auth import AuthTokens
 from nalar.application.ports.sessions import TurnContext
 from nalar.application.ports.turns import NewTurn, TurnAnalysis
 from nalar.domain.labels import SessionEndReason, SessionStatus
@@ -224,3 +226,35 @@ class FakeUnitOfWork:
 
     async def __aexit__(self, *exc: object) -> None:
         return None
+
+
+class FakeIdentityProvider:
+    password = "correct-password"
+
+    def __init__(self) -> None:
+        self.user_id = uuid4()
+        self.sign_ins: list[str] = []
+        self.revoked: list[str] = []
+        self._live_refresh: set[str] = set()
+        self._issued = 0
+
+    async def sign_in(self, email: str, password: str) -> AuthTokens:
+        self.sign_ins.append(email)
+        if password != self.password:
+            raise InvalidCredentials()
+        return self._issue()
+
+    async def refresh(self, refresh_token: str) -> AuthTokens:
+        if refresh_token not in self._live_refresh:
+            raise Unauthenticated()
+        self._live_refresh.discard(refresh_token)
+        return self._issue()
+
+    async def sign_out(self, access_token: str) -> None:
+        self.revoked.append(access_token)
+
+    def _issue(self) -> AuthTokens:
+        self._issued += 1
+        refresh = f"refresh-{self._issued}"
+        self._live_refresh.add(refresh)
+        return AuthTokens(self.user_id, f"access-{self._issued}", refresh, 1_900_000_000)

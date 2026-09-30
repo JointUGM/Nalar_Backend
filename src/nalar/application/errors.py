@@ -27,6 +27,11 @@ class Unauthenticated(AppError):
     message = "Silakan masuk terlebih dahulu."
 
 
+class InvalidCredentials(Unauthenticated):
+    code = "INVALID_CREDENTIALS"
+    message = "Email atau kata sandi salah."
+
+
 class Forbidden(AppError):
     code = "FORBIDDEN"
     message = "Kamu tidak punya akses untuk tindakan ini."
