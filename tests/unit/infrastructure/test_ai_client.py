@@ -1,11 +1,23 @@
+import json
 from typing import Any
 
 import httpx
 import pytest
 
 from nalar.application.ports.ai import AiServiceError
-from nalar.application.ports.ai_contract import CallStatus, EmbedIn, Tag, Text
+from nalar.application.ports.ai_contract import (
+    CallStatus,
+    ContextPackIn,
+    EmbedIn,
+    HistoryTurnIn,
+    NextTurnIn,
+    PlannerMode,
+    Tag,
+    Text,
+    TurnKind,
+)
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
+from tests.unit.application.fakes import SEED_PACK
 
 INVOCATION: dict[str, Any] = {
     "purpose": "embedding",
@@ -128,3 +140,23 @@ async def test_malformed_responses_are_bad_response(response: httpx.Response) ->
         await make_client(lambda request: response).embed(EMBED, request_id="req-1")
 
     assert caught.value.code == "bad_response"
+
+
+async def test_unset_optional_fields_are_omitted_not_sent_as_null() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(503, json={"error": {"code": "x", "message": "", "details": {}}})
+
+    history = HistoryTurnIn(turn_index=0, kind=TurnKind.anchor, question_text="Q", answer_text="A")
+    body = NextTurnIn(
+        context_pack=ContextPackIn.model_validate(SEED_PACK),
+        elapsed_seconds=10,
+        history=[history],
+        planner_mode=PlannerMode.table,
+    )
+    with pytest.raises(AiServiceError):
+        await make_client(handler).next_turn(body, request_id="req-1")
+
+    assert "misconception_ids" not in seen[0]["history"][0]
