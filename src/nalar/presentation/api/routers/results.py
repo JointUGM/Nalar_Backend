@@ -11,6 +11,7 @@ from nalar.application.features.sessions.commands.safety_action import (
     SafetyAction,
     SafetyActionHandler,
 )
+from nalar.application.ports.clock import Clock
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.results import (
     ClassMapOut,
@@ -38,7 +39,10 @@ router = APIRouter(tags=["results"], route_class=DishkaRoute)
 
 @router.get("/publications/{publication_id}/monitor", response_model=MonitorOut)
 async def monitor(
-    publication_id: UUID, user: CurrentUser, query: FromDishka[MonitorQuery]
+    publication_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[MonitorQuery],
+    clock: FromDishka[Clock],
 ) -> MonitorOut:
     found = await query.execute(user.id, publication_id)
     return MonitorOut(
@@ -47,6 +51,7 @@ async def monitor(
         students=[
             MonitorStudentOut(**asdict(s), max_turns=found.max_turns) for s in found.students
         ],
+        server_now=clock.now(),
     )
 
 

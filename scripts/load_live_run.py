@@ -7,6 +7,7 @@ prints the latency budgets. Needs NALAR_SEED_PASSWORD and NALAR_SUPABASE_ANON_KE
 
 import argparse
 import asyncio
+import contextlib
 import json
 import os
 import statistics
@@ -31,8 +32,16 @@ ANSWERS = [
     "Kalau lantainya licin, kelereng bergerak lebih jauh karena gesekannya kecil.",
     "Aku belum yakin, mungkin karena lantainya kasar.",
 ]
-BUDGETS = {"ack_p95": 0.3, "turn_p50": 3.0, "turn_p95": 5.0, "evaluation_p95": 60.0}
+BUDGETS = {
+    "ack_p95": 0.3,
+    "ack_server_p95": 0.3,
+    "turn_p50": 3.0,
+    "turn_p95": 5.0,
+    "evaluation_p95": 60.0,
+    "monitor_p95": 1.0,
+}
 POLL_S = 0.7
+MONITOR_POLL_S = 3.0
 TURN_GIVE_UP_S = 90.0
 EVALUATION_GIVE_UP_S = 400.0
 LOGIN_ATTEMPTS = 10
@@ -42,8 +51,10 @@ LOGIN_BACKOFF_S = 30.0
 @dataclass
 class Timings:
     acks: list[float] = field(default_factory=list)
+    server_acks: list[float] = field(default_factory=list)
     turns: list[float] = field(default_factory=list)
     evaluations: list[float] = field(default_factory=list)
+    monitor: list[float] = field(default_factory=list)
     endings: Counter[str] = field(default_factory=Counter)
 
 
@@ -70,6 +81,12 @@ async def login(auth: httpx.AsyncClient, email: str, password: str) -> dict[str,
         await asyncio.sleep(wait)
     response.raise_for_status()
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def server_seconds(response: httpx.Response) -> float:
+    timing = response.headers.get("Server-Timing", "")
+    _, _, duration = timing.partition(";dur=")
+    return float(duration) / 1000 if duration else float("nan")
 
 
 async def settled_state(
@@ -110,6 +127,7 @@ async def play(
             headers=headers,
         )
         t.acks.append(time.perf_counter() - started)
+        t.server_acks.append(server_seconds(response))
         if response.is_error:
             t.endings[f"answer_http_{response.status_code}"] += 1
             return
@@ -129,7 +147,24 @@ async def play(
     t.endings[f"{current['status']}/reflection_{reflection.status_code}"] += 1
 
 
-async def publish(api: httpx.AsyncClient, teacher: dict[str, str]) -> str:
+async def watch_monitor(
+    api: httpx.AsyncClient,
+    teacher: dict[str, str],
+    publication_id: str,
+    t: Timings,
+    stop: asyncio.Event,
+) -> None:
+    while not stop.is_set():
+        started = time.perf_counter()
+        response = await api.get(f"/publications/{publication_id}/monitor", headers=teacher)
+        t.monitor.append(time.perf_counter() - started)
+        if response.is_error:
+            t.endings[f"monitor_http_{response.status_code}"] += 1
+        with contextlib.suppress(TimeoutError):
+            await asyncio.wait_for(stop.wait(), MONITOR_POLL_S)
+
+
+async def publish(api: httpx.AsyncClient, teacher: dict[str, str]) -> tuple[str, str]:
     response = await api.post(
         "/publications",
         json={
@@ -140,8 +175,8 @@ async def publish(api: httpx.AsyncClient, teacher: dict[str, str]) -> str:
         headers=teacher,
     )
     response.raise_for_status()
-    run_id: str = response.json()["run_id"]
-    return run_id
+    body = response.json()
+    return str(body["publication_id"]), str(body["run_id"])
 
 
 async def main(args: argparse.Namespace) -> bool:
@@ -157,14 +192,22 @@ async def main(args: argparse.Namespace) -> bool:
             await login(auth, f"siswa{n:02d}@demo.nalar.id", password)
             for n in range(1, args.students + 1)
         ]
-        run_id = args.run_id or await publish(api, teacher)
+        publication_id, run_id = (None, args.run_id) if args.run_id else await publish(api, teacher)
         lobby = await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)
         if lobby.status_code == 409 and not args.run_id:
             # Publishing is idempotent, so an interrupted test hands back its still-open run.
             await api.post(f"/runs/{run_id}/close", headers=teacher)
-            run_id = await publish(api, teacher)
+            publication_id, run_id = await publish(api, teacher)
             lobby = await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)
         lobby.raise_for_status()
+        stop = asyncio.Event()
+        projector = (
+            asyncio.create_task(watch_monitor(api, teacher, publication_id, timings, stop))
+            if publication_id
+            else None
+        )
+        if projector is None:
+            print("monitor poll skipped: --run-id gives no publication id")
         try:
             for headers in students:
                 joined = await api.post(
@@ -180,14 +223,21 @@ async def main(args: argparse.Namespace) -> bool:
                 *(play(api, headers, run_id, args.turns, timings) for headers in students)
             )
         finally:
+            stop.set()
+            if projector:
+                await projector
             await api.post(f"/runs/{run_id}/close", headers=teacher)
     report = {
         "ack_p50": pct(timings.acks, 50),
         "ack_p95": pct(timings.acks, 95),
+        "ack_server_p50": pct(timings.server_acks, 50),
+        "ack_server_p95": pct(timings.server_acks, 95),
         "turn_p50": pct(timings.turns, 50),
         "turn_p95": pct(timings.turns, 95),
         "evaluation_p50": pct(timings.evaluations, 50),
         "evaluation_p95": pct(timings.evaluations, 95),
+        "monitor_p50": pct(timings.monitor, 50),
+        "monitor_p95": pct(timings.monitor, 95),
     }
     within = True
     for name, value in report.items():

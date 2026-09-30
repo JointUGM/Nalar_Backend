@@ -27,6 +27,7 @@ from nalar.application.features.sessions.queries.lobby_state import LobbyStateQu
 from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
+from nalar.application.ports.clock import Clock
 from nalar.domain.labels import ParticipantStatus
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.rate_limit import RateLimiter
@@ -109,9 +110,9 @@ async def join(
 
 @router.get("/runs/{run_id}/lobby", response_model=StudentLobbyOut)
 async def lobby(
-    run_id: UUID, user: CurrentUser, query: FromDishka[LobbyStateQuery]
+    run_id: UUID, user: CurrentUser, query: FromDishka[LobbyStateQuery], clock: FromDishka[Clock]
 ) -> StudentLobbyOut:
-    return StudentLobbyOut(**vars(await query.execute(user.id, run_id)))
+    return StudentLobbyOut(**vars(await query.execute(user.id, run_id)), server_now=clock.now())
 
 
 @router.put("/runs/{run_id}/warmup-choice", response_model=WarmupSavedOut)
@@ -155,7 +156,10 @@ async def submit_answer(
 
 @router.get("/sessions/{session_id}/state", response_model=StateOut)
 async def session_state(
-    session_id: UUID, user: CurrentUser, query: FromDishka[SessionStateQuery]
+    session_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[SessionStateQuery],
+    clock: FromDishka[Clock],
 ) -> StateOut:
     state = await query.execute(user.id, session_id)
     prompt = state.prompt
@@ -171,6 +175,7 @@ async def session_state(
         else None,
         safety_message=state.safety_message,
         reflection_ready=state.reflection_ready,
+        server_now=clock.now(),
     )
 
 

@@ -30,6 +30,7 @@ class MonitorOut(BaseModel):
     run: MonitorRunOut
     waiting_count: int
     students: list[MonitorStudentOut]
+    server_now: datetime
 
 
 class MisconceptionCountOut(BaseModel):

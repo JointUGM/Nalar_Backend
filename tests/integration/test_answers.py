@@ -125,6 +125,7 @@ async def test_state_shows_the_open_prompt_and_nothing_hidden(
         "prompt",
         "safety_message",
         "reflection_ready",
+        "server_now",
     }
 
 
