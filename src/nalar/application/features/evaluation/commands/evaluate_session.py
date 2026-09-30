@@ -47,7 +47,11 @@ class EvaluateSessionHandler:
                     return
                 if error.http_status in _RETRYABLE_ONCE or error.code == "bad_response":
                     log.warning(
-                        "evaluation attempt failed",
+                        "evaluation attempt %s failed: %s %s %s",
+                        attempt,
+                        error.code,
+                        error.http_status,
+                        error.message[:200],
                         extra=context | {"code": error.code, "attempt": attempt},
                     )
                     continue
@@ -55,7 +59,9 @@ class EvaluateSessionHandler:
             problems = _problems(data, reply.result)
             if problems:
                 log.warning(
-                    "evaluation output rejected",
+                    "evaluation attempt %s output rejected: %s",
+                    attempt,
+                    "; ".join(problems)[:500],
                     extra=context | {"problems": problems, "attempt": attempt},
                 )
                 await self._record(data, reply.invocations)
@@ -75,8 +81,10 @@ class EvaluateSessionHandler:
             )
 
     async def _complete(self, data: EvaluationInput, reply: AiResult[EvaluateOut]) -> None:
-        result, repo = reply.result, self._uow.evaluations
+        result = reply.result
         async with self._uow:
+            # The unit of work binds fresh repositories to a new connection on each entry.
+            repo = self._uow.evaluations
             ids = await self._uow.ai_invocations.record(data.school_id, reply.invocations)
             by_purpose = {
                 inv.purpose.value: id_ for inv, id_ in zip(reply.invocations, ids, strict=True)

@@ -1,5 +1,5 @@
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
 import pytest
@@ -7,16 +7,18 @@ import pytest
 from nalar.application.features.evaluation.commands.evaluate_session import EvaluateSessionHandler
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import EvaluateOut
+from nalar.infrastructure.db.pool import DbConnection
+from nalar.infrastructure.db.uow import PgUnitOfWork
 from tests.contract.forbidden import forbidden_keys, json_keys
 from tests.integration.support.api import api_client, as_user
-from tests.integration.support.factories import World
+from tests.integration.support.factories import World, build_world
 from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import ScriptedAiGateway, invocation
 
 ANSWER = "Kelereng berhenti karena gaya gesek dengan lantai."
 
 
-async def finish(conn: asyncpg.Connection, world: World) -> UUID:
+async def finish(conn: DbConnection, world: World) -> UUID:
     turn_id: UUID = await conn.fetchval(
         "update session_turns set answer_text = $2, answer_submitted_at = now()"
         " where session_id = $1 and turn_index = 0 returning id",
@@ -218,3 +220,19 @@ async def test_no_answer_has_no_reflection(conn: asyncpg.Connection, world: Worl
             f"/student/sessions/{world.session_id}/reflection", headers=as_user(world.student_id)
         )
     assert response.status_code == 404
+
+
+async def test_a_completed_evaluation_is_saved_through_a_pooled_unit_of_work(
+    pool: asyncpg.Pool,
+) -> None:
+    async with pool.acquire() as c:
+        world = await build_world(c, f"SMP Evaluasi {uuid4().hex[:6]}")
+        turn_id = await finish(c, world)
+    ai = ScriptedAiGateway()
+    ai.script("evaluate_session", evaluation(world, turn_id))
+    await EvaluateSessionHandler(PgUnitOfWork(pool.acquire), ai).execute(world.session_id)
+    async with pool.acquire() as c:
+        status = await c.fetchval(
+            "select status::text from session_evaluations where session_id = $1", world.session_id
+        )
+    assert status == "completed"
