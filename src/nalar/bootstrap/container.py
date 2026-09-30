@@ -121,8 +121,8 @@ class InfrastructureProvider(Provider):
         await pool.close()
 
     @provide(scope=Scope.APP)
-    def readiness(self, pool: asyncpg.Pool) -> ReadinessProbe:
-        return PoolAndAiProbe(pool, self._settings.ai_base_url)
+    def readiness(self, container: AsyncContainer) -> ReadinessProbe:
+        return PoolAndAiProbe(lambda: container.get(asyncpg.Pool), self._settings.ai_base_url)
 
     @provide(scope=Scope.REQUEST)
     def unit_of_work(self, pool: asyncpg.Pool) -> UnitOfWork:
