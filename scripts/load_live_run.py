@@ -35,6 +35,8 @@ BUDGETS = {"ack_p95": 0.3, "turn_p50": 3.0, "turn_p95": 5.0, "evaluation_p95": 6
 POLL_S = 0.7
 TURN_GIVE_UP_S = 90.0
 EVALUATION_GIVE_UP_S = 400.0
+LOGIN_ATTEMPTS = 10
+LOGIN_BACKOFF_S = 30.0
 
 
 @dataclass
@@ -54,11 +56,18 @@ def pct(values: list[float], q: int) -> float:
 
 
 async def login(auth: httpx.AsyncClient, email: str, password: str) -> dict[str, str]:
-    response = await auth.post(
-        "/auth/v1/token",
-        params={"grant_type": "password"},
-        json={"email": email, "password": password},
-    )
+    for _ in range(LOGIN_ATTEMPTS):
+        response = await auth.post(
+            "/auth/v1/token",
+            params={"grant_type": "password"},
+            json={"email": email, "password": password},
+        )
+        if response.status_code != 429:
+            break
+        # Supabase Auth limits sign-ins per IP; wait out the window instead of failing the run.
+        wait = float(response.headers.get("Retry-After", LOGIN_BACKOFF_S))
+        print(f"sign-in rate limited, waiting {wait:.0f}s")
+        await asyncio.sleep(wait)
     response.raise_for_status()
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
@@ -139,12 +148,10 @@ async def main(args: argparse.Namespace) -> bool:
         httpx.AsyncClient(base_url=f"{args.api_url}/api/v1", timeout=30) as api,
     ):
         teacher = await login(auth, "guru@demo.nalar.id", password)
-        students = await asyncio.gather(
-            *(
-                login(auth, f"siswa{n:02d}@demo.nalar.id", password)
-                for n in range(1, args.students + 1)
-            )
-        )
+        students = [
+            await login(auth, f"siswa{n:02d}@demo.nalar.id", password)
+            for n in range(1, args.students + 1)
+        ]
         run_id = args.run_id or await publish(api, teacher)
         lobby = (await api.post(f"/runs/{run_id}/open-lobby", headers=teacher)).json()
         for headers in students:
