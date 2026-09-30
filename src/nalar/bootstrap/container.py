@@ -3,7 +3,16 @@ from datetime import timedelta
 
 import asyncpg
 import httpx
-from dishka import AsyncContainer, Provider, Scope, make_async_container, provide, provide_all
+import redis.asyncio as aioredis
+from dishka import (
+    AsyncContainer,
+    Provider,
+    Scope,
+    alias,
+    make_async_container,
+    provide,
+    provide_all,
+)
 
 from nalar.application.features.evaluation.commands.evaluate_session import (
     EvaluateSessionHandler,
@@ -39,7 +48,12 @@ from nalar.application.features.sessions.queries.session_state import SessionSta
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.application.features.sessions.timing import TurnTiming
 from nalar.application.ports.ai import AiGateway
-from nalar.application.ports.auth import TokenVerifier
+from nalar.application.ports.auth import (
+    IdentityProvider,
+    LoginAttempts,
+    SessionRevocations,
+    TokenVerifier,
+)
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.queue import QueueConsumer
@@ -48,7 +62,9 @@ from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
+from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
+from nalar.infrastructure.auth.redis_state import RedisAuthState
 from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
@@ -107,6 +123,31 @@ class InfrastructureProvider(Provider):
                 audience=self._settings.jwt_audience,
                 hs256_secret=secret.get_secret_value() if secret else None,
             )
+
+    @provide(scope=Scope.APP)
+    async def identity_provider(self) -> AsyncIterator[IdentityProvider]:
+        s = self._settings
+        async with httpx.AsyncClient(
+            base_url=s.supabase_url,
+            headers={"apikey": s.supabase_anon_key.get_secret_value()},
+            timeout=s.auth_timeout_s,
+        ) as http:
+            yield SupabaseIdentityProvider(http)
+
+    @provide(scope=Scope.APP)
+    async def auth_state(self) -> AsyncIterator[RedisAuthState]:
+        s = self._settings
+        client = aioredis.from_url(
+            s.redis_url.get_secret_value(),
+            socket_timeout=s.redis_timeout_s,
+            socket_connect_timeout=s.redis_timeout_s,
+            health_check_interval=30,
+        )
+        yield RedisAuthState(client, s.access_token_ttl_s, s.login_rate_limit_per_minute)
+        await client.aclose()
+
+    revocations = alias(source=RedisAuthState, provides=SessionRevocations)
+    login_attempts = alias(source=RedisAuthState, provides=LoginAttempts)
 
     @provide(scope=Scope.APP)
     async def pool(self) -> AsyncIterator[asyncpg.Pool]:

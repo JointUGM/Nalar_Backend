@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     seed_password: SecretStr = SecretStr("")
     supabase_jwt_secret: SecretStr | None = None
     jwt_audience: str = "authenticated"
+    auth_timeout_s: float = 5.0
+    access_token_ttl_s: int = 3600
+    login_rate_limit_per_minute: int = 10
+    redis_url: SecretStr = SecretStr("redis://127.0.0.1:6379")
+    redis_timeout_s: float = 0.25
 
     ai_base_url: str = "http://127.0.0.1:8000"
     ai_service_key: SecretStr = SecretStr("")
@@ -53,12 +58,16 @@ class Settings(BaseSettings):
             for name, value in (
                 ("NALAR_AI_SERVICE_KEY", self.ai_service_key),
                 ("NALAR_SUPABASE_SERVICE_ROLE_KEY", self.supabase_service_role_key),
+                ("NALAR_SUPABASE_ANON_KEY", self.supabase_anon_key),
             )
             if not value.get_secret_value()
         ]
         url = self.database_url.get_secret_value()
         if "127.0.0.1" in url or "localhost" in url:
             missing.append("NALAR_DATABASE_URL")
+        redis_url = self.redis_url.get_secret_value()
+        if "127.0.0.1" in redis_url or "localhost" in redis_url:
+            missing.append("NALAR_REDIS_URL")
         if missing:
             raise ValueError(f"missing settings for {self.env}: {', '.join(missing)}")
         return self

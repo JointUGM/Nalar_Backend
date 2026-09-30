@@ -77,7 +77,10 @@ async def settled_state(
 ) -> dict[str, Any]:
     deadline = time.perf_counter() + TURN_GIVE_UP_S
     while True:
-        body: dict[str, Any] = (await api.get(f"{url}/state", headers=headers)).json()
+        response = await api.get(f"{url}/state", headers=headers)
+        if response.is_error:
+            return {"status": f"state_http_{response.status_code}"}
+        body: dict[str, Any] = response.json()
         if body["status"] != "processing" or time.perf_counter() > deadline:
             return body
         await asyncio.sleep(POLL_S)
@@ -107,7 +110,9 @@ async def play(
             headers=headers,
         )
         t.acks.append(time.perf_counter() - started)
-        response.raise_for_status()
+        if response.is_error:
+            t.endings[f"answer_http_{response.status_code}"] += 1
+            return
         current = await settled_state(api, url, headers)
         t.turns.append(time.perf_counter() - started)
     if current["status"] == "processing":

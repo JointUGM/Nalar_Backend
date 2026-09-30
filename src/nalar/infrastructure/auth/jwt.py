@@ -58,7 +58,11 @@ class SupabaseJwtVerifier:
                 audience=self._audience,
                 options={"require": ["exp", "sub", "aud"]},
             )
-            return AuthUser(id=UUID(claims["sub"]))
+            session = claims.get("session_id")
+            return AuthUser(
+                id=UUID(claims["sub"]),
+                session_id=UUID(session) if isinstance(session, str) else None,
+            )
         except (jwt.PyJWTError, ValueError) as exc:
             raise Unauthenticated() from exc
 

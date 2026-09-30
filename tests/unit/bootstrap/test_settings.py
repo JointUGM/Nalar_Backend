@@ -18,5 +18,7 @@ def test_production_starts_with_its_secrets() -> None:
         ),
         ai_service_key=SecretStr("k"),
         supabase_service_role_key=SecretStr("s"),
+        supabase_anon_key=SecretStr("a"),
+        redis_url=SecretStr("rediss://default:p@example.upstash.io:6379"),
     )
     assert settings.env == "prod"

@@ -12,6 +12,7 @@ dependencies = [
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "pyjwt[crypto]>=2.15.0",
+    "redis>=5.2",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -54,6 +55,7 @@ asyncio_default_fixture_loop_scope = "function"
 dev = [
     "asyncpg-stubs>=0.31.3",
     "datamodel-code-generator>=0.83.0",
+    "fakeredis>=2.38.0",
     "import-linter>=2.15",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
