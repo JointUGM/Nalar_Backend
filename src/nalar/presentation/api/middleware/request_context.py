@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from uuid import uuid4
 
 from starlette.datastructures import MutableHeaders
@@ -22,7 +23,7 @@ def _incoming_request_id(scope: Scope) -> str | None:
 
 
 class RequestContextMiddleware:
-    """Assigns X-Request-Id and turns any unhandled exception into the 500 error envelope."""
+    """Assigns X-Request-Id, adds Server-Timing and turns unhandled errors into the 500 envelope."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -33,6 +34,7 @@ class RequestContextMiddleware:
             return
 
         request_id = _incoming_request_id(scope) or uuid4().hex
+        started = time.perf_counter()
         scope.setdefault("state", {})["request_id"] = request_id
         response_started = False
 
@@ -40,7 +42,12 @@ class RequestContextMiddleware:
             nonlocal response_started
             if message["type"] == "http.response.start":
                 response_started = True
-                MutableHeaders(scope=message).append("X-Request-Id", request_id)
+                headers = MutableHeaders(scope=message)
+                headers.append("X-Request-Id", request_id)
+                # NFR-P1: lets the load test split the 300 ms ack into server and network time.
+                headers.append(
+                    "Server-Timing", f"app;dur={(time.perf_counter() - started) * 1000:.1f}"
+                )
             await send(message)
 
         try:

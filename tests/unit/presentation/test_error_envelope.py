@@ -143,6 +143,13 @@ async def test_invalid_incoming_request_id_is_replaced(client: httpx.AsyncClient
     assert len(response.headers["X-Request-Id"]) == 32
 
 
+async def test_response_reports_server_time_for_latency_split(client: httpx.AsyncClient) -> None:
+    response = await client.get("/health")
+    name, duration = response.headers["Server-Timing"].split(";dur=")
+    assert name == "app"
+    assert float(duration) >= 0
+
+
 async def test_missing_bearer_token_is_401(client: httpx.AsyncClient) -> None:
     response = await client.get("/me")
     assert response.status_code == 401
