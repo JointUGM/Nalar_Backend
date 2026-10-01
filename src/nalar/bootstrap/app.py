@@ -11,6 +11,7 @@ from nalar.bootstrap.settings import Settings
 from nalar.presentation.api.middleware.errors import install_error_handlers
 from nalar.presentation.api.middleware.request_context import RequestContextMiddleware
 from nalar.presentation.api.routers import (
+    admin,
     auth,
     health,
     jobs,
@@ -52,6 +53,7 @@ def create_app(
     install_error_handlers(app)
     app.include_router(health.router)
     for router in (
+        admin.router,
         auth.router,
         me.router,
         teacher.router,

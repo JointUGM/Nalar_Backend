@@ -12,6 +12,8 @@ from nalar.application.features.release.commands.finalize_publication import (
     FinalizePublicationHandler,
 )
 from nalar.application.features.release.messages import FINALIZE_KIND
+from nalar.application.features.roster.commands.import_roster import ImportRosterHandler
+from nalar.application.features.roster.messages import ROSTER_KIND
 from nalar.presentation.worker.runner import Handler
 
 
@@ -28,4 +30,13 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
                 UUID(str(message["publication_id"])), UUID(str(message["job_id"]))
             )
 
-    return {SESSION_FLAGS_KIND: compute_session_flags, FINALIZE_KIND: finalize}
+    async def import_roster(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(ImportRosterHandler)
+            await handler.execute(UUID(str(message["import_id"])), UUID(str(message["job_id"])))
+
+    return {
+        SESSION_FLAGS_KIND: compute_session_flags,
+        FINALIZE_KIND: finalize,
+        ROSTER_KIND: import_roster,
+    }

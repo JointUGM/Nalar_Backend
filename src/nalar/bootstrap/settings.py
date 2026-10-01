@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     ai_embed_timeout_s: float = 30.0
     ai_s1_step_timeout_s: float = 180.0
     storage_timeout_s: float = 60.0
+    roster_max_upload_bytes: int = 5 * 1024 * 1024
+    roster_stale_after_s: float = 120.0
+    student_login_domain: str = "siswa.nalar.id"
     kb_max_upload_bytes: int = 50 * 1024 * 1024
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0

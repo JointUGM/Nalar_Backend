@@ -213,6 +213,26 @@
         "title": "Body_create_kb_api_v1_schools__school_id__knowledge_bases_post",
         "type": "object"
       },
+      "Body_upload_roster_api_v1_schools__school_id__roster_imports_post": {
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "academic_year_id",
+          "file"
+        ],
+        "title": "Body_upload_roster_api_v1_schools__school_id__roster_imports_post",
+        "type": "object"
+      },
       "BuildQueuedOut": {
         "properties": {
           "job_id": {
@@ -2726,6 +2746,111 @@
           "school_name"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "RosterImportOut": {
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/RowErrorOut"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "rows_failed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Failed"
+          },
+          "rows_succeeded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Succeeded"
+          },
+          "rows_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Total"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "rows_total",
+          "rows_succeeded",
+          "rows_failed",
+          "errors"
+        ],
+        "title": "RosterImportOut",
+        "type": "object"
+      },
+      "RosterQueuedOut": {
+        "properties": {
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "job_id"
+        ],
+        "title": "RosterQueuedOut",
+        "type": "object"
+      },
+      "RowErrorOut": {
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "row_number": {
+            "title": "Row Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "row_number",
+          "field",
+          "message"
+        ],
+        "title": "RowErrorOut",
         "type": "object"
       },
       "RubricIn": {
@@ -5436,6 +5561,54 @@
         ]
       }
     },
+    "/api/v1/roster-imports/{import_id}": {
+      "get": {
+        "operationId": "get_import_api_v1_roster_imports__import_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Import",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/runs/{run_id}/close": {
       "post": {
         "operationId": "close_api_v1_runs__run_id__close_post",
@@ -5819,6 +5992,64 @@
         "summary": "List Missions",
         "tags": [
           "missions"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/roster-imports": {
+      "post": {
+        "operationId": "upload_roster_api_v1_schools__school_id__roster_imports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_roster_api_v1_schools__school_id__roster_imports_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Roster",
+        "tags": [
+          "admin"
         ]
       }
     },

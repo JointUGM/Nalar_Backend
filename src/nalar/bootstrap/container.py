@@ -75,6 +75,12 @@ from nalar.application.features.results.commands.review_flag import ReviewFlagHa
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
+from nalar.application.features.roster.commands.import_roster import ImportRosterHandler
+from nalar.application.features.roster.commands.upload_roster import (
+    RosterLimits,
+    UploadRosterHandler,
+)
+from nalar.application.features.roster.queries.get_import import GetImportQuery
 from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
@@ -105,6 +111,7 @@ from nalar.application.ports.auth import (
     SessionRevocations,
     TokenVerifier,
 )
+from nalar.application.ports.auth_admin import AuthAdmin
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.mailer import Mailer
@@ -117,6 +124,7 @@ from nalar.bootstrap.settings import Settings
 from nalar.domain.integrity import IntegrityConfig
 from nalar.domain.placeholders import NarrativeLexicon
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
+from nalar.infrastructure.auth.admin import SupabaseAuthAdmin
 from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.auth.redis_state import RedisAuthState
@@ -170,6 +178,25 @@ class InfrastructureProvider(Provider):
             timeout=s.storage_timeout_s,
         ) as http:
             yield SupabaseStorage(http)
+
+    @provide(scope=Scope.APP)
+    def roster_limits(self) -> RosterLimits:
+        return RosterLimits(
+            self._settings.roster_max_upload_bytes,
+            self._settings.roster_stale_after_s,
+            self._settings.student_login_domain,
+        )
+
+    @provide(scope=Scope.APP)
+    async def auth_admin(self) -> AsyncIterator[AuthAdmin]:
+        s = self._settings
+        key = s.supabase_service_role_key.get_secret_value()
+        async with httpx.AsyncClient(
+            base_url=s.supabase_url,
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            timeout=s.auth_timeout_s,
+        ) as http:
+            yield SupabaseAuthAdmin(http)
 
     @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
@@ -306,6 +333,9 @@ class InfrastructureProvider(Provider):
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
     handlers = provide_all(
+        UploadRosterHandler,
+        ImportRosterHandler,
+        GetImportQuery,
         MeQuery,
         PublishHandler,
         TeacherAssignmentsQuery,
