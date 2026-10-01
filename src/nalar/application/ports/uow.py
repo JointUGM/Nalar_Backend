@@ -10,6 +10,7 @@ from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.integrity import IntegrityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.notifications import NotificationsRepo
+from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
@@ -44,6 +45,7 @@ class UnitOfWork(Protocol):
     grading: GradingRepo
     integrity: IntegrityRepo
     release: ReleaseRepo
+    parents: ParentsRepo
 
     async def __aenter__(self) -> Self: ...
 
