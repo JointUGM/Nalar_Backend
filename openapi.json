@@ -172,6 +172,47 @@
         "title": "BlockerOut",
         "type": "object"
       },
+      "Body_add_material_api_v1_knowledge_bases__kb_id__materials_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_add_material_api_v1_knowledge_bases__kb_id__materials_post",
+        "type": "object"
+      },
+      "Body_create_kb_api_v1_schools__school_id__knowledge_bases_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "topic_title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_subject_id",
+          "topic_title",
+          "file"
+        ],
+        "title": "Body_create_kb_api_v1_schools__school_id__knowledge_bases_post",
+        "type": "object"
+      },
       "ClassMapOut": {
         "properties": {
           "concepts": {
@@ -267,6 +308,64 @@
           "misconceptions"
         ],
         "title": "ConceptCountOut",
+        "type": "object"
+      },
+      "ConceptOut": {
+        "properties": {
+          "cp_learning_outcome_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cp Learning Outcome Id"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "review_status",
+          "cp_learning_outcome_id",
+          "source_chunk_ids"
+        ],
+        "title": "ConceptOut",
         "type": "object"
       },
       "ConnectionEvent": {
@@ -448,6 +547,59 @@
         "title": "InsightOut",
         "type": "object"
       },
+      "JobOut": {
+        "properties": {
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "entity_type",
+          "entity_id",
+          "error_code",
+          "updated_at"
+        ],
+        "title": "JobOut",
+        "type": "object"
+      },
       "JoinIn": {
         "additionalProperties": false,
         "properties": {
@@ -541,6 +693,157 @@
         "title": "JoinOut",
         "type": "object"
       },
+      "KbDetailOut": {
+        "properties": {
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptOut"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/MaterialOut"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionOut"
+            },
+            "title": "Misconceptions",
+            "type": "array"
+          },
+          "owner_teacher_id": {
+            "format": "uuid",
+            "title": "Owner Teacher Id",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/PrerequisiteOut"
+            },
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "topic_title",
+          "owner_teacher_id",
+          "materials",
+          "concepts",
+          "prerequisites",
+          "misconceptions",
+          "can_edit"
+        ],
+        "title": "KbDetailOut",
+        "type": "object"
+      },
+      "KbPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/KbSummaryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "KbPageOut",
+        "type": "object"
+      },
+      "KbSummaryOut": {
+        "properties": {
+          "approved_concept_count": {
+            "title": "Approved Concept Count",
+            "type": "integer"
+          },
+          "built_section_count": {
+            "title": "Built Section Count",
+            "type": "integer"
+          },
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "material_count": {
+            "title": "Material Count",
+            "type": "integer"
+          },
+          "owner_teacher_id": {
+            "format": "uuid",
+            "title": "Owner Teacher Id",
+            "type": "string"
+          },
+          "pending_count": {
+            "title": "Pending Count",
+            "type": "integer"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "topic_key": {
+            "title": "Topic Key",
+            "type": "string"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "topic_key",
+          "topic_title",
+          "school_subject_id",
+          "owner_teacher_id",
+          "material_count",
+          "built_section_count",
+          "pending_count",
+          "approved_concept_count",
+          "can_edit"
+        ],
+        "title": "KbSummaryOut",
+        "type": "object"
+      },
       "LiveWarmupIn": {
         "additionalProperties": false,
         "properties": {
@@ -616,6 +919,89 @@
         "title": "LoginIn",
         "type": "object"
       },
+      "MaterialOut": {
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "page_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Count"
+          },
+          "pages_without_text": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Pages Without Text",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "page_count",
+          "pages_without_text",
+          "archived_at"
+        ],
+        "title": "MaterialOut",
+        "type": "object"
+      },
+      "MaterialQueuedOut": {
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "material_id": {
+            "format": "uuid",
+            "title": "Material Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "knowledge_base_id",
+          "material_id",
+          "job_id"
+        ],
+        "title": "MaterialQueuedOut",
+        "type": "object"
+      },
       "MeOut": {
         "properties": {
           "full_name": {
@@ -689,6 +1075,66 @@
           "student_ids"
         ],
         "title": "MisconceptionCountOut",
+        "type": "object"
+      },
+      "MisconceptionOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "correct_understanding": {
+            "title": "Correct Understanding",
+            "type": "string"
+          },
+          "counter_examples": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "statement",
+          "correct_understanding",
+          "detection_cues",
+          "counter_examples",
+          "review_status",
+          "source_chunk_ids"
+        ],
+        "title": "MisconceptionOut",
         "type": "object"
       },
       "MissionCardOut": {
@@ -1356,6 +1802,26 @@
           "value"
         ],
         "title": "PasteEvent",
+        "type": "object"
+      },
+      "PrerequisiteOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "prerequisite_concept_id": {
+            "format": "uuid",
+            "title": "Prerequisite Concept Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_id",
+          "prerequisite_concept_id"
+        ],
+        "title": "PrerequisiteOut",
         "type": "object"
       },
       "PromptOut": {
@@ -2292,6 +2758,103 @@
           "acted_at"
         ],
         "title": "SafetyActionOut",
+        "type": "object"
+      },
+      "SectionItemOut": {
+        "properties": {
+          "build_status": {
+            "title": "Build Status",
+            "type": "string"
+          },
+          "built_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Built At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "material_id": {
+            "format": "uuid",
+            "title": "Material Id",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "parent_section_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Section Id"
+          },
+          "suggested": {
+            "title": "Suggested",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "material_id",
+          "parent_section_id",
+          "ordinal",
+          "level",
+          "title",
+          "page_start",
+          "page_end",
+          "build_status",
+          "built_at",
+          "suggested"
+        ],
+        "title": "SectionItemOut",
+        "type": "object"
+      },
+      "SectionsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SectionItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SectionsOut",
         "type": "object"
       },
       "SessionOut": {
@@ -3344,6 +3907,208 @@
         ]
       }
     },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}": {
+      "get": {
+        "operationId": "get_kb_api_v1_knowledge_bases__kb_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Kb",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/materials": {
+      "post": {
+        "operationId": "add_material_api_v1_knowledge_bases__kb_id__materials_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_material_api_v1_knowledge_bases__kb_id__materials_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Material",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/sections": {
+      "get": {
+        "operationId": "list_sections_api_v1_knowledge_bases__kb_id__sections_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sections",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "me_api_v1_me_get",
@@ -4283,6 +5048,155 @@
         "summary": "Start",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/knowledge-bases": {
+      "get": {
+        "operationId": "list_kbs_api_v1_schools__school_id__knowledge_bases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KbPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Kbs",
+        "tags": [
+          "knowledge-base"
+        ]
+      },
+      "post": {
+        "operationId": "create_kb_api_v1_schools__school_id__knowledge_bases_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_kb_api_v1_schools__school_id__knowledge_bases_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Kb",
+        "tags": [
+          "knowledge-base"
         ]
       }
     },

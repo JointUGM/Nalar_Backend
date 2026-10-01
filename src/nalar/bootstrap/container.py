@@ -24,6 +24,18 @@ from nalar.application.features.integrity.commands.compute_publication_similarit
 from nalar.application.features.integrity.commands.compute_session_flags import (
     ComputeSessionFlagsHandler,
 )
+from nalar.application.features.jobs.queries.get_job import GetJobQuery
+from nalar.application.features.knowledge_base.commands.add_material import AddMaterialHandler
+from nalar.application.features.knowledge_base.commands.create_kb import (
+    CreateKbHandler,
+    UploadLimits,
+)
+from nalar.application.features.knowledge_base.commands.detect_sections import (
+    DetectSectionsHandler,
+)
+from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
+from nalar.application.features.knowledge_base.queries.list_kbs import ListKbsQuery
+from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
 from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
 from nalar.application.features.missions.commands.create_version import CreateVersionHandler
 from nalar.application.features.missions.commands.generate_mission import GenerateMissionHandler
@@ -85,6 +97,7 @@ from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.readiness import ReadinessProbe
+from nalar.application.ports.storage import ObjectStorage
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
@@ -100,6 +113,7 @@ from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
 from nalar.infrastructure.readiness import PoolAndAiProbe
+from nalar.infrastructure.storage.supabase_storage import SupabaseStorage
 from nalar.presentation.api.rate_limit import RateLimiter
 
 
@@ -131,6 +145,21 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def turn_timing(self) -> TurnTiming:
         return TurnTiming(timedelta(seconds=self._settings.turn_recovery_after_s))
+
+    @provide(scope=Scope.APP)
+    async def storage(self) -> AsyncIterator[ObjectStorage]:
+        s = self._settings
+        key = s.supabase_service_role_key.get_secret_value()
+        async with httpx.AsyncClient(
+            base_url=s.supabase_url,
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            timeout=s.storage_timeout_s,
+        ) as http:
+            yield SupabaseStorage(http)
+
+    @provide(scope=Scope.APP)
+    def upload_limits(self) -> UploadLimits:
+        return UploadLimits(self._settings.kb_max_upload_bytes)
 
     @provide(scope=Scope.APP)
     def integrity_config(self) -> IntegrityConfig:
@@ -228,6 +257,7 @@ class InfrastructureProvider(Provider):
                     embed_s=s.ai_embed_timeout_s,
                     s5_insight_s=s.ai_s5_insight_timeout_s,
                     s5_summary_s=s.ai_s5_summary_timeout_s,
+                    s1_step_s=s.ai_s1_step_timeout_s,
                 ),
             )
 
@@ -278,6 +308,13 @@ class ApplicationProvider(Provider):
         ReviewVersionHandler,
         ListMissionsQuery,
         GetVersionQuery,
+        CreateKbHandler,
+        AddMaterialHandler,
+        DetectSectionsHandler,
+        ListKbsQuery,
+        GetKbQuery,
+        ListSectionsQuery,
+        GetJobQuery,
     )
 
 

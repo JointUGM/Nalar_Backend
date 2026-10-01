@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     ai_evaluate_timeout_s: float = 330.0
     ai_embed_timeout_s: float = 30.0
     ai_s1_step_timeout_s: float = 180.0
+    storage_timeout_s: float = 60.0
+    kb_max_upload_bytes: int = 50 * 1024 * 1024
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0
 

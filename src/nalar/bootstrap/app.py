@@ -13,6 +13,8 @@ from nalar.presentation.api.middleware.request_context import RequestContextMidd
 from nalar.presentation.api.routers import (
     auth,
     health,
+    jobs,
+    knowledge_base,
     me,
     missions,
     parent,
@@ -59,6 +61,8 @@ def create_app(
         release.router,
         parent.router,
         missions.router,
+        knowledge_base.router,
+        jobs.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
     setup_dishka(container, app)
