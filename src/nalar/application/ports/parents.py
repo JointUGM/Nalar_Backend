@@ -29,7 +29,31 @@ class ParentReflection:
     content: str
 
 
+@dataclass(frozen=True)
+class DigestItem:
+    student_id: UUID
+    publication_id: UUID
+    session_id: UUID
+    child_name: str
+    mission_title: str
+    summary: str
+
+
+@dataclass(frozen=True)
+class DigestRecipient:
+    parent_id: UUID
+    school_id: UUID
+    email: str
+    items: tuple[DigestItem, ...]
+
+
 class ParentsRepo(Protocol):
+    async def digest_recipients(
+        self, released_after: datetime | None, parent_id: UUID | None = None
+    ) -> list[DigestRecipient]:
+        """Current opted-in parents and summaries satisfying the app's visibility rule."""
+        ...
+
     async def children(self, parent_id: UUID, limit: int, after: UUID | None) -> list[Child]: ...
 
     async def visible_results(self, student_id: UUID) -> list[VisibleResult]:

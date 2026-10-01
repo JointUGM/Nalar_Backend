@@ -80,6 +80,10 @@ from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenL
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
 from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
+from nalar.application.features.scheduler.commands.weekly_digest import (
+    DigestTiming,
+    WeeklyDigestHandler,
+)
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
@@ -103,6 +107,7 @@ from nalar.application.ports.auth import (
 )
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
+from nalar.application.ports.mailer import Mailer
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.readiness import ReadinessProbe
 from nalar.application.ports.storage import ObjectStorage
@@ -119,6 +124,7 @@ from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from nalar.infrastructure.email.resend import DisabledMailer, ResendMailer
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
 from nalar.infrastructure.readiness import PoolAndAiProbe
 from nalar.infrastructure.storage.supabase_storage import SupabaseStorage
@@ -193,6 +199,28 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def publish_defaults(self) -> PublishDefaults:
         return PublishDefaults(planner_mode=self._settings.default_planner_mode)
+
+    @provide(scope=Scope.APP)
+    def digest_timing(self) -> DigestTiming:
+        s = self._settings
+        return DigestTiming(
+            timedelta(seconds=s.digest_lease_s),
+            timedelta(seconds=s.digest_retry_window_s),
+            s.digest_max_attempts,
+        )
+
+    @provide(scope=Scope.APP)
+    async def mailer(self) -> AsyncIterator[Mailer]:
+        s = self._settings
+        if not s.resend_api_key or not s.resend_api_key.get_secret_value() or not s.email_from:
+            yield DisabledMailer()
+            return
+        async with httpx.AsyncClient(
+            base_url="https://api.resend.com",
+            headers={"Authorization": f"Bearer {s.resend_api_key.get_secret_value()}"},
+            timeout=s.email_timeout_s,
+        ) as http:
+            yield ResendMailer(http, s.email_from)
 
     @provide(scope=Scope.APP)
     async def token_verifier(self) -> AsyncIterator[TokenVerifier]:
@@ -296,6 +324,7 @@ class ApplicationProvider(Provider):
         RunTurnStepHandler,
         IngestTelemetryHandler,
         TickHandler,
+        WeeklyDigestHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,

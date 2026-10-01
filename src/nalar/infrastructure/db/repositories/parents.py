@@ -1,7 +1,13 @@
 from datetime import datetime
 from uuid import UUID
 
-from nalar.application.ports.parents import Child, ParentReflection, VisibleResult
+from nalar.application.ports.parents import (
+    Child,
+    DigestItem,
+    DigestRecipient,
+    ParentReflection,
+    VisibleResult,
+)
 from nalar.infrastructure.db.pool import DbConnection
 
 # NFR-S3 / PA rules, the one visibility rule for parents (app and digest): the publication is
@@ -26,6 +32,46 @@ VISIBLE_SQL = """
 class PgParentsRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
+
+    async def digest_recipients(
+        self, released_after: datetime | None, parent_id: UUID | None = None
+    ) -> list[DigestRecipient]:
+        rows = await self._conn.fetch(
+            f"""
+            select pr.id as parent_id, l.school_id, pr.contact_email,
+                   l.student_id, ch.full_name as child_name,
+                   v.publication_id, v.session_id, v.mission_title, v.summary
+              from parent_student_links l
+              join profiles pr on pr.id = l.parent_id
+              join profiles ch on ch.id = l.student_id
+              join lateral ({VISIBLE_SQL.replace("$1", "l.student_id")}) v on true
+             where pr.weekly_digest_enabled and pr.has_real_email
+               and nullif(trim(pr.contact_email), '') is not null
+               and ($1::timestamptz is null or v.released_at >= $1)
+               and ($2::uuid is null or pr.id = $2)
+             order by pr.id, l.student_id, v.publication_id
+            """,
+            released_after,
+            parent_id,
+        )
+        grouped: dict[UUID, list[DigestItem]] = {}
+        recipients: dict[UUID, tuple[UUID, str]] = {}
+        for row in rows:
+            pid = row["parent_id"]
+            recipients[pid] = (row["school_id"], row["contact_email"])
+            grouped.setdefault(pid, []).append(
+                DigestItem(
+                    student_id=row["student_id"],
+                    publication_id=row["publication_id"],
+                    session_id=row["session_id"],
+                    child_name=row["child_name"],
+                    mission_title=row["mission_title"],
+                    summary=row["summary"],
+                )
+            )
+        return [
+            DigestRecipient(pid, *recipients[pid], tuple(items)) for pid, items in grouped.items()
+        ]
 
     async def children(self, parent_id: UUID, limit: int, after: UUID | None) -> list[Child]:
         rows = await self._conn.fetch(

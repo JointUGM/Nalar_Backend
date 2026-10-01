@@ -55,6 +55,20 @@ class Settings(BaseSettings):
 
     resend_api_key: SecretStr | None = None
     email_from: str | None = None
+    email_timeout_s: float = 10.0
+    digest_lease_s: float = 60.0
+    digest_retry_window_s: float = 82800.0
+    digest_max_attempts: int = 5
+
+    @model_validator(mode="after")
+    def digest_delivery_limits(self) -> Self:
+        if not 0 < self.email_timeout_s < self.digest_lease_s:
+            raise ValueError("email timeout must be positive and shorter than the digest lease")
+        if not 0 < self.digest_retry_window_s < 86400 or self.digest_max_attempts < 1:
+            raise ValueError(
+                "digest retries must end within 24 hours with a positive attempt limit"
+            )
+        return self
 
     @model_validator(mode="after")
     def deployed_needs_secrets(self) -> Self:
