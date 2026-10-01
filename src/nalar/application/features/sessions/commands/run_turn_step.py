@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Sequence
-from datetime import datetime
 from uuid import UUID
 
 from nalar.application.features.evaluation.messages import evaluation_message
@@ -47,7 +46,7 @@ class RunTurnStepHandler:
             request = next_turn_request(ctx, answered_turn_index, now)
         except ValueError:
             log.exception("turn history cannot be sent to the AI", extra=context)
-            await self._fallback(ctx, answered, [], now)
+            await self._fallback(ctx, answered, [])
             return
         # No connection is held here: the read above committed, the write below opens a new one.
         try:
@@ -62,9 +61,9 @@ class RunTurnStepHandler:
                 error.message[:200],
                 extra=context | {"code": error.code},
             )
-            await self._fallback(ctx, answered, error.invocations, now)
+            await self._fallback(ctx, answered, error.invocations)
             return
-        await self._apply(ctx, answered, reply, now)
+        await self._apply(ctx, answered, reply)
 
     async def _still_open(self, ctx: TurnContext, answered: StoredTurn) -> bool:
         return await self._uow.sessions.lock_if_in_progress(
@@ -76,23 +75,27 @@ class RunTurnStepHandler:
         ctx: TurnContext,
         answered: StoredTurn,
         invocations: Sequence[InvocationOut],
-        now: datetime,
     ) -> None:
         async with self._uow:
             await self._uow.ai_invocations.record(ctx.school_id, invocations)
             if await self._still_open(ctx, answered):
+                now = self._clock.now()
+                if await self._uow.sessions.time_out(ctx.session_id, now):
+                    await self._uow.queue.send(EVAL_QUEUE, evaluation_message(ctx.session_id))
+                    return
                 await append_fixed_question(
                     self._uow, ctx=ctx, answered=answered, move_source="fallback_error", now=now
                 )
 
     async def _apply(
-        self, ctx: TurnContext, answered: StoredTurn, reply: AiResult[NextTurnOut], now: datetime
+        self, ctx: TurnContext, answered: StoredTurn, reply: AiResult[NextTurnOut]
     ) -> None:
         result = reply.result
         async with self._uow:
             ids = await self._uow.ai_invocations.record(ctx.school_id, reply.invocations)
             if not await self._still_open(ctx, answered):
                 return
+            now = self._clock.now()
             by_purpose = {
                 inv.purpose.value: id_ for inv, id_ in zip(reply.invocations, ids, strict=True)
             }
@@ -118,6 +121,9 @@ class RunTurnStepHandler:
                         ctx.publication_id,
                         answered.turn_index,
                     )
+                return
+            if await self._uow.sessions.time_out(ctx.session_id, now):
+                await self._uow.queue.send(EVAL_QUEUE, evaluation_message(ctx.session_id))
                 return
             next_index = answered.turn_index + 1
             probe = result.probe

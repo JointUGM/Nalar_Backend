@@ -40,9 +40,13 @@ def turn(index: int, answer: str | None = "Karena gayanya habis", **kw: Any) -> 
 
 
 def setup(
-    *turns: StoredTurn, deadline_in: timedelta = timedelta(minutes=10), max_turns: int = 6
+    *turns: StoredTurn,
+    deadline_in: timedelta = timedelta(minutes=10),
+    max_turns: int = 6,
+    clock: FakeClock | None = None,
 ) -> tuple[RunTurnStepHandler, FakeUnitOfWork, ScriptedAiGateway]:
-    clock, uow, ai = FakeClock(), FakeUnitOfWork(), ScriptedAiGateway()
+    clock = clock or FakeClock()
+    uow, ai = FakeUnitOfWork(), ScriptedAiGateway()
     uow.sessions.context = TurnContext(
         session_id=SESSION,
         school_id=uuid4(),
@@ -201,3 +205,39 @@ async def test_an_already_advanced_session_is_a_no_op() -> None:
     handler, uow, ai = setup(turn(0), turn(1, answer=None))
     await handler.execute(SESSION, 0)
     assert ai.calls == [] and uow.turns.appended == []
+
+
+@pytest.mark.parametrize("fallback", [False, True])
+async def test_next_prompt_timestamp_excludes_ai_latency(fallback: bool) -> None:
+    clock = FakeClock()
+    handler, uow, ai = setup(turn(0), clock=clock)
+
+    def delayed(_: Any) -> AiResult[NextTurnOut]:
+        clock.advance(seconds=5)
+        if fallback:
+            raise AiServiceError("timeout", None)
+        return reply()
+
+    ai.script("next_turn", delayed)
+    await handler.execute(SESSION, 0)
+    assert uow.turns.appended[0].shown_at == clock.now()
+
+
+@pytest.mark.parametrize("fallback", [False, True])
+async def test_deadline_during_ai_call_times_out_and_keeps_provenance(fallback: bool) -> None:
+    clock = FakeClock()
+    handler, uow, ai = setup(turn(0), clock=clock, deadline_in=timedelta(seconds=5))
+
+    def delayed(_: Any) -> AiResult[NextTurnOut]:
+        clock.advance(seconds=5)
+        if fallback:
+            raise AiServiceError("timeout", None, [invocation("turn_analyze", "error")])
+        return reply()
+
+    ai.script("next_turn", delayed)
+    await handler.execute(SESSION, 0)
+    await handler.execute(SESSION, 0)
+    assert uow.sessions.status is SessionStatus.timed_out
+    assert uow.turns.appended == []
+    assert len(uow.queue.sent) == 1
+    assert len(uow.ai_invocations.recorded) == (1 if fallback else 2)
