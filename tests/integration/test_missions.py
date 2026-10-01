@@ -4,7 +4,7 @@ from uuid import UUID
 import asyncpg
 
 from nalar.application.ports.ai import AiResult, AiServiceError
-from nalar.application.ports.ai_contract import WarmOut
+from nalar.application.ports.ai_contract import WarmIn, WarmOut
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import RUBRIC, World, create_concept, create_teacher
 from tests.unit.application.fakes import ScriptedAiGateway, invocation
@@ -184,3 +184,41 @@ async def test_colleague_sees_reviewed_versions_but_cannot_author(
     assert (author.status_code, author.json()["error"]["code"]) == (403, "NOT_OWNER")
     assert mission_id not in {m["id"] for m in listed.json()["items"]}
     assert str(world.mission_id) in {m["id"] for m in listed.json()["items"]}
+
+
+async def test_review_rechecks_authorization_after_ai_and_keeps_provenance(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    class RevokedTeacherGateway(ScriptedAiGateway):
+        async def warm_run(self, body: WarmIn, request_id: str) -> AiResult[WarmOut]:
+            await conn.execute(
+                "update school_memberships set status = 'inactive'"
+                " where school_id = $1 and user_id = $2 and role = 'teacher'",
+                world.school_id,
+                world.teacher_id,
+            )
+            return WARMED
+
+    headers = as_user(world.teacher_id)
+    async with api_client(conn, ai=RevokedTeacherGateway()) as api:
+        mission_id = await new_mission(api, world)
+        created = await api.post(
+            f"/missions/{mission_id}/versions", json=version_body(world), headers=headers
+        )
+        response = await api.post(
+            f"/missions/{mission_id}/versions/1/review", json={}, headers=headers
+        )
+    assert response.status_code == 404
+    assert (
+        await conn.fetchval(
+            "select reviewed_at from mission_versions where id = $1",
+            UUID(created.json()["version_id"]),
+        )
+        is None
+    )
+    assert (
+        await conn.fetchval(
+            "select count(*) from ai_invocations where school_id = $1", world.school_id
+        )
+        == 1
+    )
