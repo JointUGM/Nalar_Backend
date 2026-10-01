@@ -27,7 +27,7 @@ from tests.unit.application.fakes import (
     invocation,
 )
 
-GOOD = "Ananda menjelaskan mengapa kelereng berhenti dengan kata-katanya sendiri."
+GOOD = "Ananda membandingkan dua permukaan dengan kata-katanya sendiri."
 
 
 async def settle(conn: asyncpg.Connection, world: World) -> None:

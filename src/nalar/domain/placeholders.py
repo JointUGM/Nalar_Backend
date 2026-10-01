@@ -33,8 +33,9 @@ def quantity_problems(text: str, lexicon: NarrativeLexicon, *, parent: bool = Fa
     problems: list[str] = []
     if _DIGIT.search(bare):
         problems.append("digit")
-    found = set(_WORD.findall(folded)) & lexicon.number_words
-    problems += sorted(f"number_word:{w}" for w in found)
+    if not parent:
+        found = set(_WORD.findall(folded)) & lexicon.number_words
+        problems += sorted(f"number_word:{w}" for w in found)
     problems += [f"count_claim:{c}" for c in lexicon.count_claims if _phrase(folded, c)]
     if parent:
         problems += [f"score_term:{t}" for t in lexicon.score_terms if _phrase(folded, t)]
