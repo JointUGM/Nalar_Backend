@@ -13,6 +13,7 @@ from nalar.application.ports.grading import GradingRepo
 from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.integrity import IntegrityRepo
 from nalar.application.ports.jobs import JobStore
+from nalar.application.ports.missions import MissionsRepo
 from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
@@ -34,6 +35,7 @@ from nalar.infrastructure.db.repositories.grading import PgGradingRepo
 from nalar.infrastructure.db.repositories.identity import PgIdentityRepo
 from nalar.infrastructure.db.repositories.integrity import PgIntegrityRepo
 from nalar.infrastructure.db.repositories.jobs import PgJobStore
+from nalar.infrastructure.db.repositories.missions import PgMissionsRepo
 from nalar.infrastructure.db.repositories.notifications import PgNotificationsRepo
 from nalar.infrastructure.db.repositories.parents import PgParentsRepo
 from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
@@ -71,6 +73,7 @@ class PgUnitOfWork:
     integrity: IntegrityRepo
     release: ReleaseRepo
     parents: ParentsRepo
+    missions: MissionsRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -109,6 +112,7 @@ class PgUnitOfWork:
         self.integrity = PgIntegrityRepo(conn)
         self.release = PgReleaseRepo(conn)
         self.parents = PgParentsRepo(conn)
+        self.missions = PgMissionsRepo(conn)
         return self
 
     async def __aexit__(

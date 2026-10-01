@@ -24,6 +24,12 @@ from nalar.application.features.integrity.commands.compute_publication_similarit
 from nalar.application.features.integrity.commands.compute_session_flags import (
     ComputeSessionFlagsHandler,
 )
+from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
+from nalar.application.features.missions.commands.create_version import CreateVersionHandler
+from nalar.application.features.missions.commands.generate_mission import GenerateMissionHandler
+from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
+from nalar.application.features.missions.queries.get_version import GetVersionQuery
+from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
 from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
 from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
@@ -266,6 +272,12 @@ class ApplicationProvider(Provider):
         ParentReflectionsQuery,
         PreferencesQuery,
         SetPreferencesHandler,
+        CreateMissionHandler,
+        GenerateMissionHandler,
+        CreateVersionHandler,
+        ReviewVersionHandler,
+        ListMissionsQuery,
+        GetVersionQuery,
     )
 
 

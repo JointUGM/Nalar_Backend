@@ -26,6 +26,10 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "post", "/publications/{publication}/release", {"expected_eligible_count": 0}),
     ("teacher", "post", "/scores/{score}/overrides", {"final_level": 3, "reason": "x"}),
     ("teacher", "post", "/flags/{flag}/review", {"decision": "cleared"}),
+    ("teacher", "get", "/schools/{school}/missions", None),
+    ("teacher", "post", "/missions/{mission}/generate", None),
+    ("teacher", "get", "/missions/{mission}/versions/1", None),
+    ("teacher", "post", "/missions/{mission}/versions/1/review", None),
     ("parent", "get", "/parent/children/{child}/progress", None),
     ("parent", "get", "/parent/children/{child}/reflections", None),
     ("student", "get", "/student/runs/{run}/lobby", None),
@@ -68,6 +72,8 @@ async def test_cross_school_ids_return_404(
         "score": await add_score(conn, world, world.session_id),
         "flag": await add_flag(conn, world, world.session_id),
         "child": world.student_id,
+        "mission": world.mission_id,
+        "school": world.school_id,
     }
     intruder = await build_world(conn, "SMP Penyusup")
     user = {

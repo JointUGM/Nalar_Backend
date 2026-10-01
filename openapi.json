@@ -106,6 +106,54 @@
         "title": "AssignmentsOut",
         "type": "object"
       },
+      "BankQuestionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "misconception_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Misconception Id"
+          },
+          "move": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Move",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "move",
+          "text"
+        ],
+        "title": "BankQuestionIn",
+        "type": "object"
+      },
       "BlockerOut": {
         "properties": {
           "code": {
@@ -493,6 +541,32 @@
         "title": "JoinOut",
         "type": "object"
       },
+      "LiveWarmupIn": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/nalar__presentation__api__schemas__missions__WarmupChoiceIn"
+            },
+            "maxItems": 5,
+            "minItems": 2,
+            "title": "Choices",
+            "type": "array"
+          },
+          "prompt": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "choices"
+        ],
+        "title": "LiveWarmupIn",
+        "type": "object"
+      },
       "LobbyOut": {
         "properties": {
           "join_code": {
@@ -690,6 +764,124 @@
           "max_duration_minutes"
         ],
         "title": "MissionCardOut",
+        "type": "object"
+      },
+      "MissionCreatedOut": {
+        "properties": {
+          "mission_id": {
+            "format": "uuid",
+            "title": "Mission Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_id"
+        ],
+        "title": "MissionCreatedOut",
+        "type": "object"
+      },
+      "MissionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "learning_objective": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Learning Objective",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "knowledge_base_id",
+          "title",
+          "learning_objective"
+        ],
+        "title": "MissionIn",
+        "type": "object"
+      },
+      "MissionPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MissionSummaryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "MissionPageOut",
+        "type": "object"
+      },
+      "MissionSummaryOut": {
+        "properties": {
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VersionSummaryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "knowledge_base_id",
+          "created_by",
+          "latest_version",
+          "can_edit"
+        ],
+        "title": "MissionSummaryOut",
         "type": "object"
       },
       "MonitorOut": {
@@ -1879,6 +2071,55 @@
         "title": "RoleOut",
         "type": "object"
       },
+      "RubricIn": {
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Claim",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "mechanism": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Mechanism",
+            "type": "array"
+          },
+          "transfer": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Transfer",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim",
+          "evidence",
+          "mechanism",
+          "transfer"
+        ],
+        "title": "RubricIn",
+        "type": "object"
+      },
       "RunIn": {
         "additionalProperties": false,
         "properties": {
@@ -2490,20 +2731,306 @@
         "title": "ValidationError",
         "type": "object"
       },
-      "WarmupChoiceIn": {
+      "VersionCreatedOut": {
+        "properties": {
+          "status": {
+            "default": "draft",
+            "title": "Status",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_id",
+          "version_number"
+        ],
+        "title": "VersionCreatedOut",
+        "type": "object"
+      },
+      "VersionIn": {
         "additionalProperties": false,
         "properties": {
-          "choice_id": {
-            "maxLength": 20,
+          "anchor_problem": {
+            "maxLength": 4000,
             "minLength": 1,
-            "title": "Choice Id",
+            "title": "Anchor Problem",
+            "type": "string"
+          },
+          "answer_terms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Answer Terms",
+            "type": "array"
+          },
+          "base_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Version Id"
+          },
+          "live_warmup": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LiveWarmupIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_duration_minutes": {
+            "default": 20,
+            "maximum": 60.0,
+            "minimum": 5.0,
+            "title": "Max Duration Minutes",
+            "type": "integer"
+          },
+          "max_turns": {
+            "maximum": 10.0,
+            "minimum": 2.0,
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "misconception_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Misconception Ids",
+            "type": "array"
+          },
+          "question_bank": {
+            "items": {
+              "$ref": "#/components/schemas/BankQuestionIn"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Question Bank",
+            "type": "array"
+          },
+          "reference_reasoning": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Reference Reasoning",
+            "type": "string"
+          },
+          "rubric": {
+            "$ref": "#/components/schemas/RubricIn"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "target_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Target Concept Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "anchor_problem",
+          "rubric",
+          "target_concept_ids",
+          "question_bank",
+          "answer_terms",
+          "reference_reasoning",
+          "max_turns"
+        ],
+        "title": "VersionIn",
+        "type": "object"
+      },
+      "VersionOut": {
+        "properties": {
+          "anchor_problem": {
+            "title": "Anchor Problem",
+            "type": "string"
+          },
+          "answer_terms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Answer Terms",
+            "type": "array"
+          },
+          "can_edit": {
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "live_warmup": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Live Warmup"
+          },
+          "max_duration_minutes": {
+            "title": "Max Duration Minutes",
+            "type": "integer"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "misconception_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Misconception Ids",
+            "type": "array"
+          },
+          "question_bank": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Question Bank",
+            "type": "array"
+          },
+          "reference_reasoning": {
+            "title": "Reference Reasoning",
+            "type": "string"
+          },
+          "rubric": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Rubric",
+            "type": "object"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Target Concept Ids",
+            "type": "array"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_number",
+          "status",
+          "anchor_problem",
+          "rubric",
+          "target_concept_ids",
+          "misconception_ids",
+          "question_bank",
+          "answer_terms",
+          "reference_reasoning",
+          "source_chunk_ids",
+          "live_warmup",
+          "max_turns",
+          "max_duration_minutes",
+          "can_edit"
+        ],
+        "title": "VersionOut",
+        "type": "object"
+      },
+      "VersionReviewedOut": {
+        "properties": {
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "status": {
+            "default": "reviewed",
+            "title": "Status",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
             "type": "string"
           }
         },
         "required": [
-          "choice_id"
+          "version_id",
+          "reviewed_at"
         ],
-        "title": "WarmupChoiceIn",
+        "title": "VersionReviewedOut",
+        "type": "object"
+      },
+      "VersionSummaryOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_number",
+          "status"
+        ],
+        "title": "VersionSummaryOut",
         "type": "object"
       },
       "WarmupChoiceOut": {
@@ -2603,6 +3130,45 @@
           "prompt"
         ],
         "title": "WindowSessionOut",
+        "type": "object"
+      },
+      "nalar__presentation__api__schemas__missions__WarmupChoiceIn": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 8,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "WarmupChoiceIn",
+        "type": "object"
+      },
+      "nalar__presentation__api__schemas__student__WarmupChoiceIn": {
+        "additionalProperties": false,
+        "properties": {
+          "choice_id": {
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Choice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "choice_id"
+        ],
+        "title": "WarmupChoiceIn",
         "type": "object"
       }
     },
@@ -2801,6 +3367,270 @@
         "summary": "Me",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/api/v1/missions": {
+      "post": {
+        "operationId": "create_mission_api_v1_missions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/generate": {
+      "post": {
+        "operationId": "generate_mission_api_v1_missions__mission_id__generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Generate Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/versions": {
+      "post": {
+        "operationId": "create_version_api_v1_missions__mission_id__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Version",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/versions/{number}": {
+      "get": {
+        "operationId": "get_version_api_v1_missions__mission_id__versions__number__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Version",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/versions/{number}/review": {
+      "post": {
+        "operationId": "review_version_api_v1_missions__mission_id__versions__number__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionReviewedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Version",
+        "tags": [
+          "missions"
         ]
       }
     },
@@ -3456,6 +4286,99 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/missions": {
+      "get": {
+        "operationId": "list_missions_api_v1_schools__school_id__missions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Subject Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Missions",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
     "/api/v1/scores/{score_id}/overrides": {
       "post": {
         "operationId": "override_score_api_v1_scores__score_id__overrides_post",
@@ -3807,7 +4730,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WarmupChoiceIn"
+                "$ref": "#/components/schemas/nalar__presentation__api__schemas__student__WarmupChoiceIn"
               }
             }
           },
