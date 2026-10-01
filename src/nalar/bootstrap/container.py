@@ -18,6 +18,12 @@ from nalar.application.features.evaluation.commands.evaluate_session import (
     EvaluateSessionHandler,
 )
 from nalar.application.features.identity.queries.me import MeQuery
+from nalar.application.features.integrity.commands.compute_publication_similarity import (
+    ComputePublicationSimilarityHandler,
+)
+from nalar.application.features.integrity.commands.compute_session_flags import (
+    ComputeSessionFlagsHandler,
+)
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
@@ -63,11 +69,13 @@ from nalar.application.ports.readiness import ReadinessProbe
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
+from nalar.domain.integrity import IntegrityConfig
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.auth.redis_state import RedisAuthState
 from nalar.infrastructure.clock import SystemClock
+from nalar.infrastructure.config import load_integrity_config
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
@@ -103,6 +111,10 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def turn_timing(self) -> TurnTiming:
         return TurnTiming(timedelta(seconds=self._settings.turn_recovery_after_s))
+
+    @provide(scope=Scope.APP)
+    def integrity_config(self) -> IntegrityConfig:
+        return load_integrity_config()
 
     @provide(scope=Scope.APP)
     def scheduler_timing(self) -> SchedulerTiming:
@@ -222,6 +234,8 @@ class ApplicationProvider(Provider):
         SafetyActionHandler,
         OverrideScoreHandler,
         ReviewFlagHandler,
+        ComputeSessionFlagsHandler,
+        ComputePublicationSimilarityHandler,
     )
 
 

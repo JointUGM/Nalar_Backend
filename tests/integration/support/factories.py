@@ -333,6 +333,63 @@ async def add_waiting_students(conn: DbConnection, world: "World", n: int) -> li
     return students
 
 
+async def finish_session(
+    conn: DbConnection,
+    world: "World",
+    session_id: UUID,
+    *,
+    answer: str = "Kelereng berhenti karena gaya gesek dengan lantai.",
+    status: str = "completed",
+) -> UUID:
+    turn_id: UUID = await conn.fetchval(
+        "update session_turns set answer_text = $2, answer_submitted_at = now()"
+        " where session_id = $1 and turn_index = 0 returning id",
+        session_id,
+        answer,
+    )
+    await conn.execute(
+        "update sessions set status = $2::session_status,"
+        " end_reason = case when $2 = 'completed' then 'student_completed'::session_end_reason"
+        " else 'max_duration_reached' end, ended_at = now() where id = $1",
+        session_id,
+        status,
+    )
+    return turn_id
+
+
+async def evaluate(
+    conn: DbConnection,
+    world: "World",
+    session_id: UUID,
+    *,
+    status: str = "completed",
+    outcome: str = "mastered",
+) -> UUID:
+    evaluation_id: UUID = await conn.fetchval(
+        "insert into session_evaluations (school_id, session_id, status)"
+        " values ($1, $2, $3::evaluation_status) returning id",
+        world.school_id,
+        session_id,
+        status,
+    )
+    if status == "completed":
+        await conn.execute(
+            "insert into session_concept_results (school_id, session_id, concept_id, outcome)"
+            " values ($1, $2, $3, $4::concept_outcome)",
+            world.school_id,
+            session_id,
+            world.concept_ids[0],
+            outcome,
+        )
+        await conn.execute(
+            "insert into session_reflections (school_id, session_id, content)"
+            " values ($1, $2, 'Kamu sudah memikirkan gaya gesek.')",
+            world.school_id,
+            session_id,
+        )
+    return evaluation_id
+
+
 async def add_score(conn: DbConnection, world: "World", session_id: UUID) -> UUID:
     evaluation_id = await conn.fetchval(
         "select id from session_evaluations where session_id = $1", session_id
