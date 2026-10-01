@@ -14,6 +14,7 @@ PUBLISH = {"mission_version_id": "{version}", "class_id": "{klass}", "run": {"mo
 ANSWER = {"turn_index": 0, "answer_text": "x", "client_submission_id": "{uuid}"}
 TELEMETRY = {"client_seq": 1, "events": [{"type": "disconnect", "at": AT}]}
 ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
+    ("admin", "get", "/roster-imports/{import}", None),
     ("teacher", "post", "/runs/{run}/open-lobby", None),
     ("teacher", "post", "/runs/{run}/start", None),
     ("teacher", "post", "/runs/{run}/close", None),
@@ -79,6 +80,13 @@ async def test_cross_school_ids_return_404(
     body: dict[str, Any] | None,
 ) -> None:
     extra = {
+        "import": await conn.fetchval(
+            "insert into roster_imports (school_id, academic_year_id, uploaded_by, storage_path)"
+            " values ($1, $2, $3, 'victim.csv') returning id",
+            world.school_id,
+            world.year_id,
+            world.admin_id,
+        ),
         "score": await add_score(conn, world, world.session_id),
         "flag": await add_flag(conn, world, world.session_id),
         "child": world.student_id,
@@ -91,6 +99,7 @@ async def test_cross_school_ids_return_404(
     }
     intruder = await build_world(conn, "SMP Penyusup")
     user = {
+        "admin": intruder.admin_id,
         "teacher": intruder.teacher_id,
         "student": intruder.student_id,
         "parent": intruder.parent_id,
