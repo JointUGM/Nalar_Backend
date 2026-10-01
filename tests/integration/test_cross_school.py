@@ -26,6 +26,8 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "post", "/publications/{publication}/release", {"expected_eligible_count": 0}),
     ("teacher", "post", "/scores/{score}/overrides", {"final_level": 3, "reason": "x"}),
     ("teacher", "post", "/flags/{flag}/review", {"decision": "cleared"}),
+    ("parent", "get", "/parent/children/{child}/progress", None),
+    ("parent", "get", "/parent/children/{child}/reflections", None),
     ("student", "get", "/student/runs/{run}/lobby", None),
     ("student", "put", "/student/runs/{run}/warmup-choice", {"choice_id": "a"}),
     ("student", "post", "/student/publications/{publication}/window-session", None),
@@ -65,9 +67,14 @@ async def test_cross_school_ids_return_404(
     extra = {
         "score": await add_score(conn, world, world.session_id),
         "flag": await add_flag(conn, world, world.session_id),
+        "child": world.student_id,
     }
     intruder = await build_world(conn, "SMP Penyusup")
-    user = intruder.teacher_id if actor == "teacher" else intruder.student_id
+    user = {
+        "teacher": intruder.teacher_id,
+        "student": intruder.student_id,
+        "parent": intruder.parent_id,
+    }[actor]
     kwargs = {"json": json.loads(fill(json.dumps(body), world, extra))} if body else {}
     async with api_client(conn) as api:
         response = await getattr(api, method)(

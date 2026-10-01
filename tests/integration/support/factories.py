@@ -291,15 +291,17 @@ async def create_session(
     publication_id: UUID,
     run_id: UUID,
     student_id: UUID,
+    attempt_number: int = 1,
 ) -> UUID:
     session_id: UUID = await conn.fetchval(
         "insert into sessions"
         " (school_id, publication_id, run_id, student_id, attempt_number, deadline_at)"
-        " values ($1, $2, $3, $4, 1, now() + interval '20 minutes') returning id",
+        " values ($1, $2, $3, $4, $5, now() + interval '20 minutes') returning id",
         school_id,
         publication_id,
         run_id,
         student_id,
+        attempt_number,
     )
     await conn.execute(
         "insert into session_turns (school_id, session_id, turn_index, prompt_kind, prompt_text)"
