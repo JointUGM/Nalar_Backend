@@ -337,3 +337,16 @@ class FakeIdentityProvider:
         refresh = f"refresh-{self._issued}"
         self._live_refresh.add(refresh)
         return AuthTokens(self.user_id, f"access-{self._issued}", refresh, 1_900_000_000)
+
+
+class FakeMailer:
+    enabled = True
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str, str]] = []
+        self.keys: set[str] = set()
+
+    async def send(self, to: str, subject: str, text: str, *, idempotency_key: str) -> None:
+        if idempotency_key not in self.keys:
+            self.sent.append((to, subject, text))
+            self.keys.add(idempotency_key)
