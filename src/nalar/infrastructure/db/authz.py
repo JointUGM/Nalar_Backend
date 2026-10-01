@@ -26,6 +26,17 @@ _TEACHES_PUBLICATION = f"""
 
 
 class PgAuthz:
+    async def can_manage_roster(self, user_id: UUID, import_id: UUID) -> bool:
+        return bool(
+            await self._conn.fetchval(
+                "select exists(select 1 from roster_imports r join school_memberships m"
+                " on m.school_id = r.school_id where r.id = $2 and m.user_id = $1"
+                " and m.role = 'school_admin' and m.status = 'active')",
+                user_id,
+                import_id,
+            )
+        )
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 

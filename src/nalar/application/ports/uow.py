@@ -18,6 +18,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.release import ReleaseRepo
 from nalar.application.ports.results import ResultsRepo
+from nalar.application.ports.roster import RosterRepo
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.scheduler import SchedulerRepo
 from nalar.application.ports.sessions import SessionsRepo
@@ -50,6 +51,7 @@ class UnitOfWork(Protocol):
     parents: ParentsRepo
     missions: MissionsRepo
     knowledge: KnowledgeRepo
+    roster: RosterRepo
 
     async def __aenter__(self) -> Self: ...
 

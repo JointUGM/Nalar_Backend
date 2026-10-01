@@ -22,6 +22,7 @@ from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.release import ReleaseRepo
 from nalar.application.ports.results import ResultsRepo
+from nalar.application.ports.roster import RosterRepo
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.scheduler import SchedulerRepo
 from nalar.application.ports.sessions import SessionsRepo
@@ -44,6 +45,7 @@ from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
 from nalar.infrastructure.db.repositories.release import PgReleaseRepo
 from nalar.infrastructure.db.repositories.results import PgResultsRepo
+from nalar.infrastructure.db.repositories.roster import PgRosterRepo
 from nalar.infrastructure.db.repositories.runs import PgRunsRepo
 from nalar.infrastructure.db.repositories.scheduler import PgSchedulerRepo
 from nalar.infrastructure.db.repositories.sessions import PgSessionsRepo
@@ -77,6 +79,7 @@ class PgUnitOfWork:
     parents: ParentsRepo
     missions: MissionsRepo
     knowledge: KnowledgeRepo
+    roster: RosterRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -117,6 +120,7 @@ class PgUnitOfWork:
         self.parents = PgParentsRepo(conn)
         self.missions = PgMissionsRepo(conn)
         self.knowledge = PgKnowledgeRepo(conn)
+        self.roster = PgRosterRepo(conn)
         return self
 
     async def __aexit__(
