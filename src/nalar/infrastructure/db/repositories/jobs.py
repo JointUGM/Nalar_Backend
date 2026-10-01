@@ -36,9 +36,14 @@ class PgJobStore:
         )
         return Job(**dict(row)) if row else None
 
-    async def mark_running(self, job_id: UUID) -> None:
-        await self._conn.execute(
-            "update jobs set status = 'running', attempts = attempts + 1 where id = $1", job_id
+    async def mark_running(self, job_id: UUID) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update jobs set status = 'running', attempts = attempts + 1"
+                " where id = $1 and status in ('queued', 'running') returning id",
+                job_id,
+            )
+            is not None
         )
 
     async def mark_succeeded(self, job_id: UUID) -> None:

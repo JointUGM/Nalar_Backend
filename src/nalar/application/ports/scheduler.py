@@ -19,3 +19,7 @@ class SchedulerRepo(Protocol):
     async def unevaluated_sessions(self, ended_before: datetime) -> list[UUID]:
         """Ended sessions with no evaluation and no queued or archived evaluation message."""
         ...
+
+    async def publications_to_finalize(self, cooldown_before: datetime) -> list[tuple[UUID, UUID]]:
+        """Settled, unreleased publications still missing a finalizer piece (D-S26-12)."""
+        ...

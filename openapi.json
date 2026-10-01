@@ -106,6 +106,24 @@
         "title": "AssignmentsOut",
         "type": "object"
       },
+      "BlockerOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "count"
+        ],
+        "title": "BlockerOut",
+        "type": "object"
+      },
       "ClassMapOut": {
         "properties": {
           "concepts": {
@@ -1154,6 +1172,92 @@
         "title": "RefreshIn",
         "type": "object"
       },
+      "ReleaseIn": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_eligible_count": {
+            "minimum": 0.0,
+            "title": "Expected Eligible Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_eligible_count"
+        ],
+        "title": "ReleaseIn",
+        "type": "object"
+      },
+      "ReleasePreviewOut": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/BlockerOut"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "eligible_count": {
+            "title": "Eligible Count",
+            "type": "integer"
+          },
+          "ineligible_count": {
+            "title": "Ineligible Count",
+            "type": "integer"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryPreviewOut"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ready",
+          "blockers",
+          "eligible_count",
+          "ineligible_count",
+          "summaries",
+          "released_at"
+        ],
+        "title": "ReleasePreviewOut",
+        "type": "object"
+      },
+      "ReleasedOut": {
+        "properties": {
+          "released_to_parents_at": {
+            "format": "date-time",
+            "title": "Released To Parents At",
+            "type": "string"
+          },
+          "summary_count": {
+            "title": "Summary Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "released_to_parents_at",
+          "summary_count"
+        ],
+        "title": "ReleasedOut",
+        "type": "object"
+      },
       "ReportConceptResultOut": {
         "properties": {
           "concept_id": {
@@ -1985,6 +2089,30 @@
         "title": "StudentMissionsOut",
         "type": "object"
       },
+      "SummaryPreviewOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "summary_text": {
+            "title": "Summary Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "name",
+          "summary_text"
+        ],
+        "title": "SummaryPreviewOut",
+        "type": "object"
+      },
       "TelemetryAccepted": {
         "properties": {
           "accepted_client_seq": {
@@ -2611,6 +2739,112 @@
         "summary": "Monitor",
         "tags": [
           "results"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/release": {
+      "post": {
+        "operationId": "release_api_v1_publications__publication_id__release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Release",
+        "tags": [
+          "release"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/release-preview": {
+      "get": {
+        "operationId": "preview_api_v1_publications__publication_id__release_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasePreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview",
+        "tags": [
+          "release"
         ]
       }
     },

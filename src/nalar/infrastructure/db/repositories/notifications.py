@@ -15,6 +15,16 @@ _WELLBEING = """
     returning id
 """
 
+_RELEASE_REMINDER = """
+    insert into notifications
+           (recipient_id, school_id, type, payload, status, sent_at, dedupe_key)
+    select r, $2, 'release_reminder', jsonb_build_object('publication_id', $3::uuid::text),
+           'sent', now(), 'release_reminder:' || $3::uuid::text || ':' || r::text
+      from unnest($1::uuid[]) as r
+    on conflict (dedupe_key) do nothing
+    returning id
+"""
+
 
 class PgNotificationsRepo:
     def __init__(self, conn: DbConnection) -> None:
@@ -31,4 +41,10 @@ class PgNotificationsRepo:
         rows = await self._conn.fetch(
             _WELLBEING, recipient_ids, school_id, session_id, publication_id, turn_index
         )
+        return len(rows)
+
+    async def release_reminder(
+        self, recipient_ids: list[UUID], school_id: UUID, publication_id: UUID
+    ) -> int:
+        rows = await self._conn.fetch(_RELEASE_REMINDER, recipient_ids, school_id, publication_id)
         return len(rows)

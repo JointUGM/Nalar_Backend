@@ -33,7 +33,8 @@ async def run_worker(settings: Settings, stop: asyncio.Event) -> None:
                 consumer,
                 {**cron_handlers(container), **default_handlers(container)},
                 settings.default_concurrency,
-                visibility_timeout_s=120,
+                # The finalizer waits on S5 (insight <= 190 s, summaries 8 at a time, <= 90 s each).
+                visibility_timeout_s=900,
             ),
         ]
         log.info("worker started")
