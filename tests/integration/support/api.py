@@ -12,6 +12,7 @@ from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import AuthUser, IdentityProvider, TokenVerifier
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
+from nalar.application.ports.storage import ObjectStorage
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.container import build_container
@@ -21,6 +22,7 @@ from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import (
     FakeClock,
     FakeIdentityProvider,
+    FakeStorage,
     RecordingBackground,
     ScriptedAiGateway,
 )
@@ -43,8 +45,10 @@ class HarnessAdapters(Provider):
         ai: ScriptedAiGateway,
         background: RecordingBackground,
         identity: FakeIdentityProvider,
+        storage: FakeStorage,
     ) -> None:
         super().__init__()
+        self._storage = storage
         self._conn = conn
         self._clock = clock
         self._ai = ai
@@ -72,6 +76,10 @@ class HarnessAdapters(Provider):
         return self._ai
 
     @provide(scope=Scope.APP)
+    def storage(self) -> ObjectStorage:
+        return self._storage
+
+    @provide(scope=Scope.APP)
     def background(self) -> BackgroundWork:
         return self._background
 
@@ -87,6 +95,7 @@ async def api_client(
     ai: ScriptedAiGateway | None = None,
     background: RecordingBackground | None = None,
     identity: FakeIdentityProvider | None = None,
+    storage: FakeStorage | None = None,
 ) -> AsyncIterator[httpx.AsyncClient]:
     settings = Settings()
     adapters = HarnessAdapters(
@@ -95,6 +104,7 @@ async def api_client(
         ai or ScriptedAiGateway(),
         background or RecordingBackground(),
         identity or FakeIdentityProvider(),
+        storage or FakeStorage(),
     )
     container = build_container(settings, adapters)
     transport = httpx.ASGITransport(app=create_app(settings, container), raise_app_exceptions=False)

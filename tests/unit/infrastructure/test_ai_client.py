@@ -49,7 +49,13 @@ def make_client(handler: Any) -> AiServiceClient:
     return AiServiceClient(
         http,
         AiTimeouts(
-            turn_s=6, warm_s=10, evaluate_s=330, embed_s=30, s5_insight_s=190, s5_summary_s=90
+            turn_s=6,
+            warm_s=10,
+            evaluate_s=330,
+            embed_s=30,
+            s5_insight_s=190,
+            s5_summary_s=90,
+            s1_step_s=180,
         ),
     )
 
@@ -190,3 +196,29 @@ async def test_parent_summary_posts_to_the_s5_route_without_null_fields() -> Non
     assert seen["path"] == "/v1/s5/parent-summaries/generate"
     assert "evaluation_summary" not in seen["body"]
     assert reply.result.source.value == "model"
+
+
+async def test_detect_sections_sends_the_pdf_as_multipart() -> None:
+    seen: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["type"] = request.headers["content-type"]
+        seen["body"] = request.content
+        return httpx.Response(
+            200,
+            json={
+                "result": {
+                    "has_toc": False,
+                    "page_count": 3,
+                    "pages_without_text": [2],
+                    "sections": [],
+                },
+                "invocations": [],
+                "warnings": [],
+            },
+        )
+
+    reply = await make_client(handler).detect_sections(b"%PDF-1.7 x", "Materi", "r1")
+    assert seen["type"].startswith("multipart/form-data")
+    assert b"%PDF-1.7 x" in seen["body"]
+    assert reply.result.pages_without_text == [2]

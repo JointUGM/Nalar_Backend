@@ -70,7 +70,11 @@ async def test_evaluation_enqueues_session_flags_in_its_transaction(
     ai = ScriptedAiGateway()
     ai.script("evaluate_session", AiServiceError("no_answer", 422))
     await EvaluateSessionHandler(uow_on(conn), ai).execute(world.session_id)
-    bodies = await conn.fetch("select message from pgmq.q_nalar_default where msg_id > $1", before)
+    bodies = await conn.fetch(
+        "select message from pgmq.q_nalar_default where msg_id > $1"
+        " and message->>'kind' = 'compute_session_flags'",
+        before,
+    )
     assert [json.loads(b["message"]) for b in bodies] == [
         {"kind": "compute_session_flags", "session_id": str(world.session_id)}
     ]

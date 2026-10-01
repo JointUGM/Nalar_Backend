@@ -10,14 +10,24 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel
 
 from nalar.application.errors import InvalidCredentials, Unauthenticated
-from nalar.application.ports.ai import AiResult, AiServiceError
+from nalar.application.ports.ai import AiResult, AiServiceError, ChunkSpec
 from nalar.application.ports.ai_contract import (
+    AlignCpIn,
+    AlignCpOut,
+    ChunkSectionOut,
     ClassInsightIn,
     ClassInsightOut,
+    DedupeIn,
+    DedupeOut,
+    DetectSectionsOut,
     EmbedIn,
     EmbedOut,
     EvaluateIn,
     EvaluateOut,
+    ExtractConceptsIn,
+    ExtractConceptsOut,
+    GenerateMisconceptionsIn,
+    GenerateMisconceptionsOut,
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
@@ -73,6 +83,27 @@ def invocation(purpose: str, status: str = "success") -> InvocationOut:
     )
 
 
+def vector(i: int) -> list[float]:
+    v = [0.0] * 1536
+    v[i] = 1.0
+    return v
+
+
+class FakeStorage:
+    def __init__(self) -> None:
+        self.objects: dict[tuple[str, str], bytes] = {}
+
+    async def upload(self, bucket: str, path: str, data: bytes, content_type: str) -> None:
+        self.objects[(bucket, path)] = data
+
+    async def download(self, bucket: str, path: str) -> bytes:
+        return self.objects[(bucket, path)]
+
+
+class RawBody(BaseModel):
+    data: bytes
+
+
 class ScriptedAiGateway:
     def __init__(self) -> None:
         self.replies: dict[str, list[Reply]] = defaultdict(list)
@@ -113,6 +144,38 @@ class ScriptedAiGateway:
         self, body: ParentSummaryIn, request_id: str
     ) -> AiResult[ParentSummaryOut]:
         return cast(AiResult[ParentSummaryOut], await self._reply("parent_summary", body))
+
+    async def detect_sections(
+        self, pdf: bytes, fallback_title: str, request_id: str
+    ) -> AiResult[DetectSectionsOut]:
+        return cast(
+            AiResult[DetectSectionsOut], await self._reply("detect_sections", RawBody(data=pdf))
+        )
+
+    async def chunk_section(
+        self, pdf: bytes, spec: ChunkSpec, request_id: str
+    ) -> AiResult[ChunkSectionOut]:
+        return cast(
+            AiResult[ChunkSectionOut], await self._reply("chunk_section", RawBody(data=pdf))
+        )
+
+    async def extract_concepts(
+        self, body: ExtractConceptsIn, request_id: str
+    ) -> AiResult[ExtractConceptsOut]:
+        return cast(AiResult[ExtractConceptsOut], await self._reply("extract_concepts", body))
+
+    async def dedupe_concepts(self, body: DedupeIn, request_id: str) -> AiResult[DedupeOut]:
+        return cast(AiResult[DedupeOut], await self._reply("dedupe_concepts", body))
+
+    async def align_cp(self, body: AlignCpIn, request_id: str) -> AiResult[AlignCpOut]:
+        return cast(AiResult[AlignCpOut], await self._reply("align_cp", body))
+
+    async def generate_misconceptions(
+        self, body: GenerateMisconceptionsIn, request_id: str
+    ) -> AiResult[GenerateMisconceptionsOut]:
+        return cast(
+            AiResult[GenerateMisconceptionsOut], await self._reply("generate_misconceptions", body)
+        )
 
 
 class RecordingBackground:

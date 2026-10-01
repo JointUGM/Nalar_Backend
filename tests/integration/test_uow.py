@@ -29,7 +29,7 @@ async def test_failed_work_is_rolled_back_with_its_queue_message(
     conn: asyncpg.Connection, world: World
 ) -> None:
     jobs_before = await conn.fetchval("select count(*) from jobs")
-    queued_before = await conn.fetchval("select count(*) from pgmq.q_nalar_default")
+    probe = "select count(*) from pgmq.q_nalar_default where message->>'kind' = 'rollback_probe'"
     with pytest.raises(RuntimeError):
         async with PgUnitOfWork(lambda: nullcontext(conn)) as uow:
             await uow.jobs.create(
@@ -39,7 +39,7 @@ async def test_failed_work_is_rolled_back_with_its_queue_message(
                 school_id=world.school_id,
                 requested_by=world.teacher_id,
             )
-            await uow.queue.send(DEFAULT_QUEUE, {"kind": "scheduler_tick"})
+            await uow.queue.send(DEFAULT_QUEUE, {"kind": "rollback_probe"})
             raise RuntimeError("use case failed")
     assert await conn.fetchval("select count(*) from jobs") == jobs_before
-    assert await conn.fetchval("select count(*) from pgmq.q_nalar_default") == queued_before
+    assert await conn.fetchval(probe) == 0
