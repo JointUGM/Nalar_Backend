@@ -49,5 +49,19 @@ class SessionRevocations(Protocol):
 
 class LoginAttempts(Protocol):
     async def allow(self, email: str) -> bool:
-        """Count one attempt; False past the per-minute limit, True if the store is unreachable."""
+        """Count one attempt; refuse over the limit and fail closed if Redis is unreachable."""
+        ...
+
+
+class BrowserSessions(Protocol):
+    async def create(self, tokens: AuthTokens) -> str:
+        """Persist tokens and return a fresh opaque session identifier."""
+        ...
+
+    async def resolve(self, session_id: str) -> AuthTokens:
+        """Resolve a live session, refreshing tokens under a distributed lock when needed."""
+        ...
+
+    async def delete(self, session_id: str) -> AuthTokens | None:
+        """Atomically remove a session before returning its tokens for upstream logout."""
         ...

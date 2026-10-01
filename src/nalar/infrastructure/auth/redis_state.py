@@ -8,6 +8,8 @@ from uuid import UUID
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
+from nalar.application.errors import DependencyUnavailable
+
 log = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -16,7 +18,7 @@ _CLOCK_SKEW_S = 60
 
 
 class RedisAuthState:
-    """Session revocations and login attempts in Redis; both fail open while it is unreachable."""
+    """Session revocations and login attempts in Redis, unavailable when Redis is down."""
 
     def __init__(
         self,
@@ -56,16 +58,15 @@ class RedisAuthState:
         return await self._run(count, 0) <= self._login_per_minute
 
     async def _run(self, command: Callable[[], Awaitable[T]], fallback: T) -> T:
-        # D-AUTH-6: a live class must not stop for Redis; skip it briefly instead of timing out.
         if self._clock() < self._skip_until:
-            return fallback
+            raise DependencyUnavailable()
         try:
             return await command()
         except (RedisError, OSError) as exc:
             self._skip_until = self._clock() + self._backoff_s
             log.warning(
-                "redis unavailable, auth checks fail open for %ss: %s",
+                "redis unavailable, auth checks blocked for %ss: %s",
                 self._backoff_s,
                 type(exc).__name__,
             )
-            return fallback
+            raise DependencyUnavailable() from exc

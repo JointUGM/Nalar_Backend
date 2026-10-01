@@ -1,8 +1,10 @@
 from uuid import uuid4
 
 import fakeredis
+import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
 
+from nalar.application.errors import DependencyUnavailable
 from nalar.infrastructure.auth.redis_state import RedisAuthState
 
 
@@ -37,7 +39,7 @@ async def test_login_keys_never_contain_the_email() -> None:
     assert all(b"siswa01" not in key for key in keys)
 
 
-async def test_unreachable_redis_fails_open_and_backs_off() -> None:
+async def test_unreachable_redis_fails_closed_and_backs_off() -> None:
     calls = 0
 
     class Down:
@@ -48,9 +50,12 @@ async def test_unreachable_redis_fails_open_and_backs_off() -> None:
 
     now = [0.0]
     store = RedisAuthState(Down(), 3600, 10, clock=lambda: now[0])  # type: ignore[arg-type]
-    assert not await store.is_revoked(uuid4())
-    assert not await store.is_revoked(uuid4())
+    with pytest.raises(DependencyUnavailable):
+        await store.is_revoked(uuid4())
+    with pytest.raises(DependencyUnavailable):
+        await store.is_revoked(uuid4())
     assert calls == 1
     now[0] = 6.0
-    await store.is_revoked(uuid4())
+    with pytest.raises(DependencyUnavailable):
+        await store.is_revoked(uuid4())
     assert calls == 2

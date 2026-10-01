@@ -17,7 +17,13 @@ from nalar.application.errors import (
     Unauthenticated,
     Unprocessable,
 )
-from nalar.application.ports.auth import AuthUser, SessionRevocations, TokenVerifier
+from nalar.application.ports.auth import (
+    AuthTokens,
+    AuthUser,
+    BrowserSessions,
+    SessionRevocations,
+    TokenVerifier,
+)
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.auth.redis_state import RedisAuthState
@@ -31,7 +37,24 @@ class FakeVerifier:
         return AuthUser(id=UUID(int=1))
 
 
+class FakeCookieSessions:
+    async def resolve(self, session_id: str) -> AuthTokens:
+        if session_id != "good":
+            raise Unauthenticated()
+        return AuthTokens(UUID(int=1), "access", "refresh", 1900000000)
+
+    async def create(self, tokens: AuthTokens) -> str:
+        raise NotImplementedError
+
+    async def delete(self, session_id: str) -> AuthTokens | None:
+        raise NotImplementedError
+
+
 class FakeAuthProvider(Provider):
+    @provide(scope=Scope.APP)
+    def sessions(self) -> BrowserSessions:
+        return FakeCookieSessions()
+
     @provide(scope=Scope.APP)
     def verifier(self) -> TokenVerifier:
         return FakeVerifier()
@@ -162,6 +185,6 @@ async def test_rejected_token_is_401(client: httpx.AsyncClient) -> None:
 
 
 async def test_accepted_token_reaches_the_route(client: httpx.AsyncClient) -> None:
-    response = await client.get("/me", headers={"Authorization": "Bearer good"})
+    response = await client.get("/me", headers={"Cookie": "nalar_session=good"})
     assert response.status_code == 200
     assert response.json() == {"id": "00000000-0000-0000-0000-000000000001"}

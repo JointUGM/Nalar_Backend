@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     login_rate_limit_per_minute: int = 10
     redis_url: SecretStr = SecretStr("redis://127.0.0.1:6379")
     redis_timeout_s: float = 0.25
+    session_lifetime_s: int = 43200
+    session_refresh_margin_s: int = 60
+    session_refresh_lock_s: int = 15
 
     ai_base_url: str = "http://127.0.0.1:8000"
     ai_service_key: SecretStr = SecretStr("")
@@ -54,7 +57,21 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     default_phase: str = "D"
     kb_build_stale_after_s: float = 3600.0
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+
+    @property
+    def session_cookie_name(self) -> str:
+        return "__Host-nalar_session" if self.env in ("staging", "prod") else "nalar_session"
+
+    @model_validator(mode="after")
+    def session_limits(self) -> Self:
+        if self.session_lifetime_s < 60 or self.session_refresh_margin_s < 0:
+            raise ValueError("invalid session lifetime or refresh margin")
+        if self.session_refresh_lock_s <= self.auth_timeout_s:
+            raise ValueError("session refresh lock must exceed the auth timeout")
+        if "*" in self.cors_origins:
+            raise ValueError("cookie authentication requires explicit CORS origins")
+        return self
 
     resend_api_key: SecretStr | None = None
     email_from: str | None = None

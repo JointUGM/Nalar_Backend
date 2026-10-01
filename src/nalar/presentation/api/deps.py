@@ -2,33 +2,29 @@ from typing import Annotated
 
 from dishka import AsyncContainer
 from fastapi import Depends, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import APIKeyCookie
 
 from nalar.application.errors import Unauthenticated
-from nalar.application.ports.auth import AuthUser, SessionRevocations, TokenVerifier
+from nalar.application.ports.auth import AuthUser, BrowserSessions
 
-_bearer = HTTPBearer(auto_error=False)
+_cookie = APIKeyCookie(name="__Host-nalar_session", auto_error=False)
 
 
-async def bearer_token(
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-) -> str:
-    if credentials is None:
+async def session_cookie(request: Request, _: Annotated[str | None, Depends(_cookie)]) -> str:
+    session_id = request.cookies.get(request.app.state.session_cookie_name)
+    if not session_id:
         raise Unauthenticated()
-    return credentials.credentials
+    return session_id
 
 
-BearerToken = Annotated[str, Depends(bearer_token)]
+SessionCookie = Annotated[str, Depends(session_cookie)]
 
 
-async def current_user(request: Request, token: BearerToken) -> AuthUser:
+async def current_user(request: Request, session_id: SessionCookie) -> AuthUser:
     container: AsyncContainer = request.state.dishka_container
-    verifier: TokenVerifier = await container.get(TokenVerifier)
-    user: AuthUser = await verifier.verify(token)
-    revocations: SessionRevocations = await container.get(SessionRevocations)
-    if user.session_id is not None and await revocations.is_revoked(user.session_id):
-        raise Unauthenticated()
-    return user
+    sessions = await container.get(BrowserSessions)
+    tokens = await sessions.resolve(session_id)
+    return AuthUser(id=tokens.user_id)
 
 
 CurrentUser = Annotated[AuthUser, Depends(current_user)]

@@ -106,6 +106,7 @@ from nalar.application.features.sessions.queries.student_missions import Student
 from nalar.application.features.sessions.timing import TurnTiming
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import (
+    BrowserSessions,
     IdentityProvider,
     LoginAttempts,
     SessionRevocations,
@@ -127,6 +128,7 @@ from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.admin import SupabaseAuthAdmin
 from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
+from nalar.infrastructure.auth.redis_sessions import RedisBrowserSessions
 from nalar.infrastructure.auth.redis_state import RedisAuthState
 from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
@@ -284,6 +286,25 @@ class InfrastructureProvider(Provider):
 
     revocations = alias(source=RedisAuthState, provides=SessionRevocations)
     login_attempts = alias(source=RedisAuthState, provides=LoginAttempts)
+
+    @provide(scope=Scope.APP)
+    async def browser_sessions(self, identity: IdentityProvider) -> AsyncIterator[BrowserSessions]:
+        s = self._settings
+        client = aioredis.from_url(
+            s.redis_url.get_secret_value(),
+            socket_timeout=s.redis_timeout_s,
+            socket_connect_timeout=s.redis_timeout_s,
+        )
+        try:
+            yield RedisBrowserSessions(
+                client,
+                identity,
+                s.session_lifetime_s,
+                s.session_refresh_margin_s,
+                s.session_refresh_lock_s,
+            )
+        finally:
+            await client.aclose()
 
     @provide(scope=Scope.APP)
     async def pool(self) -> AsyncIterator[asyncpg.Pool]:
