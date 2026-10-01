@@ -76,7 +76,7 @@ async def test_logout_during_refresh_cannot_restore_the_session() -> None:
 async def test_expired_redis_session_is_rejected_even_with_a_fresh_access_token() -> None:
     sessions, redis = store()
     session_id = await sessions.create(AuthTokens(uuid4(), "access", "refresh", 2000))
-    await redis.expire("session:" + hashlib.sha256(session_id.encode()).hexdigest(), 0)
+    await redis.expireat("session:" + hashlib.sha256(session_id.encode()).hexdigest(), 1)
     with pytest.raises(Unauthenticated):
         await sessions.resolve(session_id)
 
