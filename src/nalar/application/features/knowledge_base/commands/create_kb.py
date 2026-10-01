@@ -96,6 +96,12 @@ class CreateKbHandler:
             MATERIALS_BUCKET, material.storage_path, cmd.file.data, "application/pdf"
         )
         async with self._uow:
+            if not await self._uow.authz.is_school_teacher(cmd.actor_id, cmd.school_id):
+                raise NotFound()
+            if not await self._uow.authz.teaches_subject(
+                cmd.actor_id, cmd.school_id, cmd.school_subject_id
+            ):
+                raise Forbidden("NOT_ASSIGNED_TO_SUBJECT")
             if not await self._uow.knowledge.create_kb(kb, key, cmd.topic_title.strip()):
                 raise Conflict("TOPIC_ALREADY_EXISTS")
             job_id = await queue_material(self._uow, kb, cmd.actor_id, material)

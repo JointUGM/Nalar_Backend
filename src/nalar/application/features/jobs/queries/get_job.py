@@ -15,8 +15,11 @@ class GetJobQuery:
             job = await self._uow.jobs.get(job_id)
             if job is None or job.requested_by != actor_id:
                 raise NotFound()
-            if job.kind == ROSTER_KIND and not await self._uow.authz.can_manage_roster(
-                actor_id, job.entity_id
+            if job.kind == ROSTER_KIND:
+                if not await self._uow.authz.can_manage_roster(actor_id, job.entity_id):
+                    raise NotFound()
+            elif job.school_id is None or not await self._uow.authz.is_school_teacher(
+                actor_id, job.school_id
             ):
                 raise NotFound()
         return job

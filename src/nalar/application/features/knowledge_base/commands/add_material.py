@@ -47,5 +47,6 @@ class AddMaterialHandler:
             MATERIALS_BUCKET, material.storage_path, cmd.file.data, "application/pdf"
         )
         async with self._uow:
+            await require_owner(self._uow, cmd.actor_id, cmd.kb_id)
             job_id = await queue_material(self._uow, kb, cmd.actor_id, material)
         return MaterialQueued(kb.id, material.id, job_id)

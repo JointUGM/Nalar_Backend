@@ -74,6 +74,8 @@ class ReviewVersionHandler:
         now = self._clock.now()
         async with self._uow:
             await self._uow.ai_invocations.record(mission.school_id, reply.invocations)
+        async with self._uow:
+            await require_creator(self._uow, actor_id, mission_id)
             if not await self._uow.missions.mark_reviewed(version.id, pack, actor_id, now):
                 current = await self._uow.missions.version(mission_id, number)
                 assert current is not None

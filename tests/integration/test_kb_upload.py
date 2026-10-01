@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
+import pytest
 
 from nalar.application.features.knowledge_base.commands.detect_sections import (
     DetectSectionsHandler,
@@ -15,6 +16,48 @@ from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import FakeStorage, ScriptedAiGateway, invocation
 
 PDF = b"%PDF-1.7\n" + b"x" * 64
+
+
+@pytest.mark.parametrize("create", [False, True])
+async def test_upload_rechecks_teacher_permission_before_persisting(
+    conn: asyncpg.Connection, world: World, create: bool
+) -> None:
+    class RevokedTeacherStorage(FakeStorage):
+        async def upload(self, bucket: str, path: str, data: bytes, content_type: str) -> None:
+            await super().upload(bucket, path, data, content_type)
+            await conn.execute(
+                "update school_memberships set status = 'inactive'"
+                " where school_id = $1 and user_id = $2 and role = 'teacher'",
+                world.school_id,
+                world.teacher_id,
+            )
+
+    before = await conn.fetchval(
+        "select count(*) from teaching_materials where school_id = $1", world.school_id
+    )
+    async with api_client(conn, storage=RevokedTeacherStorage()) as api:
+        if create:
+            response = await api.post(
+                f"/schools/{world.school_id}/knowledge-bases",
+                headers=as_user(world.teacher_id),
+                **upload(world),
+            )
+        else:
+            response = await api.post(
+                f"/knowledge-bases/{world.kb_id}/materials",
+                headers=as_user(world.teacher_id),
+                files={"file": ("bab1.pdf", PDF, "application/pdf")},
+            )
+    assert response.status_code == 404
+    assert (
+        await conn.fetchval(
+            "select count(*) from teaching_materials where school_id = $1", world.school_id
+        )
+        == before
+    )
+    assert (
+        await conn.fetchval("select count(*) from jobs where school_id = $1", world.school_id) == 0
+    )
 
 
 def upload(
