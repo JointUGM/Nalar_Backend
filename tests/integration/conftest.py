@@ -2,6 +2,7 @@ import os
 from collections.abc import AsyncIterator
 
 import asyncpg
+import pgvector.asyncpg
 import pytest
 
 from tests.integration.support.factories import World, build_world
@@ -14,6 +15,7 @@ TEST_DATABASE_URL = os.environ.get(
 @pytest.fixture
 async def conn() -> AsyncIterator[asyncpg.Connection]:
     connection = await asyncpg.connect(TEST_DATABASE_URL)
+    await pgvector.asyncpg.register_vector(connection)
     transaction = connection.transaction()
     await transaction.start()
     try:

@@ -510,3 +510,71 @@ async def act_as_authenticated(conn: DbConnection, user_id: UUID) -> None:
         "select set_config('request.jwt.claims', $1, true)",
         json.dumps({"sub": str(user_id), "role": "authenticated"}),
     )
+
+
+async def add_section(
+    conn: DbConnection,
+    world: "World",
+    storage: Any,
+    *,
+    parent_id: UUID | None = None,
+    ordinal: int = 1,
+    level: int = 1,
+) -> tuple[UUID, UUID]:
+    """A material (with its PDF in the fake storage) and one detected section of it."""
+    material_id = await conn.fetchval(
+        "select id from teaching_materials where knowledge_base_id = $1 limit 1", world.kb_id
+    )
+    if material_id is None:
+        path = f"{world.school_id}/{world.kb_id}/bab.pdf"
+        material_id = await conn.fetchval(
+            "insert into teaching_materials (school_id, knowledge_base_id, uploaded_by, title,"
+            " storage_path, mime_type, processing_status)"
+            " values ($1, $2, $3, 'bab.pdf', $4, 'application/pdf', 'processed') returning id",
+            world.school_id,
+            world.kb_id,
+            world.teacher_id,
+            path,
+        )
+        await storage.upload("teaching-materials", path, b"%PDF-1.7 bab", "application/pdf")
+    section_id: UUID = await conn.fetchval(
+        "insert into material_sections (school_id, knowledge_base_id, material_id,"
+        " parent_section_id, ordinal, level, title, page_start, page_end)"
+        " values ($1, $2, $3, $4, $5, $6, $7, 1, 10) returning id",
+        world.school_id,
+        world.kb_id,
+        material_id,
+        parent_id,
+        ordinal,
+        level,
+        f"Bagian {ordinal}",
+    )
+    return material_id, section_id
+
+
+async def map_cp_subject(conn: DbConnection, world: "World", model: str, vector: Any) -> UUID:
+    """A CP subject with one statement at `vector`, mapped to the world's school subject."""
+    version_id = await conn.fetchval(
+        "insert into cp_versions (decree_code, title, effective_on, status)"
+        " values ($1, 'CP Uji', '2025-07-01', 'published') returning id",
+        f"UJI/{uuid4().hex[:8]}",
+    )
+    cp_subject_id = await conn.fetchval(
+        "insert into cp_subjects (cp_version_id, name, phase)"
+        " values ($1, 'Ilmu Pengetahuan Alam', 'D') returning id",
+        version_id,
+    )
+    outcome_id: UUID = await conn.fetchval(
+        "insert into cp_learning_outcomes (cp_subject_id, element, description, grain,"
+        " embedding, embedding_model) values ($1, 'Pemahaman IPA',"
+        " 'Peserta didik menjelaskan gaya dan gerak.', 'statement', $2, $3) returning id",
+        cp_subject_id,
+        vector,
+        model,
+    )
+    await conn.execute(
+        "update school_subjects set cp_subject_id = $2 where id = $1",
+        world.subject_id,
+        cp_subject_id,
+    )
+    return outcome_id

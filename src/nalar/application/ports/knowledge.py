@@ -4,7 +4,15 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from nalar.application.ports.ai_contract import SectionOut
+from nalar.application.ports.ai_contract import (
+    CandidateIn,
+    ChunkOut,
+    ConceptDraftOut,
+    CpCandidateIn,
+    LibraryCandidateIn,
+    MisconceptionOut,
+    SectionOut,
+)
 
 
 @dataclass(frozen=True)
@@ -104,7 +112,69 @@ class SectionView:
     suggested: bool
 
 
+@dataclass(frozen=True)
+class SectionForBuild:
+    id: UUID
+    knowledge_base_id: UUID
+    school_id: UUID
+    build_status: str
+    job_id: UUID | None
+    job_updated_at: datetime | None
+
+
+@dataclass(frozen=True)
+class BuildContext:
+    section_id: UUID
+    school_id: UUID
+    knowledge_base_id: UUID
+    ordinal: int
+    title: str
+    page_start: int
+    page_end: int
+    next_title: str | None
+    storage_bucket: str
+    storage_path: str
+    subject: str
+    phase: str
+    cp_subject_id: UUID | None
+    has_chunks: bool
+    has_concepts: bool
+
+
+@dataclass(frozen=True)
+class ChunkRow:
+    id: UUID
+    content: str
+    heading_path: str | None
+    kind: str
+    page_start: int | None
+    page_end: int | None
+    embedding_model: str | None
+
+
+@dataclass(frozen=True)
+class StoredConcept:
+    id: UUID
+    name: str
+    description: str | None
+    embedding: list[float]
+    source_chunk_ids: tuple[UUID, ...]
+    embedding_model: str | None
+
+
 class KnowledgeRepo(Protocol):
+    async def claim_build(
+        self, ctx: BuildContext, job_id: UUID, now: datetime, stale_after_s: float
+    ) -> int | None:
+        """Lease one build per KB; raise BuildBusy while another fresh lease exists."""
+        ...
+
+    async def touch_build(self, job_id: UUID, attempt: int) -> bool:
+        """Fence writes from expired or superseded workers and refresh the lease."""
+        ...
+
+    async def release_build(self, job_id: UUID, attempt: int) -> None: ...
+
     async def kb_ref(self, kb_id: UUID) -> KbRef | None: ...
 
     async def topic_exists(self, school_subject_id: UUID, key: str) -> bool: ...
@@ -143,3 +213,68 @@ class KnowledgeRepo(Protocol):
     async def kb_detail(self, kb_id: UUID, approved_only: bool) -> KbDetail | None: ...
 
     async def sections(self, kb_id: UUID) -> list[SectionView]: ...
+
+    async def section_for_build(self, section_id: UUID) -> SectionForBuild | None:
+        """Locks every section of the section's material, so overlapping requests serialize."""
+        ...
+
+    async def overlaps(self, section_id: UUID) -> bool:
+        """An ancestor or descendant is queued, building or built."""
+        ...
+
+    async def queue_section(self, section_id: UUID) -> None: ...
+
+    async def build_context(self, section_id: UUID, default_phase: str) -> BuildContext | None: ...
+
+    async def set_build_status(
+        self, section_id: UUID, status: str, built_at: datetime | None
+    ) -> None: ...
+
+    async def insert_chunks(
+        self, ctx: BuildContext, chunks: Sequence[ChunkOut], embedding_model: str
+    ) -> None: ...
+
+    async def section_chunks(self, section_id: UUID) -> list[ChunkRow]: ...
+
+    async def kb_concepts(self, kb_id: UUID) -> list[tuple[UUID, str, str | None]]:
+        """Active, not rejected: what extraction must not propose again."""
+        ...
+
+    async def kb_edges(self, kb_id: UUID) -> list[tuple[UUID, UUID]]: ...
+
+    async def rejected_concepts(self, kb_id: UUID) -> list[tuple[str, str | None]]: ...
+
+    async def match_concepts(
+        self, ctx: BuildContext, embedding: Sequence[float], model: str
+    ) -> list[CandidateIn]: ...
+
+    async def apply_concepts(
+        self,
+        ctx: BuildContext,
+        links: Sequence[tuple[UUID, Sequence[UUID]]],
+        creates: Sequence[ConceptDraftOut],
+        model: str,
+        linked_keys: dict[str, UUID] | None = None,
+    ) -> None: ...
+
+    async def concepts_to_align(self, ctx: BuildContext) -> list[StoredConcept]:
+        """Pending AI concepts sourced from this section with no CP label yet."""
+        ...
+
+    async def match_cp(
+        self, cp_subject_id: UUID, embedding: Sequence[float], model: str
+    ) -> list[CpCandidateIn]: ...
+
+    async def set_cp_outcome(
+        self, ctx: BuildContext, concept_id: UUID, outcome_id: UUID
+    ) -> None: ...
+
+    async def concepts_without_misconceptions(self, ctx: BuildContext) -> list[StoredConcept]: ...
+
+    async def match_library(
+        self, ctx: BuildContext, embedding: Sequence[float], model: str
+    ) -> list[LibraryCandidateIn]: ...
+
+    async def insert_misconceptions(
+        self, ctx: BuildContext, rows: Sequence[MisconceptionOut], model: str
+    ) -> None: ...
