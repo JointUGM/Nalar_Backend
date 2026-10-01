@@ -2,7 +2,7 @@
 
 Publishes the seeded mission to the seeded class as a fresh live run, joins N seeded students,
 starts the run, plays every session to its end, waits for each evaluation, closes the run and
-prints the latency budgets. Needs NALAR_SEED_PASSWORD and NALAR_SUPABASE_ANON_KEY.
+prints the latency budgets. Needs NALAR_SEED_PASSWORD and an allowed --origin.
 """
 
 import argparse
@@ -69,18 +69,20 @@ def pct(values: list[float], q: int) -> float:
 async def login(auth: httpx.AsyncClient, email: str, password: str) -> dict[str, str]:
     for _ in range(LOGIN_ATTEMPTS):
         response = await auth.post(
-            "/auth/v1/token",
-            params={"grant_type": "password"},
+            "/auth/login",
             json={"email": email, "password": password},
         )
         if response.status_code != 429:
             break
-        # Supabase Auth limits sign-ins per IP; wait out the window instead of failing the run.
+        # Backend limits repeated sign-in attempts; wait out the window instead of failing the run.
         wait = float(response.headers.get("Retry-After", LOGIN_BACKOFF_S))
         print(f"sign-in rate limited, waiting {wait:.0f}s")
         await asyncio.sleep(wait)
     response.raise_for_status()
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    cookie_name = (
+        "__Host-nalar_session" if auth.cookies.get("__Host-nalar_session") else "nalar_session"
+    )
+    return {"Cookie": f"{cookie_name}={auth.cookies.get(cookie_name)}"}
 
 
 def server_seconds(response: httpx.Response) -> float:
@@ -181,11 +183,11 @@ async def publish(api: httpx.AsyncClient, teacher: dict[str, str]) -> tuple[str,
 
 async def main(args: argparse.Namespace) -> bool:
     password = os.environ["NALAR_SEED_PASSWORD"]
-    anon = os.environ["NALAR_SUPABASE_ANON_KEY"]
+    headers = {"Origin": args.origin, "X-Nalar-CSRF": "1"}
     timings = Timings()
     async with (
-        httpx.AsyncClient(base_url=args.supabase_url, headers={"apikey": anon}, timeout=30) as auth,
-        httpx.AsyncClient(base_url=f"{args.api_url}/api/v1", timeout=30) as api,
+        httpx.AsyncClient(base_url=f"{args.api_url}/api/v1", headers=headers, timeout=30) as auth,
+        httpx.AsyncClient(base_url=f"{args.api_url}/api/v1", headers=headers, timeout=30) as api,
     ):
         teacher = await login(auth, "guru@demo.nalar.id", password)
         students = [
@@ -254,7 +256,7 @@ async def main(args: argparse.Namespace) -> bool:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-url", required=True)
-    parser.add_argument("--supabase-url", required=True)
+    parser.add_argument("--origin", default="http://localhost:5173")
     parser.add_argument(
         "--run-id", help="an existing scheduled live run; default: publish a fresh one"
     )

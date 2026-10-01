@@ -3,13 +3,12 @@ from uuid import uuid4
 import asyncpg
 
 from tests.integration.support.api import api_client
-from tests.integration.support.factories import World
 from tests.unit.application.fakes import FakeIdentityProvider
 
 PASSWORD = FakeIdentityProvider.password
 
 
-async def test_login_returns_only_the_session_fields_and_is_not_cached(
+async def test_login_returns_metadata_and_an_httponly_session_cookie(
     conn: asyncpg.Connection,
 ) -> None:
     identity = FakeIdentityProvider()
@@ -17,15 +16,13 @@ async def test_login_returns_only_the_session_fields_and_is_not_cached(
         response = await api.post(
             "/auth/login", json={"email": " Siswa01@Demo.nalar.id ", "password": PASSWORD}
         )
+        restored = await api.get("/auth/session")
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert set(response.json()) == {
-        "user_id",
-        "access_token",
-        "refresh_token",
-        "token_type",
-        "expires_at",
-    }
+    assert set(response.json()) == {"user_id", "expires_at"}
+    assert "HttpOnly" in response.headers["Set-Cookie"]
+    assert "SameSite=lax" in response.headers["Set-Cookie"]
+    assert restored.json() == response.json()
     assert identity.sign_ins == ["siswa01@demo.nalar.id"]
 
 
@@ -36,13 +33,18 @@ async def test_wrong_password_is_401_invalid_credentials(conn: asyncpg.Connectio
     assert response.json()["error"]["code"] == "INVALID_CREDENTIALS"
 
 
-async def test_eleventh_login_for_one_email_in_a_minute_is_429_whatever_its_case(
+async def test_eleventh_login_for_one_email_is_429_whatever_its_case(
     conn: asyncpg.Connection,
 ) -> None:
     async with api_client(conn) as api:
         for i in range(10):
-            email = "SISWA01@demo.nalar.id" if i % 2 else "siswa01@demo.nalar.id"
-            await api.post("/auth/login", json={"email": email, "password": "nope"})
+            await api.post(
+                "/auth/login",
+                json={
+                    "email": "SISWA01@demo.nalar.id" if i % 2 else "siswa01@demo.nalar.id",
+                    "password": "nope",
+                },
+            )
         blocked = await api.post(
             "/auth/login", json={"email": " Siswa01@Demo.Nalar.ID", "password": PASSWORD}
         )
@@ -67,43 +69,61 @@ async def test_a_class_of_32_can_sign_in_within_one_minute(conn: asyncpg.Connect
     assert statuses == [200] * 32
 
 
-async def test_used_refresh_token_is_401(conn: asyncpg.Connection) -> None:
-    async with api_client(conn) as api:
-        session = (
-            await api.post("/auth/login", json={"email": "a@b.id", "password": PASSWORD})
-        ).json()
-        first = await api.post("/auth/refresh", json={"refresh_token": session["refresh_token"]})
-        replay = await api.post("/auth/refresh", json={"refresh_token": session["refresh_token"]})
-    assert first.status_code == 200
-    assert first.json()["refresh_token"] != session["refresh_token"]
-    assert replay.status_code == 401
-    assert replay.json()["error"]["code"] == "UNAUTHENTICATED"
-
-
-async def test_a_logged_out_token_is_rejected_on_the_next_request(
-    conn: asyncpg.Connection, world: World
-) -> None:
+async def test_logout_rejects_replayed_cookie_and_is_idempotent(conn: asyncpg.Connection) -> None:
     identity = FakeIdentityProvider()
-    token = f"{world.teacher_id}:{uuid4()}"
-    bearer = {"Authorization": f"Bearer {token}"}
     async with api_client(conn, identity=identity) as api:
-        before = await api.get("/me", headers=bearer)
-        logout = await api.post("/auth/logout", headers=bearer)
-        after = await api.get("/me", headers=bearer)
-    assert (before.status_code, logout.status_code, after.status_code) == (200, 204, 401)
-    assert identity.revoked == [token]
+        await api.post("/auth/login", json={"email": "a@b.id", "password": PASSWORD})
+        old = api.cookies.get("nalar_session")
+        assert (await api.post("/auth/refresh")).status_code == 200
+        assert (await api.post("/auth/logout")).status_code == 204
+        assert (
+            await api.get("/auth/session", headers={"Cookie": f"nalar_session={old}"})
+        ).status_code == 401
+        assert (await api.post("/auth/logout")).status_code == 204
+    assert identity.revoked == ["access-1"]
 
 
-async def test_logout_with_a_dead_token_is_204_and_revokes_nothing(
+async def test_bearer_tokens_cannot_bypass_redis_sessions(conn: asyncpg.Connection) -> None:
+    async with api_client(conn) as api:
+        response = await api.get("/me", headers={"Authorization": f"Bearer {uuid4()}"})
+    assert response.status_code == 401
+
+
+async def test_login_rotates_session_and_rejects_previous_cookie(conn: asyncpg.Connection) -> None:
+    async with api_client(conn) as api:
+        await api.post("/auth/login", json={"email": "a@b.id", "password": PASSWORD})
+        old = api.cookies.get("nalar_session")
+        await api.post("/auth/login", json={"email": "a@b.id", "password": PASSWORD})
+        assert api.cookies.get("nalar_session") != old
+        assert (
+            await api.get("/auth/session", headers={"Cookie": f"nalar_session={old}"})
+        ).status_code == 401
+
+
+async def test_cross_origin_and_missing_csrf_header_cannot_login_or_logout(
     conn: asyncpg.Connection,
 ) -> None:
-    identity = FakeIdentityProvider()
-    async with api_client(conn, identity=identity) as api:
-        response = await api.post("/auth/logout", headers={"Authorization": "Bearer expired"})
-    assert response.status_code == 204
-    assert identity.revoked == []
-
-
-async def test_logout_without_a_bearer_is_401(conn: asyncpg.Connection) -> None:
     async with api_client(conn) as api:
-        assert (await api.post("/auth/logout")).status_code == 401
+        response = await api.post(
+            "/auth/login",
+            headers={"Origin": "https://attacker.test"},
+            json={"email": "a@b.id", "password": PASSWORD},
+        )
+        assert response.status_code == 403
+        api.headers.pop("X-Nalar-CSRF")
+        assert (await api.post("/auth/logout")).status_code == 403
+
+
+async def test_cors_only_allows_credentials_for_explicit_origins(conn: asyncpg.Connection) -> None:
+    async with api_client(conn) as api:
+        response = await api.options(
+            "/auth/login",
+            headers={
+                "Origin": "http://test",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "X-Nalar-CSRF, Content-Type",
+            },
+        )
+    assert response.status_code == 200
+    assert response.headers["Access-Control-Allow-Origin"] == "http://test"
+    assert response.headers["Access-Control-Allow-Credentials"] == "true"
