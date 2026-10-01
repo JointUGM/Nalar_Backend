@@ -194,6 +194,36 @@ async def test_safety_resume_after_the_deadline_is_409(
     )
 
 
+async def test_safety_resume_at_the_last_turn_returns_completed(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    await pause(conn, world)
+    await conn.execute(
+        "update session_turns set turn_index = mv.max_turns"
+        " from publications p join mission_versions mv on mv.id = p.mission_version_id"
+        " where session_id = $1 and p.id = $2",
+        world.session_id,
+        world.publication_id,
+    )
+    async with api_client(conn) as api:
+        response = await api.post(
+            safety_url(world), json={"action": "resume"}, headers=as_user(world.teacher_id)
+        )
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert (
+        await conn.fetchval("select status::text from sessions where id = $1", world.session_id)
+        == "completed"
+    )
+    assert (
+        await conn.fetchval(
+            "select count(*) from pgmq.q_nalar_eval where message->>'session_id' = $1",
+            str(world.session_id),
+        )
+        == 1
+    )
+
+
 async def test_safety_end_ends_the_session_and_queues_one_evaluation(
     conn: asyncpg.Connection, world: World
 ) -> None:

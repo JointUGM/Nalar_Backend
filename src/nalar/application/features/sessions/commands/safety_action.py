@@ -58,7 +58,9 @@ class SafetyActionHandler:
                 await append_fixed_question(
                     uow, ctx=ctx, answered=ctx.turns[-1], move_source="fixed_rule", now=now
                 )
-                status = SessionStatus.in_progress
+                current = await uow.sessions.get_ref(cmd.session_id)
+                assert current is not None
+                status = current.status
             await uow.audit.session_action(
                 cmd.session_id, cmd.actor_id, f"session.safety_{cmd.action}", {"note": cmd.note}
             )
