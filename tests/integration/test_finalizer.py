@@ -64,7 +64,7 @@ def summary(text: str, source: str = "model") -> AiResult[ParentSummaryOut]:
 
 
 def insight_reply(body: BaseModel) -> AiResult[ClassInsightOut]:
-    concept = body.concepts[0].concept_id  # type: ignore[attr-defined]
+    concept = next(c for c in body.concepts if c.mastered_count == 1).concept_id  # type: ignore[attr-defined]
     return AiResult(
         ClassInsightOut.model_validate(
             {
