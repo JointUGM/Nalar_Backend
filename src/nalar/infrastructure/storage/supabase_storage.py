@@ -15,3 +15,16 @@ class SupabaseStorage:
         if response.status_code == 409 or "duplicate" in text or "already exists" in text:
             return
         response.raise_for_status()
+
+    async def upload(self, bucket: str, path: str, data: bytes, content_type: str) -> None:
+        response = await self._http.post(
+            f"/storage/v1/object/{bucket}/{path}",
+            content=data,
+            headers={"Content-Type": content_type, "x-upsert": "true"},
+        )
+        response.raise_for_status()
+
+    async def download(self, bucket: str, path: str) -> bytes:
+        response = await self._http.get(f"/storage/v1/object/{bucket}/{path}")
+        response.raise_for_status()
+        return response.content

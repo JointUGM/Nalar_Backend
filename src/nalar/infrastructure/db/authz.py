@@ -57,6 +57,20 @@ class PgAuthz:
             school_subject_id,
         )
 
+    async def teaches_subject(
+        self, user_id: UUID, school_id: UUID, school_subject_id: UUID
+    ) -> bool:
+        return await self._check(
+            f"""select exists (
+                  select 1 from teaching_assignments ta
+                    join classes c on c.id = ta.class_id and c.archived_at is null
+                   where ta.teacher_id = $1 and ta.school_id = $2 and ta.school_subject_id = $3
+                     and {_ACTIVE_TEACHER.format(school="ta.school_id")})""",
+            user_id,
+            school_id,
+            school_subject_id,
+        )
+
     async def teaches_publication(self, user_id: UUID, publication_id: UUID) -> bool:
         return await self._check(
             _TEACHES_PUBLICATION.format(publication="$2"), user_id, publication_id

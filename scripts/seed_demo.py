@@ -60,6 +60,7 @@ async def _warm(
                 embed_s=settings.ai_embed_timeout_s,
                 s5_insight_s=settings.ai_s5_insight_timeout_s,
                 s5_summary_s=settings.ai_s5_summary_timeout_s,
+                s1_step_s=settings.ai_s1_step_timeout_s,
             ),
         )
         result = await client.warm_run(
