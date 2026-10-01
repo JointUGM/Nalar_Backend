@@ -15,24 +15,36 @@ from nalar.application.features.knowledge_base.commands.create_kb import (
     UploadedPdf,
     UploadLimits,
 )
+from nalar.application.features.knowledge_base.commands.edit_item import EditItem, EditItemHandler
 from nalar.application.features.knowledge_base.commands.request_build import (
     RequestBuild,
     RequestBuildHandler,
 )
+from nalar.application.features.knowledge_base.commands.review_item import (
+    ReviewItem,
+    ReviewItemHandler,
+)
 from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbs, ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
+from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
+from nalar.application.ports.knowledge import ItemPatch
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.knowledge_base import (
     BuildQueuedOut,
     ConceptOut,
+    ConceptPatchIn,
     KbDetailOut,
     KbPageOut,
     KbSummaryOut,
     MaterialOut,
     MaterialQueuedOut,
     MisconceptionOut,
+    MisconceptionPatchIn,
     PrerequisiteOut,
+    ReviewIn,
+    ReviewOut,
+    ReviewQueueOut,
     SectionItemOut,
     SectionsOut,
 )
@@ -142,3 +154,60 @@ async def build_section(
 ) -> BuildQueuedOut:
     done = await handler.execute(RequestBuild(user.id, kb_id, section_id))
     return BuildQueuedOut(job_id=done.job_id, section_id=done.section_id)
+
+
+@router.post("/concepts/{item_id}/review", response_model=ReviewOut)
+async def review_concept(
+    item_id: UUID, body: ReviewIn, user: CurrentUser, handler: FromDishka[ReviewItemHandler]
+) -> ReviewOut:
+    done = await handler.execute(ReviewItem(user.id, "concept", item_id, body.review_status))
+    return ReviewOut(**asdict(done))
+
+
+@router.post("/misconceptions/{item_id}/review", response_model=ReviewOut)
+async def review_misconception(
+    item_id: UUID, body: ReviewIn, user: CurrentUser, handler: FromDishka[ReviewItemHandler]
+) -> ReviewOut:
+    done = await handler.execute(ReviewItem(user.id, "misconception", item_id, body.review_status))
+    return ReviewOut(**asdict(done))
+
+
+@router.patch("/concepts/{item_id}", response_model=ConceptOut)
+async def patch_concept(
+    item_id: UUID, body: ConceptPatchIn, user: CurrentUser, handler: FromDishka[EditItemHandler]
+) -> ConceptOut:
+    view = await handler.execute(
+        EditItem(
+            user.id, "concept", item_id, ItemPatch(name=body.name, description=body.description)
+        )
+    )
+    return ConceptOut(**asdict(view))
+
+
+@router.patch("/misconceptions/{item_id}", response_model=MisconceptionOut)
+async def patch_misconception(
+    item_id: UUID,
+    body: MisconceptionPatchIn,
+    user: CurrentUser,
+    handler: FromDishka[EditItemHandler],
+) -> MisconceptionOut:
+    patch = ItemPatch(
+        statement=body.statement,
+        correct_understanding=body.correct_understanding,
+        detection_cues=tuple(body.detection_cues) if body.detection_cues is not None else None,
+        counter_examples=tuple(body.counter_examples)
+        if body.counter_examples is not None
+        else None,
+    )
+    view = await handler.execute(EditItem(user.id, "misconception", item_id, patch))
+    return MisconceptionOut(**asdict(view))
+
+
+@router.get("/knowledge-bases/{kb_id}/review-queue", response_model=ReviewQueueOut)
+async def review_queue(
+    kb_id: UUID, user: CurrentUser, query: FromDishka[ReviewQueueQuery]
+) -> ReviewQueueOut:
+    concepts, misconceptions = await query.execute(user.id, kb_id)
+    return ReviewQueueOut(
+        knowledge_base_id=kb_id, pending_concepts=concepts, pending_misconceptions=misconceptions
+    )

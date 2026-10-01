@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
 from nalar.application.ports.ai_contract import (
@@ -162,6 +162,32 @@ class StoredConcept:
     embedding_model: str | None
 
 
+type ItemKind = Literal["concept", "misconception"]
+type ReviewOutcome = Literal["reviewed", "not_pending", "concept_not_approved"]
+
+
+@dataclass(frozen=True)
+class ItemRef:
+    id: UUID
+    kind: ItemKind
+    knowledge_base_id: UUID
+    school_id: UUID
+    review_status: str
+    reviewed_at: datetime | None
+    name: str
+    description: str | None
+
+
+@dataclass(frozen=True)
+class ItemPatch:
+    name: str | None = None
+    description: str | None = None
+    statement: str | None = None
+    correct_understanding: str | None = None
+    detection_cues: tuple[str, ...] | None = None
+    counter_examples: tuple[str, ...] | None = None
+
+
 class KnowledgeRepo(Protocol):
     async def claim_build(
         self, ctx: BuildContext, job_id: UUID, now: datetime, stale_after_s: float
@@ -278,3 +304,28 @@ class KnowledgeRepo(Protocol):
     async def insert_misconceptions(
         self, ctx: BuildContext, rows: Sequence[MisconceptionOut], model: str
     ) -> None: ...
+
+    async def item_ref(
+        self, kind: ItemKind, item_id: UUID, *, lock: bool = False
+    ) -> ItemRef | None: ...
+
+    async def review_item(
+        self, kind: ItemKind, item_id: UUID, status: str, actor_id: UUID, now: datetime
+    ) -> ReviewOutcome: ...
+
+    async def edit_item(
+        self,
+        kind: ItemKind,
+        item_id: UUID,
+        patch: ItemPatch,
+        embedding: Sequence[float] | None,
+        model: str | None,
+    ) -> bool:
+        """Only while pending; the new vector replaces the old one with its model name."""
+        ...
+
+    async def concept_view(self, concept_id: UUID) -> ConceptView | None: ...
+
+    async def misconception_view(self, misconception_id: UUID) -> MisconceptionView | None: ...
+
+    async def review_queue(self, kb_id: UUID) -> tuple[int, int]: ...

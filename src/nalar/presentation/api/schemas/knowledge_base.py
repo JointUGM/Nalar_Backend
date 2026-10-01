@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+
+from nalar.presentation.api.schemas.common import Body
 
 
 class MaterialQueuedOut(BaseModel):
@@ -95,3 +98,47 @@ class BuildQueuedOut(BaseModel):
     job_id: UUID
     section_id: UUID
     status: str = "queued"
+
+
+class ReviewIn(Body):
+    review_status: Literal["approved", "rejected"]
+
+
+class ReviewOut(BaseModel):
+    id: UUID
+    review_status: str
+    reviewed_at: datetime
+
+
+class _ItemPatchIn(Body):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    @model_validator(mode="after")
+    def require_changes(self) -> Self:
+        if not self.model_fields_set or any(
+            getattr(self, key) is None for key in self.model_fields_set
+        ):
+            raise ValueError("Kirim setidaknya satu bidang; nilai null tidak diterima.")
+        return self
+
+
+class ConceptPatchIn(_ItemPatchIn):
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class MisconceptionPatchIn(_ItemPatchIn):
+    statement: str | None = Field(default=None, min_length=1, max_length=1000)
+    correct_understanding: str | None = Field(default=None, min_length=1, max_length=2000)
+    detection_cues: list[Annotated[str, StringConstraints(min_length=1, max_length=300)]] | None = (
+        Field(default=None, max_length=20)
+    )
+    counter_examples: (
+        list[Annotated[str, StringConstraints(min_length=1, max_length=2000)]] | None
+    ) = Field(default=None, max_length=20)
+
+
+class ReviewQueueOut(BaseModel):
+    knowledge_base_id: UUID
+    pending_concepts: int
+    pending_misconceptions: int
