@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     ai_evaluate_timeout_s: float = 330.0
     ai_embed_timeout_s: float = 30.0
     ai_s1_step_timeout_s: float = 180.0
+    ai_s5_insight_timeout_s: float = 190.0
+    ai_s5_summary_timeout_s: float = 90.0
 
     kb_concurrency: int = 2
     eval_concurrency: int = 16
@@ -42,6 +44,7 @@ class Settings(BaseSettings):
     default_planner_mode: Literal["table", "hybrid"] = "table"
     join_rate_limit_per_minute: int = 10
     turn_recovery_after_s: float = 15.0
+    finalize_cooldown_s: float = 600.0
     evaluation_sweep_after_s: float = 120.0
     embedding_model: str = "text-embedding-3-small"
     cors_origins: list[str] = ["http://localhost:3000"]

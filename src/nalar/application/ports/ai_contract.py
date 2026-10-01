@@ -18,6 +18,8 @@ class AiPurpose(StrEnum):
     probe_plan = "probe_plan"
     session_evaluation = "session_evaluation"
     reflection_generation = "reflection_generation"
+    class_map_insight = "class_map_insight"
+    parent_summary = "parent_summary"
 
 
 class AnswerType(StrEnum):
@@ -105,6 +107,14 @@ class ClassificationSource(StrEnum):
     prefilter = "prefilter"
     model = "model"
     fallback = "fallback"
+
+
+class ClusterOut(BaseModel):
+    explanation: Annotated[
+        str, Field(description="May contain placeholders, like the narrative", title="Explanation")
+    ]
+    misconception_ids: Annotated[list[UUID], Field(title="Misconception Ids")]
+    name: Annotated[str, Field(title="Name")]
 
 
 class ConceptDraftOut(BaseModel):
@@ -343,6 +353,23 @@ class LibraryCandidateIn(BaseModel):
     ] = None
 
 
+class MisconceptionCountIn(BaseModel):
+    count: Annotated[
+        int, Field(description="Students who hold it now", ge=0, le=500, title="Count")
+    ]
+    misconception_id: Annotated[UUID, Field(title="Misconception Id")]
+    resolved_count: Annotated[
+        int,
+        Field(
+            description="Students who changed their mind in the session",
+            ge=0,
+            le=500,
+            title="Resolved Count",
+        ),
+    ]
+    statement: Annotated[str, Field(max_length=1000, min_length=1, title="Statement")]
+
+
 class MisconceptionIn(BaseModel):
     concept_id: Annotated[UUID, Field(title="Concept Id")]
     detection_cues: Annotated[
@@ -380,6 +407,64 @@ class MoveSource(StrEnum):
     prefilter = "prefilter"
     fallback_invalid = "fallback_invalid"
     fallback_error = "fallback_error"
+
+
+class MisconceptionStatement(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="The held idea, or the idea the child moved away from when resolved",
+            max_length=1000,
+            title="Misconception Statement",
+        ),
+    ]
+
+
+class ParentConceptIn(BaseModel):
+    misconception_statement: Annotated[
+        MisconceptionStatement | None,
+        Field(
+            description="The held idea, or the idea the child moved away from when resolved",
+            title="Misconception Statement",
+        ),
+    ] = None
+    name: Annotated[str, Field(max_length=300, min_length=1, title="Name")]
+    outcome: Annotated[ConceptOutcome, Field(description="session_concept_results.outcome")]
+    resolved_in_session: Annotated[bool | None, Field(title="Resolved In Session")] = False
+
+
+class EvaluationSummary(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description="session_evaluations.summary", max_length=2000, title="Evaluation Summary"
+        ),
+    ]
+
+
+class ParentSummaryIn(BaseModel):
+    concepts: Annotated[list[ParentConceptIn], Field(max_length=10, min_length=1, title="Concepts")]
+    evaluation_summary: Annotated[
+        EvaluationSummary | None,
+        Field(description="session_evaluations.summary", title="Evaluation Summary"),
+    ] = None
+    mission_title: Annotated[str, Field(max_length=300, min_length=1, title="Mission Title")]
+
+
+class Source(StrEnum):
+    model = "model"
+    template = "template"
+
+
+class ParentSummaryOut(BaseModel):
+    content: Annotated[str, Field(description="parent_summaries.content", title="Content")]
+    source: Annotated[
+        Source,
+        Field(
+            description="Not stored; 'template' after two blocked drafts (store ai_invocation_id null)",
+            title="Source",
+        ),
+    ]
 
 
 class PlannerMode(StrEnum):
@@ -476,11 +561,6 @@ class SectionOut(BaseModel):
     title: Annotated[str, Field(title="Title")]
 
 
-class Source(StrEnum):
-    model = "model"
-    template = "template"
-
-
 class SessionReflectionOut(BaseModel):
     content: Annotated[str, Field(description="session_reflections.content", title="Content")]
     source: Annotated[
@@ -561,6 +641,30 @@ class ChunkSectionOut(BaseModel):
     chunks: Annotated[list[ChunkOut], Field(title="Chunks")]
     embedding_model: Annotated[str, Field(title="Embedding Model")]
     skipped_pages: Annotated[list[SkippedPageOut], Field(title="Skipped Pages")]
+
+
+class ClassInsightOut(BaseModel):
+    clusters: Annotated[
+        list[ClusterOut], Field(description="class_map_insights.clusters", title="Clusters")
+    ]
+    narrative: Annotated[
+        str,
+        Field(
+            description="class_map_insights.narrative. Placeholders: {{total}}, {{incomplete}}, {{count|resolved:<misconception_id>}}, {{mastered|developing|not_observed:<concept_id>}}",
+            title="Narrative",
+        ),
+    ]
+
+
+class ConceptCountIn(BaseModel):
+    concept_id: Annotated[UUID, Field(title="Concept Id")]
+    developing_count: Annotated[int, Field(ge=0, le=500, title="Developing Count")]
+    mastered_count: Annotated[int, Field(ge=0, le=500, title="Mastered Count")]
+    misconceptions: Annotated[
+        list[MisconceptionCountIn] | None, Field(max_length=30, title="Misconceptions")
+    ] = None
+    name: Annotated[str, Field(max_length=300, min_length=1, title="Name")]
+    not_observed_count: Annotated[int, Field(ge=0, le=500, title="Not Observed Count")]
 
 
 class ConceptForMisconceptionsIn(BaseModel):
@@ -749,6 +853,15 @@ class AlignCpOut(BaseModel):
     alignments: Annotated[list[CpAlignmentOut], Field(title="Alignments")]
 
 
+class ClassInsightIn(BaseModel):
+    concepts: Annotated[list[ConceptCountIn], Field(max_length=10, min_length=1, title="Concepts")]
+    denominator: Annotated[
+        int, Field(description="Eligible latest attempts", ge=1, le=500, title="Denominator")
+    ]
+    incomplete_count: Annotated[int, Field(ge=0, le=500, title="Incomplete Count")]
+    mission_title: Annotated[str, Field(max_length=300, min_length=1, title="Mission Title")]
+
+
 class EvaluateOut(BaseModel):
     concept_results: Annotated[list[ConceptResultOut], Field(title="Concept Results")]
     reflection: SessionReflectionOut
@@ -798,6 +911,12 @@ class EnvelopeChunkSectionOut(BaseModel):
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 
+class EnvelopeClassInsightOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: ClassInsightOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
 class EnvelopeDedupeOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: DedupeOut
@@ -837,6 +956,12 @@ class EnvelopeGenerateMisconceptionsOut(BaseModel):
 class EnvelopeNextTurnOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: NextTurnOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
+class EnvelopeParentSummaryOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: ParentSummaryOut
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 

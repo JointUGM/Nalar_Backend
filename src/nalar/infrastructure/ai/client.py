@@ -6,6 +6,8 @@ from pydantic import BaseModel, ValidationError
 
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import (
+    ClassInsightIn,
+    ClassInsightOut,
     EmbedIn,
     EmbedOut,
     ErrorEnvelope,
@@ -14,6 +16,8 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
+    ParentSummaryIn,
+    ParentSummaryOut,
     WarmIn,
     WarmOut,
 )
@@ -39,6 +43,8 @@ class AiTimeouts:
     warm_s: float
     evaluate_s: float
     embed_s: float
+    s5_insight_s: float
+    s5_summary_s: float
 
 
 class AiServiceClient:
@@ -64,6 +70,24 @@ class AiServiceClient:
     async def embed(self, body: EmbedIn, request_id: str) -> AiResult[EmbedOut]:
         return await self._post(
             "/v1/embeddings", body, EmbedOut, self._timeouts.embed_s, request_id
+        )
+
+    async def class_insight(
+        self, body: ClassInsightIn, request_id: str
+    ) -> AiResult[ClassInsightOut]:
+        return await self._post(
+            "/v1/s5/class-insight", body, ClassInsightOut, self._timeouts.s5_insight_s, request_id
+        )
+
+    async def parent_summary(
+        self, body: ParentSummaryIn, request_id: str
+    ) -> AiResult[ParentSummaryOut]:
+        return await self._post(
+            "/v1/s5/parent-summaries/generate",
+            body,
+            ParentSummaryOut,
+            self._timeouts.s5_summary_s,
+            request_id,
         )
 
     async def _post[T: BaseModel](

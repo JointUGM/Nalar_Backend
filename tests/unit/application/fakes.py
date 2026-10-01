@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from nalar.application.errors import InvalidCredentials, Unauthenticated
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import (
+    ClassInsightIn,
+    ClassInsightOut,
     EmbedIn,
     EmbedOut,
     EvaluateIn,
@@ -19,6 +21,8 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
+    ParentSummaryIn,
+    ParentSummaryOut,
     WarmIn,
     WarmOut,
 )
@@ -28,7 +32,7 @@ from nalar.application.ports.turns import NewTurn, TurnAnalysis
 from nalar.domain.labels import SessionEndReason, SessionStatus
 from nalar.domain.sessions import OPEN_STATUSES
 
-type Reply = AiResult[Any] | AiServiceError
+type Reply = AiResult[Any] | AiServiceError | Callable[[Any], AiResult[Any]]
 
 SEED_PACK: dict[str, Any] = json.loads(
     (Path(__file__).resolve().parents[3] / "supabase/seed/gaya_dan_gerak.json").read_text(
@@ -84,6 +88,8 @@ class ScriptedAiGateway:
         reply = self.replies[method].pop(0)
         if isinstance(reply, AiServiceError):
             raise reply
+        if callable(reply):
+            return reply(body)
         return reply
 
     async def next_turn(self, body: NextTurnIn, request_id: str) -> AiResult[NextTurnOut]:
@@ -97,6 +103,16 @@ class ScriptedAiGateway:
 
     async def embed(self, body: EmbedIn, request_id: str) -> AiResult[EmbedOut]:
         return cast(AiResult[EmbedOut], await self._reply("embed", body))
+
+    async def class_insight(
+        self, body: ClassInsightIn, request_id: str
+    ) -> AiResult[ClassInsightOut]:
+        return cast(AiResult[ClassInsightOut], await self._reply("class_insight", body))
+
+    async def parent_summary(
+        self, body: ParentSummaryIn, request_id: str
+    ) -> AiResult[ParentSummaryOut]:
+        return cast(AiResult[ParentSummaryOut], await self._reply("parent_summary", body))
 
 
 class RecordingBackground:

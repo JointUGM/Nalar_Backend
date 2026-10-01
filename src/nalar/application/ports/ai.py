@@ -4,6 +4,8 @@ from typing import Protocol
 from uuid import UUID
 
 from nalar.application.ports.ai_contract import (
+    ClassInsightIn,
+    ClassInsightOut,
     EmbedIn,
     EmbedOut,
     EvaluateIn,
@@ -11,6 +13,8 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
+    ParentSummaryIn,
+    ParentSummaryOut,
     WarmIn,
     WarmOut,
 )
@@ -50,6 +54,14 @@ class AiGateway(Protocol):
     ) -> AiResult[EvaluateOut]: ...
 
     async def embed(self, body: EmbedIn, request_id: str) -> AiResult[EmbedOut]: ...
+
+    async def class_insight(
+        self, body: ClassInsightIn, request_id: str
+    ) -> AiResult[ClassInsightOut]: ...
+
+    async def parent_summary(
+        self, body: ParentSummaryIn, request_id: str
+    ) -> AiResult[ParentSummaryOut]: ...
 
 
 class AiInvocationLog(Protocol):
