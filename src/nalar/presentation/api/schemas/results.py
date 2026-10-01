@@ -150,3 +150,25 @@ class SafetyActionOut(BaseModel):
     session_id: UUID
     status: str
     acted_at: datetime
+
+
+class OverrideIn(Body):
+    final_level: int = Field(ge=0, le=4)
+    reason: str = Field(max_length=2000)
+
+
+class OverrideResultOut(BaseModel):
+    score_id: UUID
+    ai_level: int
+    final_level: int
+    overridden_at: datetime
+
+
+class FlagReviewIn(Body):
+    decision: Literal["cleared", "concern_confirmed"]
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class FlagReviewOut(BaseModel):
+    status: str
+    reviewed_at: datetime

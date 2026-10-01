@@ -5,6 +5,7 @@ from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
 from nalar.application.ports.evaluations import EvaluationsRepo
+from nalar.application.ports.grading import GradingRepo
 from nalar.application.ports.identity import IdentityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.notifications import NotificationsRepo
@@ -38,6 +39,7 @@ class UnitOfWork(Protocol):
     evaluations: EvaluationsRepo
     results: ResultsRepo
     audit: AuditRepo
+    grading: GradingRepo
 
     async def __aenter__(self) -> Self: ...
 

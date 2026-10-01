@@ -25,6 +25,8 @@ from nalar.application.features.publications.queries.teacher_assignments import 
 from nalar.application.features.publications.queries.teacher_publications import (
     TeacherPublicationsQuery,
 )
+from nalar.application.features.results.commands.override_score import OverrideScoreHandler
+from nalar.application.features.results.commands.review_flag import ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
@@ -218,6 +220,8 @@ class ApplicationProvider(Provider):
         SessionReportQuery,
         ClassMapQuery,
         SafetyActionHandler,
+        OverrideScoreHandler,
+        ReviewFlagHandler,
     )
 
 

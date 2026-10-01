@@ -333,6 +333,33 @@ async def add_waiting_students(conn: DbConnection, world: "World", n: int) -> li
     return students
 
 
+async def add_score(conn: DbConnection, world: "World", session_id: UUID) -> UUID:
+    evaluation_id = await conn.fetchval(
+        "select id from session_evaluations where session_id = $1", session_id
+    ) or await conn.fetchval(
+        "insert into session_evaluations (school_id, session_id) values ($1, $2) returning id",
+        world.school_id,
+        session_id,
+    )
+    score_id: UUID = await conn.fetchval(
+        "insert into evaluation_scores (school_id, evaluation_id, dimension, ai_level, final_level)"
+        " values ($1, $2, 'claim', 2, 2) returning id",
+        world.school_id,
+        evaluation_id,
+    )
+    return score_id
+
+
+async def add_flag(conn: DbConnection, world: "World", session_id: UUID) -> UUID:
+    flag_id: UUID = await conn.fetchval(
+        "insert into authenticity_flags (school_id, session_id, flag_type, severity, evidence)"
+        " values ($1, $2, 'large_paste', 'medium', '{}'::jsonb) returning id",
+        world.school_id,
+        session_id,
+    )
+    return flag_id
+
+
 @dataclass(frozen=True)
 class World:
     school_id: UUID

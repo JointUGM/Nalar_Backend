@@ -274,6 +274,55 @@
         "title": "EvidenceOut",
         "type": "object"
       },
+      "FlagReviewIn": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "cleared",
+              "concern_confirmed"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "FlagReviewIn",
+        "type": "object"
+      },
+      "FlagReviewOut": {
+        "properties": {
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "reviewed_at"
+        ],
+        "title": "FlagReviewOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -787,6 +836,28 @@
         "title": "OpeningGuessOut",
         "type": "object"
       },
+      "OverrideIn": {
+        "additionalProperties": false,
+        "properties": {
+          "final_level": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Final Level",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "final_level",
+          "reason"
+        ],
+        "title": "OverrideIn",
+        "type": "object"
+      },
       "OverrideOut": {
         "properties": {
           "created_at": {
@@ -814,6 +885,36 @@
           "created_at"
         ],
         "title": "OverrideOut",
+        "type": "object"
+      },
+      "OverrideResultOut": {
+        "properties": {
+          "ai_level": {
+            "title": "Ai Level",
+            "type": "integer"
+          },
+          "final_level": {
+            "title": "Final Level",
+            "type": "integer"
+          },
+          "overridden_at": {
+            "format": "date-time",
+            "title": "Overridden At",
+            "type": "string"
+          },
+          "score_id": {
+            "format": "uuid",
+            "title": "Score Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "score_id",
+          "ai_level",
+          "final_level",
+          "overridden_at"
+        ],
+        "title": "OverrideResultOut",
         "type": "object"
       },
       "PasteEvent": {
@@ -2287,6 +2388,64 @@
         ]
       }
     },
+    "/api/v1/flags/{flag_id}/review": {
+      "post": {
+        "operationId": "review_flag_api_v1_flags__flag_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "flag_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Flag Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Flag",
+        "tags": [
+          "results"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "operationId": "me_api_v1_me_get",
@@ -2596,6 +2755,64 @@
         "summary": "Start",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/scores/{score_id}/overrides": {
+      "post": {
+        "operationId": "override_score_api_v1_scores__score_id__overrides_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "score_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Score Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverrideResultOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Override Score",
+        "tags": [
+          "results"
         ]
       }
     },

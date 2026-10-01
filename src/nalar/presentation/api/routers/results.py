@@ -4,6 +4,11 @@ from uuid import UUID
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter
 
+from nalar.application.features.results.commands.override_score import (
+    OverrideScore,
+    OverrideScoreHandler,
+)
+from nalar.application.features.results.commands.review_flag import ReviewFlag, ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
@@ -17,11 +22,15 @@ from nalar.presentation.api.schemas.results import (
     ClassMapOut,
     ConceptCountOut,
     EvidenceOut,
+    FlagReviewIn,
+    FlagReviewOut,
     MisconceptionCountOut,
     MonitorOut,
     MonitorRunOut,
     MonitorStudentOut,
+    OverrideIn,
     OverrideOut,
+    OverrideResultOut,
     ReportConceptResultOut,
     ReportEvaluationOut,
     ReportFlagOut,
@@ -132,3 +141,19 @@ async def safety_action(
 ) -> SafetyActionOut:
     acted = await handler.execute(SafetyAction(user.id, session_id, body.action, body.note))
     return SafetyActionOut(session_id=session_id, status=acted.status, acted_at=acted.acted_at)
+
+
+@router.post("/scores/{score_id}/overrides", response_model=OverrideResultOut)
+async def override_score(
+    score_id: UUID, body: OverrideIn, user: CurrentUser, handler: FromDishka[OverrideScoreHandler]
+) -> OverrideResultOut:
+    done = await handler.execute(OverrideScore(user.id, score_id, body.final_level, body.reason))
+    return OverrideResultOut(**asdict(done))
+
+
+@router.post("/flags/{flag_id}/review", response_model=FlagReviewOut)
+async def review_flag(
+    flag_id: UUID, body: FlagReviewIn, user: CurrentUser, handler: FromDishka[ReviewFlagHandler]
+) -> FlagReviewOut:
+    done = await handler.execute(ReviewFlag(user.id, flag_id, body.decision, body.note))
+    return FlagReviewOut(**asdict(done))
