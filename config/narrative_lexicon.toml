@@ -1,0 +1,13 @@
+# AI-4: words that state a quantity. Model text must use {{…}} placeholders instead.
+version = 1
+number_words = [
+  "nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan",
+  "sepuluh", "sebelas", "belas", "puluh", "seratus", "ratus", "seribu", "ribu", "juta",
+  "setengah", "separuh", "seperempat", "sepertiga",
+]
+count_claims = [
+  "semua siswa", "seluruh siswa", "hampir semua", "hampir seluruh", "mayoritas", "kebanyakan",
+  "sebagian besar", "sebagian kecil", "banyak siswa", "sedikit siswa", "tidak ada siswa",
+]
+# Parent text only (PA rules): never a score, level or ranking.
+score_terms = ["skor", "level", "peringkat", "ranking", "nilai akhir"]

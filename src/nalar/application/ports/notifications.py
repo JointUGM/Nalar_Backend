@@ -13,3 +13,9 @@ class NotificationsRepo(Protocol):
     ) -> int:
         """One alert per teacher per paused turn (dedupe_key); returns how many were new."""
         ...
+
+    async def release_reminder(
+        self, recipient_ids: list[UUID], school_id: UUID, publication_id: UUID
+    ) -> int:
+        """D-S26-15: in-app only, once per teacher per publication; returns how many were new."""
+        ...

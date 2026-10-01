@@ -22,6 +22,8 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "post", "/sessions/{session}/safety-actions", {"action": "end"}),
     ("teacher", "get", "/teacher/publications?class_id={klass}", None),
     ("teacher", "post", "/publications", PUBLISH),
+    ("teacher", "get", "/publications/{publication}/release-preview", None),
+    ("teacher", "post", "/publications/{publication}/release", {"expected_eligible_count": 0}),
     ("teacher", "post", "/scores/{score}/overrides", {"final_level": 3, "reason": "x"}),
     ("teacher", "post", "/flags/{flag}/review", {"decision": "cleared"}),
     ("student", "get", "/student/runs/{run}/lobby", None),

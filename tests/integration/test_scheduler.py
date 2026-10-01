@@ -20,7 +20,9 @@ from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import FakeClock, RecordingBackground
 
 TIMING = SchedulerTiming(
-    recovery_after=timedelta(seconds=15), evaluation_sweep_after=timedelta(minutes=2)
+    recovery_after=timedelta(seconds=15),
+    evaluation_sweep_after=timedelta(minutes=2),
+    finalize_cooldown=timedelta(minutes=10),
 )
 SESSION_ROW = "select status::text, ended_at, deadline_at from sessions where id = $1"
 

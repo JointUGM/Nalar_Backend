@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from nalar.application.features.evaluation.messages import evaluation_message
+from nalar.application.features.release.messages import FINALIZE_KIND, finalize_message
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
-from nalar.application.ports.queue import EVAL_QUEUE
+from nalar.application.ports.queue import DEFAULT_QUEUE, EVAL_QUEUE
 from nalar.application.ports.uow import UnitOfWork
 
 
@@ -12,6 +13,7 @@ from nalar.application.ports.uow import UnitOfWork
 class SchedulerTiming:
     recovery_after: timedelta
     evaluation_sweep_after: timedelta
+    finalize_cooldown: timedelta
 
 
 @dataclass(frozen=True)
@@ -21,10 +23,11 @@ class TickReport:
     timed_out: int
     recovered: int
     swept: int
+    finalizing: int = 0
 
 
 class TickHandler:
-    """Master plan §6.6 steps 1–4; every step is guarded, so a repeated tick changes nothing."""
+    """Master plan §6.6 steps 1–5; every step is guarded, so a repeated tick changes nothing."""
 
     def __init__(
         self, uow: UnitOfWork, clock: Clock, background: BackgroundWork, timing: SchedulerTiming
@@ -51,6 +54,21 @@ class TickHandler:
             )
             for session_id in swept:
                 await self._uow.queue.send(EVAL_QUEUE, evaluation_message(session_id))
+        async with self._uow:
+            settled = await self._uow.scheduler.publications_to_finalize(
+                now - self._timing.finalize_cooldown
+            )
+            for publication_id, school_id in settled:
+                job_id = await self._uow.jobs.create(
+                    kind=FINALIZE_KIND,
+                    entity_type="publications",
+                    entity_id=publication_id,
+                    school_id=school_id,
+                    requested_by=None,
+                )
+                await self._uow.queue.send(DEFAULT_QUEUE, finalize_message(publication_id, job_id))
         for session_id, turn_index in stuck:
             self._background.run_turn_step(session_id, turn_index)
-        return TickReport(len(opened), len(closed), len(timed_out), len(stuck), len(swept))
+        return TickReport(
+            len(opened), len(closed), len(timed_out), len(stuck), len(swept), len(settled)
+        )

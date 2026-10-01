@@ -13,6 +13,7 @@ from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
+from nalar.application.ports.release import ReleaseRepo
 from nalar.application.ports.results import ResultsRepo
 from nalar.application.ports.runs import RunsRepo
 from nalar.application.ports.scheduler import SchedulerRepo
@@ -42,6 +43,7 @@ class UnitOfWork(Protocol):
     audit: AuditRepo
     grading: GradingRepo
     integrity: IntegrityRepo
+    release: ReleaseRepo
 
     async def __aenter__(self) -> Self: ...
 

@@ -2,6 +2,7 @@ import tomllib
 from pathlib import Path
 
 from nalar.domain.integrity import IntegrityConfig
+from nalar.domain.placeholders import NarrativeLexicon
 
 CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
 
@@ -27,4 +28,13 @@ def load_integrity_config(path: Path = CONFIG_DIR / "integrity.toml") -> Integri
         similarity_min_jaccard=sim["min_jaccard"],
         similarity_min_tokens=sim["min_tokens"],
         similarity_severity=sim["severity"],
+    )
+
+
+def load_narrative_lexicon(path: Path = CONFIG_DIR / "narrative_lexicon.toml") -> NarrativeLexicon:
+    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    return NarrativeLexicon(
+        number_words=frozenset(w.casefold() for w in raw["number_words"]),
+        count_claims=tuple(c.casefold() for c in raw["count_claims"]),
+        score_terms=tuple(t.casefold() for t in raw["score_terms"]),
     )

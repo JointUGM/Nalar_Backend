@@ -24,6 +24,7 @@ from nalar.presentation.api.schemas.results import (
     EvidenceOut,
     FlagReviewIn,
     FlagReviewOut,
+    InsightOut,
     MisconceptionCountOut,
     MonitorOut,
     MonitorRunOut,
@@ -68,12 +69,15 @@ async def monitor(
 async def class_map(
     publication_id: UUID, user: CurrentUser, query: FromDishka[ClassMapQuery]
 ) -> ClassMapOut:
-    data, counts = await query.execute(user.id, publication_id)
+    data, counts, insight = await query.execute(user.id, publication_id)
     names = dict(data.concepts)
     statements = {m: statement for m, _, statement in data.misconceptions}
     return ClassMapOut(
         denominator=counts.denominator,
         incomplete_count=counts.incomplete_count,
+        insight=InsightOut(narrative=insight.narrative, generated_at=insight.generated_at)
+        if insight
+        else None,
         concepts=[
             ConceptCountOut(
                 concept_id=c.concept_id,

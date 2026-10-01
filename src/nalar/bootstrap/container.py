@@ -31,6 +31,14 @@ from nalar.application.features.publications.queries.teacher_assignments import 
 from nalar.application.features.publications.queries.teacher_publications import (
     TeacherPublicationsQuery,
 )
+from nalar.application.features.release.commands.finalize_publication import (
+    FinalizePublicationHandler,
+)
+from nalar.application.features.release.commands.release import ReleaseHandler
+from nalar.application.features.release.commands.release_reminders import (
+    ReleaseRemindersHandler,
+)
+from nalar.application.features.release.queries.preview import ReleasePreviewQuery
 from nalar.application.features.results.commands.override_score import OverrideScoreHandler
 from nalar.application.features.results.commands.review_flag import ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
@@ -70,12 +78,13 @@ from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.background import InProcessBackground
 from nalar.bootstrap.settings import Settings
 from nalar.domain.integrity import IntegrityConfig
+from nalar.domain.placeholders import NarrativeLexicon
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.auth.redis_state import RedisAuthState
 from nalar.infrastructure.clock import SystemClock
-from nalar.infrastructure.config import load_integrity_config
+from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
@@ -117,10 +126,15 @@ class InfrastructureProvider(Provider):
         return load_integrity_config()
 
     @provide(scope=Scope.APP)
+    def narrative_lexicon(self) -> NarrativeLexicon:
+        return load_narrative_lexicon()
+
+    @provide(scope=Scope.APP)
     def scheduler_timing(self) -> SchedulerTiming:
         return SchedulerTiming(
             recovery_after=timedelta(seconds=self._settings.turn_recovery_after_s),
             evaluation_sweep_after=timedelta(seconds=self._settings.evaluation_sweep_after_s),
+            finalize_cooldown=timedelta(seconds=self._settings.finalize_cooldown_s),
         )
 
     @provide(scope=Scope.APP)
@@ -201,6 +215,8 @@ class InfrastructureProvider(Provider):
                     warm_s=s.ai_warm_timeout_s,
                     evaluate_s=s.ai_evaluate_timeout_s,
                     embed_s=s.ai_embed_timeout_s,
+                    s5_insight_s=s.ai_s5_insight_timeout_s,
+                    s5_summary_s=s.ai_s5_summary_timeout_s,
                 ),
             )
 
@@ -236,6 +252,10 @@ class ApplicationProvider(Provider):
         ReviewFlagHandler,
         ComputeSessionFlagsHandler,
         ComputePublicationSimilarityHandler,
+        ReleasePreviewQuery,
+        ReleaseHandler,
+        FinalizePublicationHandler,
+        ReleaseRemindersHandler,
     )
 
 

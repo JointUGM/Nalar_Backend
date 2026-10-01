@@ -25,6 +25,37 @@ _UNEVALUATED = """
 """
 
 
+_TO_FINALIZE = """
+    with finalized as (
+        select entity_id, count(*) filter (where status = 'succeeded') as runs,
+               bool_or(status in ('queued', 'running') or updated_at > $1) as busy
+          from jobs where kind = 'publication_finalize' group by entity_id)
+    select p.id, p.school_id from publications p
+      left join finalized f on f.entity_id = p.id
+     where p.released_to_parents_at is null and p.cancelled_at is null
+       and not coalesce(f.busy, false)
+       and exists (select 1 from sessions s where s.publication_id = p.id)
+       and not exists (select 1 from publication_runs r
+                        where r.publication_id = p.id and r.status <> 'closed')
+       and not exists (select 1 from sessions s where s.publication_id = p.id
+                         and (s.status in ('in_progress', 'paused_safety')
+                              or not exists (select 1 from session_evaluations e
+                                              where e.session_id = s.id)))
+       and (coalesce(f.runs, 0) = 0
+            or exists (select 1 from v_latest_sessions ls
+                         join session_evaluations e on e.session_id = ls.id
+                          and e.status = 'completed'
+                        where ls.publication_id = p.id and ls.status = 'completed'
+                          and (not exists (select 1 from parent_summaries ps
+                                            where ps.publication_id = p.id
+                                              and ps.student_id = ls.student_id)
+                               or (f.runs < 2 and not exists (select 1 from class_map_insights i
+                                                               where i.publication_id = p.id)))))
+     order by p.created_at
+     limit 50
+"""
+
+
 class PgSchedulerRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
@@ -60,3 +91,7 @@ class PgSchedulerRepo:
 
     async def unevaluated_sessions(self, ended_before: datetime) -> list[UUID]:
         return await self._ids(_UNEVALUATED, ended_before)
+
+    async def publications_to_finalize(self, cooldown_before: datetime) -> list[tuple[UUID, UUID]]:
+        rows = await self._conn.fetch(_TO_FINALIZE, cooldown_before)
+        return [(r["id"], r["school_id"]) for r in rows]
