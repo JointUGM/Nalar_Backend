@@ -1,9 +1,8 @@
-import base64
 from dataclasses import dataclass
-from datetime import datetime
 from uuid import UUID
 
-from nalar.application.errors import InvalidInput, NotFound
+from nalar.application.cursor import decode_cursor, encode_cursor
+from nalar.application.errors import NotFound
 from nalar.application.ports.publications import PublicationSummary
 from nalar.application.ports.uow import UnitOfWork
 
@@ -27,7 +26,7 @@ class TeacherPublicationsQuery:
         self._uow = uow
 
     async def execute(self, q: TeacherPublications) -> PublicationPage:
-        after = _decode(q.cursor) if q.cursor else None
+        after = decode_cursor(q.cursor) if q.cursor else None
         async with self._uow:
             if q.class_id is not None and not await self._uow.authz.teaches_class(
                 q.actor_id, q.class_id
@@ -37,16 +36,7 @@ class TeacherPublicationsQuery:
                 q.actor_id, q.class_id, q.limit + 1, after
             )
         items = rows[: q.limit]
-        return PublicationPage(items, _encode(items[-1]) if len(rows) > q.limit else None)
-
-
-def _encode(item: PublicationSummary) -> str:
-    return base64.urlsafe_b64encode(f"{item.created_at.isoformat()}|{item.id}".encode()).decode()
-
-
-def _decode(cursor: str) -> tuple[datetime, UUID]:
-    try:
-        created_at, publication_id = base64.urlsafe_b64decode(cursor).decode().split("|")
-        return datetime.fromisoformat(created_at), UUID(publication_id)
-    except ValueError as exc:
-        raise InvalidInput(details={"cursor": "invalid"}) from exc
+        return PublicationPage(
+            items,
+            encode_cursor(items[-1].created_at, items[-1].id) if len(rows) > q.limit else None,
+        )

@@ -935,6 +935,210 @@
         "title": "OverrideResultOut",
         "type": "object"
       },
+      "ParentChildOut": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "school_name": {
+            "title": "School Name",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "name",
+          "school_name"
+        ],
+        "title": "ParentChildOut",
+        "type": "object"
+      },
+      "ParentChildrenOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ParentChildOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ParentChildrenOut",
+        "type": "object"
+      },
+      "ParentPreferencesIn": {
+        "additionalProperties": false,
+        "properties": {
+          "weekly_digest_enabled": {
+            "title": "Weekly Digest Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "weekly_digest_enabled"
+        ],
+        "title": "ParentPreferencesIn",
+        "type": "object"
+      },
+      "ParentPreferencesOut": {
+        "properties": {
+          "weekly_digest_enabled": {
+            "title": "Weekly Digest Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "weekly_digest_enabled"
+        ],
+        "title": "ParentPreferencesOut",
+        "type": "object"
+      },
+      "ParentProgressOut": {
+        "properties": {
+          "concepts_developing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Concepts Developing",
+            "type": "array"
+          },
+          "concepts_understood": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Concepts Understood",
+            "type": "array"
+          },
+          "sessions_completed": {
+            "title": "Sessions Completed",
+            "type": "integer"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/ParentSummaryOut"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessions_completed",
+          "concepts_understood",
+          "concepts_developing",
+          "summaries"
+        ],
+        "title": "ParentProgressOut",
+        "type": "object"
+      },
+      "ParentReflectionOut": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "mission_title",
+          "completed_at",
+          "content"
+        ],
+        "title": "ParentReflectionOut",
+        "type": "object"
+      },
+      "ParentReflectionsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ParentReflectionOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ParentReflectionsOut",
+        "type": "object"
+      },
+      "ParentSummaryOut": {
+        "properties": {
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          },
+          "released_at": {
+            "format": "date-time",
+            "title": "Released At",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication_id",
+          "mission_title",
+          "released_at",
+          "text"
+        ],
+        "title": "ParentSummaryOut",
+        "type": "object"
+      },
       "PasteEvent": {
         "additionalProperties": false,
         "properties": {
@@ -2597,6 +2801,266 @@
         "summary": "Me",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/api/v1/parent/children": {
+      "get": {
+        "operationId": "children_api_v1_parent_children_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentChildrenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Children",
+        "tags": [
+          "parent"
+        ]
+      }
+    },
+    "/api/v1/parent/children/{student_id}/progress": {
+      "get": {
+        "operationId": "progress_api_v1_parent_children__student_id__progress_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentProgressOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Progress",
+        "tags": [
+          "parent"
+        ]
+      }
+    },
+    "/api/v1/parent/children/{student_id}/reflections": {
+      "get": {
+        "operationId": "reflections_api_v1_parent_children__student_id__reflections_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentReflectionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reflections",
+        "tags": [
+          "parent"
+        ]
+      }
+    },
+    "/api/v1/parent/preferences": {
+      "get": {
+        "operationId": "preferences_api_v1_parent_preferences_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentPreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preferences",
+        "tags": [
+          "parent"
+        ]
+      },
+      "put": {
+        "operationId": "set_preferences_api_v1_parent_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParentPreferencesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentPreferencesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Preferences",
+        "tags": [
+          "parent"
         ]
       }
     },

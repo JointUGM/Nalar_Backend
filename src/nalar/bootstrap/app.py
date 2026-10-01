@@ -14,6 +14,7 @@ from nalar.presentation.api.routers import (
     auth,
     health,
     me,
+    parent,
     release,
     results,
     runs,
@@ -55,6 +56,7 @@ def create_app(
         student.router,
         results.router,
         release.router,
+        parent.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
     setup_dishka(container, app)

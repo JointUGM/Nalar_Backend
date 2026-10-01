@@ -26,9 +26,14 @@ MODELS = [
 
 
 def test_the_student_models_were_found() -> None:
-    assert {"JoinOut", "StateOut", "ReflectionOut", "MissionCardOut"} <= {
-        m.__name__ for m in MODELS
-    }
+    assert {
+        "JoinOut",
+        "StateOut",
+        "ReflectionOut",
+        "MissionCardOut",
+        "ParentProgressOut",
+        "ParentReflectionOut",
+    } <= {m.__name__ for m in MODELS}
 
 
 @pytest.mark.parametrize("model", MODELS, ids=lambda m: m.__name__)

@@ -24,6 +24,11 @@ from nalar.application.features.integrity.commands.compute_publication_similarit
 from nalar.application.features.integrity.commands.compute_session_flags import (
     ComputeSessionFlagsHandler,
 )
+from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
+from nalar.application.features.parents.queries.children import ChildrenQuery
+from nalar.application.features.parents.queries.preferences import PreferencesQuery
+from nalar.application.features.parents.queries.progress import ProgressQuery
+from nalar.application.features.parents.queries.reflections import ParentReflectionsQuery
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
@@ -256,6 +261,11 @@ class ApplicationProvider(Provider):
         ReleaseHandler,
         FinalizePublicationHandler,
         ReleaseRemindersHandler,
+        ChildrenQuery,
+        ProgressQuery,
+        ParentReflectionsQuery,
+        PreferencesQuery,
+        SetPreferencesHandler,
     )
 
 
