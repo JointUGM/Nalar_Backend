@@ -1,0 +1,26 @@
+# E1 thresholds (B17, AI design §10). Bump version on any change; it is stamped into each flag.
+version = 1
+
+[large_paste]
+min_chars = 60
+min_share = 0.40
+severity = "medium"
+
+[tab_switching]
+min_hidden_ms_per_answer = 20000
+min_hidden_events_per_session = 3
+severity = "low"
+
+[inconsistency_gap]
+first_min_quality = 3
+next_max_quality = 1
+severity = "medium"
+
+[disconnect_pattern]
+min_quality_jump = 2
+severity = "medium"
+
+[cross_student_similarity]
+min_jaccard = 0.8
+min_tokens = 5
+severity = "medium"

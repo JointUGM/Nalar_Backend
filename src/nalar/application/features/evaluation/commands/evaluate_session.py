@@ -4,9 +4,11 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from nalar.application.features.evaluation.payloads import evaluate_request
+from nalar.application.features.integrity.messages import session_flags_message
 from nalar.application.ports.ai import AiGateway, AiResult, AiServiceError
 from nalar.application.ports.ai_contract import EvaluateOut, InvocationOut
 from nalar.application.ports.evaluations import ConceptResultRow, EvaluationInput
+from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.application.ports.uow import UnitOfWork
 from nalar.domain.context_pack import target_ids_from_pack
 from nalar.domain.evaluation import OutcomeCheck, ScoreCheck, output_problems
@@ -18,7 +20,9 @@ _RETRYABLE_ONCE = frozenset({500, 502})
 
 
 class EvaluateSessionHandler:
-    """Master plan §6.3 without E1. The unique session_evaluations row is the exactly-once guard.
+    """Master plan §6.3. The unique session_evaluations row is the exactly-once guard.
+
+    E1 is enqueued with the evaluation row (D-S26-5).
 
     A 503, timeout or unreachable service re-raises after recording the invocations, so the
     queue re-delivers the message after its visibility timeout (B7).
@@ -76,9 +80,10 @@ class EvaluateSessionHandler:
 
     async def _terminal(self, data: EvaluationInput, status: EvaluationStatus) -> None:
         async with self._uow:
-            await self._uow.evaluations.insert(
+            if await self._uow.evaluations.insert(
                 data.session_id, data.school_id, status, None, "[]", None
-            )
+            ):
+                await self._uow.queue.send(DEFAULT_QUEUE, session_flags_message(data.session_id))
 
     async def _complete(self, data: EvaluationInput, reply: AiResult[EvaluateOut]) -> None:
         result = reply.result
@@ -99,6 +104,7 @@ class EvaluateSessionHandler:
             )
             if evaluation_id is None:
                 return
+            await self._uow.queue.send(DEFAULT_QUEUE, session_flags_message(data.session_id))
             for score in result.scores:
                 score_id = await repo.insert_score(
                     data.school_id,
