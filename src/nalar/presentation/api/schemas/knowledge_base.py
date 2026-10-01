@@ -89,3 +89,9 @@ class SectionItemOut(BaseModel):
 
 class SectionsOut(BaseModel):
     items: list[SectionItemOut]
+
+
+class BuildQueuedOut(BaseModel):
+    job_id: UUID
+    section_id: UUID
+    status: str = "queued"

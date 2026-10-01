@@ -26,6 +26,10 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
 )
 from nalar.application.features.jobs.queries.get_job import GetJobQuery
 from nalar.application.features.knowledge_base.commands.add_material import AddMaterialHandler
+from nalar.application.features.knowledge_base.commands.build_section import (
+    BuildSectionHandler,
+    S1Settings,
+)
 from nalar.application.features.knowledge_base.commands.create_kb import (
     CreateKbHandler,
     UploadLimits,
@@ -33,6 +37,7 @@ from nalar.application.features.knowledge_base.commands.create_kb import (
 from nalar.application.features.knowledge_base.commands.detect_sections import (
     DetectSectionsHandler,
 )
+from nalar.application.features.knowledge_base.commands.request_build import RequestBuildHandler
 from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
@@ -160,6 +165,11 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
         return UploadLimits(self._settings.kb_max_upload_bytes)
+
+    @provide(scope=Scope.APP)
+    def s1_settings(self) -> S1Settings:
+        s = self._settings
+        return S1Settings(s.embedding_model, s.default_phase, s.kb_build_stale_after_s)
 
     @provide(scope=Scope.APP)
     def integrity_config(self) -> IntegrityConfig:
@@ -311,6 +321,8 @@ class ApplicationProvider(Provider):
         CreateKbHandler,
         AddMaterialHandler,
         DetectSectionsHandler,
+        BuildSectionHandler,
+        RequestBuildHandler,
         ListKbsQuery,
         GetKbQuery,
         ListSectionsQuery,

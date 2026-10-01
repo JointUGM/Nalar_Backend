@@ -6,7 +6,8 @@ import asyncpg
 import pytest
 
 from tests.integration.support.api import api_client, as_user
-from tests.integration.support.factories import World, add_flag, add_score, build_world
+from tests.integration.support.factories import World, add_flag, add_score, add_section, build_world
+from tests.unit.application.fakes import FakeStorage
 
 AT = "2026-10-08T02:00:00Z"
 PUBLISH = {"mission_version_id": "{version}", "class_id": "{klass}", "run": {"mode": "live"}}
@@ -29,6 +30,7 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "get", "/schools/{school}/knowledge-bases", None),
     ("teacher", "get", "/knowledge-bases/{kb}", None),
     ("teacher", "get", "/knowledge-bases/{kb}/sections", None),
+    ("teacher", "post", "/knowledge-bases/{kb}/sections/{section}/build", {}),
     ("teacher", "get", "/schools/{school}/missions", None),
     ("teacher", "post", "/missions/{mission}/generate", None),
     ("teacher", "get", "/missions/{mission}/versions/1", None),
@@ -78,6 +80,7 @@ async def test_cross_school_ids_return_404(
         "mission": world.mission_id,
         "school": world.school_id,
         "kb": world.kb_id,
+        "section": (await add_section(conn, world, FakeStorage()))[1],
     }
     intruder = await build_world(conn, "SMP Penyusup")
     user = {

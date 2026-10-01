@@ -15,6 +15,14 @@ class StepFailed(Exception):
         super().__init__(code)
 
 
+class BuildBusy(Exception):
+    pass
+
+
+class BuildSuperseded(Exception):
+    pass
+
+
 async def call_s1[T](
     call: Callable[[str], Awaitable[AiResult[T]]], request_id: str, record: Record
 ) -> AiResult[T]:

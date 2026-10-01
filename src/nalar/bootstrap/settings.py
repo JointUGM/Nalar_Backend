@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     finalize_cooldown_s: float = 600.0
     evaluation_sweep_after_s: float = 120.0
     embedding_model: str = "text-embedding-3-small"
+    default_phase: str = "D"
+    kb_build_stale_after_s: float = 3600.0
     cors_origins: list[str] = ["http://localhost:3000"]
 
     resend_api_key: SecretStr | None = None

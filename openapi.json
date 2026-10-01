@@ -213,6 +213,31 @@
         "title": "Body_create_kb_api_v1_schools__school_id__knowledge_bases_post",
         "type": "object"
       },
+      "BuildQueuedOut": {
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "section_id": {
+            "format": "uuid",
+            "title": "Section Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "section_id"
+        ],
+        "title": "BuildQueuedOut",
+        "type": "object"
+      },
       "ClassMapOut": {
         "properties": {
           "concepts": {
@@ -4104,6 +4129,64 @@
           }
         ],
         "summary": "List Sections",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/sections/{section_id}/build": {
+      "post": {
+        "operationId": "build_section_api_v1_knowledge_bases__kb_id__sections__section_id__build_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "section_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Section Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuildQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Build Section",
         "tags": [
           "knowledge-base"
         ]

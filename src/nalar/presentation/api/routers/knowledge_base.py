@@ -15,11 +15,16 @@ from nalar.application.features.knowledge_base.commands.create_kb import (
     UploadedPdf,
     UploadLimits,
 )
+from nalar.application.features.knowledge_base.commands.request_build import (
+    RequestBuild,
+    RequestBuildHandler,
+)
 from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbs, ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.knowledge_base import (
+    BuildQueuedOut,
     ConceptOut,
     KbDetailOut,
     KbPageOut,
@@ -125,3 +130,15 @@ async def list_sections(
 ) -> SectionsOut:
     sections = await query.execute(user.id, kb_id)
     return SectionsOut(items=[SectionItemOut(**asdict(s)) for s in sections])
+
+
+@router.post(
+    "/knowledge-bases/{kb_id}/sections/{section_id}/build",
+    status_code=202,
+    response_model=BuildQueuedOut,
+)
+async def build_section(
+    kb_id: UUID, section_id: UUID, user: CurrentUser, handler: FromDishka[RequestBuildHandler]
+) -> BuildQueuedOut:
+    done = await handler.execute(RequestBuild(user.id, kb_id, section_id))
+    return BuildQueuedOut(job_id=done.job_id, section_id=done.section_id)
