@@ -18,6 +18,9 @@ from nalar.application.ports.knowledge import (
     BuildContext,
     ChunkRow,
     ConceptView,
+    ItemKind,
+    ItemPatch,
+    ItemRef,
     KbDetail,
     KbRef,
     KbSummary,
@@ -25,11 +28,14 @@ from nalar.application.ports.knowledge import (
     MaterialView,
     MisconceptionView,
     NewMaterial,
+    ReviewOutcome,
     SectionForBuild,
     SectionView,
     StoredConcept,
 )
 from nalar.infrastructure.db.pool import DbConnection
+
+_ITEM_TABLE = {"concept": "concepts", "misconception": "misconceptions"}
 
 _KB_PAGE = """
     select kb.id, kb.topic_key, kb.topic_title, kb.school_subject_id, kb.owner_teacher_id,
@@ -666,3 +672,131 @@ class PgKnowledgeRepo:
                 for m in rows
             ],
         )
+
+    async def item_ref(
+        self, kind: ItemKind, item_id: UUID, *, lock: bool = False
+    ) -> ItemRef | None:
+        text = (
+            "name, description" if kind == "concept" else "statement as name, null as description"
+        )
+        locking = " for update" if lock else ""
+        row = await self._conn.fetchrow(
+            f"select id, knowledge_base_id, school_id, review_status::text as review_status,"
+            f" reviewed_at, {text} from {_ITEM_TABLE[kind]}"
+            f" where id = $1 and archived_at is null{locking}",
+            item_id,
+        )
+        return ItemRef(kind=kind, **dict(row)) if row else None
+
+    async def review_item(
+        self, kind: ItemKind, item_id: UUID, status: str, actor_id: UUID, now: datetime
+    ) -> ReviewOutcome:
+        try:
+            async with self._conn.transaction():
+                updated = await self._conn.fetchval(
+                    f"update {_ITEM_TABLE[kind]} set review_status = $2::review_status,"
+                    f" reviewed_by = $3, reviewed_at = $4"
+                    f" where id = $1 and review_status = 'pending'"
+                    f" and archived_at is null returning id",
+                    item_id,
+                    status,
+                    actor_id,
+                    now,
+                )
+        except asyncpg.CheckViolationError as error:
+            if kind != "misconception" or error.message != (
+                "A misconception can only be approved after its concept is approved."
+            ):
+                raise
+            return "concept_not_approved"
+        return "reviewed" if updated else "not_pending"
+
+    async def edit_item(
+        self,
+        kind: ItemKind,
+        item_id: UUID,
+        patch: ItemPatch,
+        embedding: Sequence[float] | None,
+        model: str | None,
+    ) -> bool:
+        vec = list(embedding) if embedding is not None else None
+        if kind == "concept":
+            row = await self._conn.fetchval(
+                "update concepts set name = coalesce($2, name),"
+                " description = coalesce($3, description),"
+                " embedding = coalesce($4, embedding),"
+                " embedding_model = coalesce($5, embedding_model)"
+                " where id = $1 and review_status = 'pending' and archived_at is null returning id",
+                item_id,
+                patch.name,
+                patch.description,
+                vec,
+                model,
+            )
+        else:
+            row = await self._conn.fetchval(
+                "update misconceptions set statement = coalesce($2, statement),"
+                " correct_understanding = coalesce($3, correct_understanding),"
+                " detection_cues = coalesce($4, detection_cues),"
+                " counter_examples = coalesce($5, counter_examples),"
+                " embedding = coalesce($6, embedding),"
+                " embedding_model = coalesce($7, embedding_model)"
+                " where id = $1 and review_status = 'pending' and archived_at is null returning id",
+                item_id,
+                patch.statement,
+                patch.correct_understanding,
+                list(patch.detection_cues) if patch.detection_cues is not None else None,
+                list(patch.counter_examples) if patch.counter_examples is not None else None,
+                vec,
+                model,
+            )
+        return row is not None
+
+    async def concept_view(self, concept_id: UUID) -> ConceptView | None:
+        c = await self._conn.fetchrow(
+            "select id, name, description, review_status::text as review_status,"
+            " cp_learning_outcome_id, source_chunk_ids from concepts where id = $1",
+            concept_id,
+        )
+        return (
+            ConceptView(
+                c["id"],
+                c["name"],
+                c["description"],
+                c["review_status"],
+                c["cp_learning_outcome_id"],
+                tuple(c["source_chunk_ids"]),
+            )
+            if c
+            else None
+        )
+
+    async def misconception_view(self, misconception_id: UUID) -> MisconceptionView | None:
+        x = await self._conn.fetchrow(
+            "select id, concept_id, statement, correct_understanding, detection_cues,"
+            " counter_examples, review_status::text as review_status, source_chunk_ids"
+            " from misconceptions where id = $1",
+            misconception_id,
+        )
+        return (
+            MisconceptionView(
+                x["id"],
+                x["concept_id"],
+                x["statement"],
+                x["correct_understanding"],
+                tuple(x["detection_cues"]),
+                tuple(x["counter_examples"]),
+                x["review_status"],
+                tuple(x["source_chunk_ids"]),
+            )
+            if x
+            else None
+        )
+
+    async def review_queue(self, kb_id: UUID) -> tuple[int, int]:
+        row = await self._conn.fetchrow(
+            "select pending_concepts, pending_misconceptions from v_kb_review_queue"
+            " where knowledge_base_id = $1",
+            kb_id,
+        )
+        return (int(row["pending_concepts"]), int(row["pending_misconceptions"])) if row else (0, 0)

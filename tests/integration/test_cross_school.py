@@ -31,6 +31,11 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "get", "/knowledge-bases/{kb}", None),
     ("teacher", "get", "/knowledge-bases/{kb}/sections", None),
     ("teacher", "post", "/knowledge-bases/{kb}/sections/{section}/build", {}),
+    ("teacher", "post", "/concepts/{concept}/review", {"review_status": "approved"}),
+    ("teacher", "post", "/misconceptions/{misconception}/review", {"review_status": "approved"}),
+    ("teacher", "patch", "/concepts/{concept}", {"name": "x"}),
+    ("teacher", "patch", "/misconceptions/{misconception}", {"statement": "x"}),
+    ("teacher", "get", "/knowledge-bases/{kb}/review-queue", None),
     ("teacher", "get", "/schools/{school}/missions", None),
     ("teacher", "post", "/missions/{mission}/generate", None),
     ("teacher", "get", "/missions/{mission}/versions/1", None),
@@ -80,6 +85,8 @@ async def test_cross_school_ids_return_404(
         "mission": world.mission_id,
         "school": world.school_id,
         "kb": world.kb_id,
+        "concept": world.concept_id,
+        "misconception": world.misconception_ids[0],
         "section": (await add_section(conn, world, FakeStorage()))[1],
     }
     intruder = await build_world(conn, "SMP Penyusup")

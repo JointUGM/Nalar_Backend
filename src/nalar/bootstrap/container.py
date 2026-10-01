@@ -37,10 +37,13 @@ from nalar.application.features.knowledge_base.commands.create_kb import (
 from nalar.application.features.knowledge_base.commands.detect_sections import (
     DetectSectionsHandler,
 )
+from nalar.application.features.knowledge_base.commands.edit_item import EditItemHandler
 from nalar.application.features.knowledge_base.commands.request_build import RequestBuildHandler
+from nalar.application.features.knowledge_base.commands.review_item import ReviewItemHandler
 from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
+from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
 from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
 from nalar.application.features.missions.commands.create_version import CreateVersionHandler
 from nalar.application.features.missions.commands.generate_mission import GenerateMissionHandler
@@ -326,6 +329,9 @@ class ApplicationProvider(Provider):
         ListKbsQuery,
         GetKbQuery,
         ListSectionsQuery,
+        ReviewItemHandler,
+        EditItemHandler,
+        ReviewQueueQuery,
         GetJobQuery,
     )
 
