@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel
 
-from nalar.application.errors import InvalidCredentials, Unauthenticated
+from nalar.application.errors import InvalidActivation, InvalidCredentials, Unauthenticated
 from nalar.application.ports.ai import AiResult, AiServiceError, ChunkSpec
 from nalar.application.ports.ai_contract import (
     AlignCpIn,
@@ -40,7 +40,7 @@ from nalar.application.ports.ai_contract import (
     WarmIn,
     WarmOut,
 )
-from nalar.application.ports.auth import AuthTokens
+from nalar.application.ports.auth import AuthTokens, RecoveryProof
 from nalar.application.ports.mailer import BeforeSubmit, MailSubmission
 from nalar.application.ports.sessions import TurnContext
 from nalar.application.ports.turns import NewTurn, TurnAnalysis
@@ -324,6 +324,12 @@ class FakeUnitOfWork:
 
 class FakeIdentityProvider:
     password = "correct-password"
+
+    async def verify_recovery(self, token_hash: str) -> RecoveryProof:
+        raise InvalidActivation()
+
+    async def update_password(self, proof: RecoveryProof, password: str) -> None:
+        raise InvalidActivation()
 
     def __init__(self) -> None:
         self.user_id = uuid4()

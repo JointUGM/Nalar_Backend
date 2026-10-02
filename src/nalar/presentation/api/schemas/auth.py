@@ -10,6 +10,12 @@ class LoginIn(Body):
     password: SecretStr = Field(min_length=1, max_length=256)
 
 
+class ActivateIn(Body):
+    activation_id: UUID
+    token_hash: SecretStr = Field(min_length=1, max_length=256)
+    password: SecretStr = Field(min_length=1, max_length=256)
+
+
 class SessionOut(BaseModel):
     user_id: UUID
     expires_at: int

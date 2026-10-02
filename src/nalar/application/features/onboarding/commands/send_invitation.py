@@ -163,12 +163,14 @@ class SendAccountInvitationHandler:
             )
             return
         async with self._uow:
+            bound = await self._uow.activations.bind_proof(notification_id, token)
             await self._uow.activations.finish(
                 notification_id,
                 token,
-                "sent",
+                "sent" if bound else "failed",
                 self._clock.now(),
-                outcome="accepted",
+                outcome="accepted" if bound else "unknown",
+                category=None if bound else "proof_binding",
             )
 
     async def _eligible(self, invitation: PendingInvitation) -> bool:

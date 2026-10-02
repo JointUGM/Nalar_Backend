@@ -54,6 +54,13 @@ from nalar.application.features.missions.commands.generate_mission import (
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
+from nalar.application.features.onboarding.commands.activate_account import (
+    ActivateAccountHandler,
+    ActivationPolicy,
+)
+from nalar.application.features.onboarding.commands.reconcile_login import (
+    ReconcileOnboardingHandler,
+)
 from nalar.application.features.onboarding.commands.request_invitations import (
     InvitationRequestLimits,
     RequestInvitationsHandler,
@@ -251,6 +258,17 @@ class InfrastructureProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
+    def activation_policy(self) -> ActivationPolicy:
+        s = self._settings
+        return ActivationPolicy(
+            s.auth_password_min_length,
+            s.auth_password_required_characters,
+            s.auth_activation_timeout_s,
+            timedelta(seconds=s.auth_activation_lease_s),
+            s.auth_timeout_s,
+        )
+
+    @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
         return UploadLimits(self._settings.kb_max_upload_bytes)
 
@@ -439,6 +457,8 @@ class ApplicationProvider(Provider):
         SendAccountInvitationHandler,
         RequestInvitationsHandler,
         ListInvitationsQuery,
+        ActivateAccountHandler,
+        ReconcileOnboardingHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,

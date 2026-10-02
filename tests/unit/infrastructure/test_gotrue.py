@@ -8,6 +8,7 @@ import pytest
 
 from nalar.application.errors import (
     DependencyUnavailable,
+    InvalidActivation,
     InvalidCredentials,
     TooManyRequests,
     Unauthenticated,
@@ -111,3 +112,53 @@ async def test_sign_out_with_an_expired_token_succeeds() -> None:
     assert seen[0].url.path == "/auth/v1/logout"
     assert seen[0].url.params["scope"] == "local"
     assert seen[0].headers["Authorization"] == "Bearer expired-access"
+
+
+async def test_recovery_proof_updates_password_with_recipient_bearer_only() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/verify"):
+            return httpx.Response(
+                200,
+                json={
+                    **session_body(),
+                    "user": {"id": str(USER_ID), "email": "recipient@test.nalar"},
+                },
+            )
+        return httpx.Response(200, json={"id": str(USER_ID)})
+
+    auth = provider(handler)
+    proof = await auth.verify_recovery("one-time-proof")
+    await auth.update_password(proof, "new-password")
+    assert json.loads(seen[0].content) == {"type": "recovery", "token_hash": "one-time-proof"}
+    assert seen[1].method == "PUT" and seen[1].url.path == "/auth/v1/user"
+    assert seen[1].headers["Authorization"] == "Bearer access-1"
+    assert json.loads(seen[1].content) == {"password": "new-password"}
+    assert "access-1" not in repr(proof)
+
+
+async def test_invalid_recovery_proof_is_generic_and_provider_outage_is_503() -> None:
+    with pytest.raises(InvalidActivation):
+        await provider(lambda _: httpx.Response(403, json={"msg": "secret"})).verify_recovery(
+            "proof"
+        )
+    with pytest.raises(DependencyUnavailable):
+        await provider(timeout).verify_recovery("proof")
+
+
+async def test_malformed_recovery_session_is_rejected_without_logging_secrets(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with pytest.raises(DependencyUnavailable):
+        await provider(
+            lambda _: httpx.Response(
+                200,
+                json={
+                    "access_token": "secret-token",
+                    "user": {"id": "secret-user", "email": "recipient@test.nalar"},
+                },
+            )
+        ).verify_recovery("proof")
+    assert "secret-token" not in caplog.text and "secret-user" not in caplog.text

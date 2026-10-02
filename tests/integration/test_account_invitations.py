@@ -62,6 +62,11 @@ class FakeAuth:
             await asyncio.sleep(self.delay_s)
         if self.error:
             raise self.error
+        await self.conn.execute(
+            "update auth.users set recovery_token=$2, recovery_sent_at=now() where email=$1",
+            email,
+            uuid4().hex,
+        )
 
 
 async def queue(
@@ -115,6 +120,24 @@ async def test_accepted_invitation_is_not_resent_and_link_lifetime_starts_at_sub
         "select expires_at from account_activations where user_id=$1", world.teacher_id
     ) == clock.now() + timedelta(hours=1)
     assert auth.calls[0][0] not in json.dumps(payload)
+
+
+async def test_accepted_response_without_new_auth_proof_fails_closed(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    class NoProof(FakeAuth):
+        async def send_setup_email(self, email: str, redirect_to: str) -> None:
+            self.calls.append((email, redirect_to))
+
+    clock, auth = FakeClock(), NoProof(conn)
+    await conn.execute(
+        "update auth.users set recovery_token='old-proof' where id=$1", world.teacher_id
+    )
+    notification_id = await queue(conn, world, clock)
+    await SendAccountInvitationHandler(uow_on(conn), clock, auth, TIMING).execute(notification_id)
+    status, payload = await state(conn, notification_id)
+    assert status == "failed" and payload["category"] == "proof_binding"
+    assert len(auth.calls) == 1
 
 
 @pytest.mark.parametrize(

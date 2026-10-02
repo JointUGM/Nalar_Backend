@@ -6,11 +6,13 @@ import httpx
 
 from nalar.application.errors import (
     DependencyUnavailable,
+    InvalidActivation,
     InvalidCredentials,
+    InvalidInput,
     TooManyRequests,
     Unauthenticated,
 )
-from nalar.application.ports.auth import AuthTokens
+from nalar.application.ports.auth import AuthTokens, RecoveryProof
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +22,42 @@ class SupabaseIdentityProvider:
 
     def __init__(self, http: httpx.AsyncClient) -> None:
         self._http = http
+
+    async def verify_recovery(self, token_hash: str) -> RecoveryProof:
+        response = await self._post(
+            "/auth/v1/verify", json={"type": "recovery", "token_hash": token_hash}
+        )
+        if response.status_code in (400, 403, 404, 422):
+            raise InvalidActivation()
+        _raise_for_status(response)
+        try:
+            body = response.json()
+            email, access = body["user"]["email"], body["access_token"]
+            if not isinstance(email, str) or not email or not isinstance(access, str) or not access:
+                raise ValueError
+            return RecoveryProof(UUID(body["user"]["id"]), email, access)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise DependencyUnavailable() from exc
+
+    async def update_password(self, proof: RecoveryProof, password: str) -> None:
+        try:
+            response = await self._http.put(
+                "/auth/v1/user",
+                headers={"Authorization": f"Bearer {proof.access_token}"},
+                json={"password": password},
+            )
+        except httpx.HTTPError as exc:
+            raise DependencyUnavailable() from exc
+        if response.status_code in (400, 422):
+            raise InvalidInput("WEAK_PASSWORD", "Kata sandi tidak memenuhi kebijakan keamanan.")
+        if response.status_code in (401, 403):
+            raise InvalidActivation()
+        _raise_for_status(response)
+        try:
+            if UUID(response.json()["id"]) != proof.user_id:
+                raise ValueError
+        except (ValueError, KeyError, TypeError) as exc:
+            raise DependencyUnavailable() from exc
 
     async def sign_in(self, email: str, password: str) -> AuthTokens:
         response = await self._post(
