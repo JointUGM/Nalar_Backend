@@ -3,6 +3,8 @@
     "schemas": {
       "AiPurpose": {
         "enum": [
+          "mission_generation",
+          "mission_critic",
           "kb_extract",
           "kb_misconceptions",
           "cp_align",
@@ -162,6 +164,119 @@
         ],
         "title": "AnswerType",
         "type": "string"
+      },
+      "ApprovedConceptIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "review_status": {
+            "const": "approved",
+            "default": "approved",
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ApprovedConceptIn",
+        "type": "object"
+      },
+      "ApprovedMisconceptionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "correct_understanding": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Correct Understanding",
+            "type": "string"
+          },
+          "counter_examples": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "review_status": {
+            "const": "approved",
+            "default": "approved",
+            "title": "Review Status",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "statement": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "concept_id",
+          "statement",
+          "correct_understanding"
+        ],
+        "title": "ApprovedMisconceptionIn",
+        "type": "object"
       },
       "BankQuestionIn": {
         "properties": {
@@ -1487,6 +1602,34 @@
         "title": "Envelope[GenerateMisconceptionsOut]",
         "type": "object"
       },
+      "Envelope_GenerateMissionOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/GenerateMissionOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[GenerateMissionOut]",
+        "type": "object"
+      },
       "Envelope_NextTurnOut_": {
         "properties": {
           "invocations": {
@@ -1541,6 +1684,34 @@
           "warnings"
         ],
         "title": "Envelope[ParentSummaryOut]",
+        "type": "object"
+      },
+      "Envelope_SelectTargetsOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SelectTargetsOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[SelectTargetsOut]",
         "type": "object"
       },
       "Envelope_WarmOut_": {
@@ -2142,6 +2313,107 @@
         "title": "GenerateMisconceptionsOut",
         "type": "object"
       },
+      "GenerateMissionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "learning_objective": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Learning Objective",
+            "type": "string"
+          },
+          "max_duration_minutes": {
+            "default": 20,
+            "maximum": 20.0,
+            "minimum": 5.0,
+            "title": "Max Duration Minutes",
+            "type": "integer"
+          },
+          "max_probes": {
+            "default": 6,
+            "maximum": 6.0,
+            "minimum": 4.0,
+            "title": "Max Probes",
+            "type": "integer"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovedMisconceptionIn"
+            },
+            "maxItems": 30,
+            "title": "Misconceptions",
+            "type": "array"
+          },
+          "paragraphs": {
+            "items": {
+              "$ref": "#/components/schemas/SourceParagraphIn"
+            },
+            "maxItems": 1000,
+            "title": "Paragraphs",
+            "type": "array"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovedConceptIn"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "learning_objective",
+          "targets"
+        ],
+        "title": "GenerateMissionIn",
+        "type": "object"
+      },
+      "GenerateMissionOut": {
+        "properties": {
+          "context_pack": {
+            "$ref": "#/components/schemas/ContextPackIn"
+          },
+          "probe_plan": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Probe Plan",
+            "type": "object"
+          },
+          "rubric": {
+            "$ref": "#/components/schemas/MissionRubric"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "ungrounded_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Ungrounded Concept Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "context_pack",
+          "rubric",
+          "source_chunk_ids",
+          "ungrounded_concept_ids",
+          "probe_plan"
+        ],
+        "title": "GenerateMissionOut",
+        "type": "object"
+      },
       "GuardResult": {
         "enum": [
           "passed",
@@ -2547,6 +2819,62 @@
           "embedding"
         ],
         "title": "MisconceptionOut",
+        "type": "object"
+      },
+      "MissionRubric": {
+        "properties": {
+          "claim": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Claim",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "mechanism": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Mechanism",
+            "type": "array"
+          },
+          "transfer": {
+            "items": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "title": "Transfer",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim",
+          "evidence",
+          "mechanism",
+          "transfer"
+        ],
+        "title": "MissionRubric",
         "type": "object"
       },
       "MoveReasonCode": {
@@ -3125,6 +3453,51 @@
         "title": "SectionOut",
         "type": "object"
       },
+      "SelectTargetsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovedConceptIn"
+            },
+            "maxItems": 200,
+            "minItems": 2,
+            "title": "Concepts",
+            "type": "array"
+          },
+          "learning_objective": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Learning Objective",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_objective",
+          "concepts"
+        ],
+        "title": "SelectTargetsIn",
+        "type": "object"
+      },
+      "SelectTargetsOut": {
+        "properties": {
+          "target_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Target Concept Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "target_concept_ids"
+        ],
+        "title": "SelectTargetsOut",
+        "type": "object"
+      },
       "SessionReflectionOut": {
         "properties": {
           "content": {
@@ -3169,6 +3542,62 @@
           "reason"
         ],
         "title": "SkippedPageOut",
+        "type": "object"
+      },
+      "SourceParagraphIn": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 40000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "heading_path": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Heading Path",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChunkKind"
+          },
+          "page_end": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page End"
+          },
+          "page_start": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Start"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content"
+        ],
+        "title": "SourceParagraphIn",
         "type": "object"
       },
       "TargetConceptIn": {
@@ -4062,6 +4491,224 @@
         "summary": "Detect Sections",
         "tags": [
           "s1"
+        ]
+      }
+    },
+    "/v1/s2/missions/generate": {
+      "post": {
+        "operationId": "generate_mission_v1_s2_missions_generate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateMissionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_GenerateMissionOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Generate Mission",
+        "tags": [
+          "s2"
+        ]
+      }
+    },
+    "/v1/s2/targets/select": {
+      "post": {
+        "operationId": "select_targets_v1_s2_targets_select_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectTargetsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SelectTargetsOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Select Targets",
+        "tags": [
+          "s2"
         ]
       }
     },

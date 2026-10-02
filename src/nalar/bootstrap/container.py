@@ -46,7 +46,10 @@ from nalar.application.features.knowledge_base.queries.list_sections import List
 from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
 from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
 from nalar.application.features.missions.commands.create_version import CreateVersionHandler
-from nalar.application.features.missions.commands.generate_mission import GenerateMissionHandler
+from nalar.application.features.missions.commands.generate_mission import (
+    BuildMissionHandler,
+    GenerateMissionHandler,
+)
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
@@ -397,6 +400,7 @@ class ApplicationProvider(Provider):
         SetPreferencesHandler,
         CreateMissionHandler,
         GenerateMissionHandler,
+        BuildMissionHandler,
         CreateVersionHandler,
         ReviewVersionHandler,
         ListMissionsQuery,

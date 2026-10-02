@@ -24,11 +24,15 @@ from nalar.application.ports.ai_contract import (
     ExtractConceptsOut,
     GenerateMisconceptionsIn,
     GenerateMisconceptionsOut,
+    GenerateMissionIn,
+    GenerateMissionOut,
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    SelectTargetsIn,
+    SelectTargetsOut,
     WarmIn,
     WarmOut,
 )
@@ -57,12 +61,32 @@ class AiTimeouts:
     s5_insight_s: float
     s5_summary_s: float
     s1_step_s: float
+    s2_select_s: float = 100.0
+    s2_generate_s: float = 500.0
 
 
 class AiServiceClient:
     def __init__(self, http: httpx.AsyncClient, timeouts: AiTimeouts) -> None:
         self._http = http
         self._timeouts = timeouts
+
+    async def select_targets(
+        self, body: SelectTargetsIn, request_id: str
+    ) -> AiResult[SelectTargetsOut]:
+        return await self._post(
+            "/v1/s2/targets/select", body, SelectTargetsOut, self._timeouts.s2_select_s, request_id
+        )
+
+    async def generate_mission(
+        self, body: GenerateMissionIn, request_id: str
+    ) -> AiResult[GenerateMissionOut]:
+        return await self._post(
+            "/v1/s2/missions/generate",
+            body,
+            GenerateMissionOut,
+            self._timeouts.s2_generate_s,
+            request_id,
+        )
 
     async def next_turn(self, body: NextTurnIn, request_id: str) -> AiResult[NextTurnOut]:
         return await self._post(

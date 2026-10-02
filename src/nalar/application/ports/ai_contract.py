@@ -4,11 +4,13 @@
 from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Any, Literal
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 from uuid import UUID
 
 
 class AiPurpose(StrEnum):
+    mission_generation = "mission_generation"
+    mission_critic = "mission_critic"
     kb_extract = "kb_extract"
     kb_misconceptions = "kb_misconceptions"
     cp_align = "cp_align"
@@ -31,6 +33,49 @@ class AnswerType(StrEnum):
     manipulation = "manipulation"
     unsure = "unsure"
     safety = "safety"
+
+
+class ApprovedConceptIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    description: Annotated[str | None, Field(max_length=2000, title="Description")] = ""
+    id: Annotated[UUID, Field(title="Id")]
+    name: Annotated[str, Field(max_length=300, min_length=1, title="Name")]
+    review_status: Annotated[Literal["approved"], Field(title="Review Status")] = "approved"
+    source_chunk_ids: Annotated[
+        list[UUID] | None, Field(max_length=500, title="Source Chunk Ids")
+    ] = None
+
+
+class CounterExample(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class DetectionCue(RootModel[str]):
+    root: Annotated[str, Field(max_length=300, min_length=1)]
+
+
+class ApprovedMisconceptionIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    concept_id: Annotated[UUID, Field(title="Concept Id")]
+    correct_understanding: Annotated[
+        str, Field(max_length=2000, min_length=1, title="Correct Understanding")
+    ]
+    counter_examples: Annotated[
+        list[CounterExample] | None, Field(max_length=20, title="Counter Examples")
+    ] = None
+    detection_cues: Annotated[
+        list[DetectionCue] | None, Field(max_length=20, title="Detection Cues")
+    ] = None
+    id: Annotated[UUID, Field(title="Id")]
+    review_status: Annotated[Literal["approved"], Field(title="Review Status")] = "approved"
+    source_chunk_ids: Annotated[
+        list[UUID] | None, Field(max_length=500, title="Source Chunk Ids")
+    ] = None
+    statement: Annotated[str, Field(max_length=1000, min_length=1, title="Statement")]
 
 
 class BodyChunkSectionV1S1SectionsChunkPost(BaseModel):
@@ -245,10 +290,6 @@ class ErrorBody(BaseModel):
     message: Annotated[str, Field(title="Message")]
 
 
-class DetectionCue(RootModel[str]):
-    root: Annotated[str, Field(max_length=300, min_length=1)]
-
-
 class EvalMisconceptionIn(BaseModel):
     concept_id: Annotated[UUID, Field(title="Concept Id")]
     detection_cues: Annotated[
@@ -390,6 +431,29 @@ class MisconceptionOut(BaseModel):
     statement: Annotated[str, Field(title="Statement")]
 
 
+class ClaimItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class EvidenceItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class MechanismItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class TransferItem(RootModel[str]):
+    root: Annotated[str, Field(max_length=500, min_length=1)]
+
+
+class MissionRubric(BaseModel):
+    claim: Annotated[list[ClaimItem], Field(max_length=5, min_length=5, title="Claim")]
+    evidence: Annotated[list[EvidenceItem], Field(max_length=5, min_length=5, title="Evidence")]
+    mechanism: Annotated[list[MechanismItem], Field(max_length=5, min_length=5, title="Mechanism")]
+    transfer: Annotated[list[TransferItem], Field(max_length=5, min_length=5, title="Transfer")]
+
+
 class MoveReasonCode(StrEnum):
     default = "default"
     mixed_answer = "mixed_answer"
@@ -518,22 +582,6 @@ class RubricDimension(StrEnum):
     transfer = "transfer"
 
 
-class ClaimItem(RootModel[str]):
-    root: Annotated[str, Field(max_length=500, min_length=1)]
-
-
-class EvidenceItem(RootModel[str]):
-    root: Annotated[str, Field(max_length=500, min_length=1)]
-
-
-class MechanismItem(RootModel[str]):
-    root: Annotated[str, Field(max_length=500, min_length=1)]
-
-
-class TransferItem(RootModel[str]):
-    root: Annotated[str, Field(max_length=500, min_length=1)]
-
-
 class RubricIn(BaseModel):
     claim: Annotated[list[ClaimItem], Field(max_length=5, min_length=5, title="Claim")]
     evidence: Annotated[list[EvidenceItem], Field(max_length=5, min_length=5, title="Evidence")]
@@ -561,6 +609,24 @@ class SectionOut(BaseModel):
     title: Annotated[str, Field(title="Title")]
 
 
+class SelectTargetsIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    concepts: Annotated[
+        list[ApprovedConceptIn], Field(max_length=200, min_length=2, title="Concepts")
+    ]
+    learning_objective: Annotated[
+        str, Field(max_length=1000, min_length=1, title="Learning Objective")
+    ]
+
+
+class SelectTargetsOut(BaseModel):
+    target_concept_ids: Annotated[
+        list[UUID], Field(max_length=3, min_length=2, title="Target Concept Ids")
+    ]
+
+
 class SessionReflectionOut(BaseModel):
     content: Annotated[str, Field(description="session_reflections.content", title="Content")]
     source: Annotated[
@@ -576,6 +642,18 @@ class Reason(StrEnum):
 class SkippedPageOut(BaseModel):
     page: Annotated[int, Field(title="Page")]
     reason: Annotated[Reason, Field(title="Reason")]
+
+
+class SourceParagraphIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    content: Annotated[str, Field(max_length=40000, min_length=1, title="Content")]
+    heading_path: Annotated[str | None, Field(max_length=2000, title="Heading Path")] = ""
+    id: Annotated[UUID, Field(title="Id")]
+    kind: ChunkKind
+    page_end: Annotated[PageEnd | None, Field(title="Page End")] = None
+    page_start: Annotated[PageStart | None, Field(title="Page Start")] = None
 
 
 class TargetConceptIn(BaseModel):
@@ -780,6 +858,34 @@ class GenerateMisconceptionsOut(BaseModel):
     misconceptions: Annotated[list[MisconceptionOut], Field(title="Misconceptions")]
 
 
+class GenerateMissionIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    learning_objective: Annotated[
+        str, Field(max_length=1000, min_length=1, title="Learning Objective")
+    ]
+    max_duration_minutes: Annotated[
+        int | None, Field(ge=5, le=20, title="Max Duration Minutes")
+    ] = 20
+    max_probes: Annotated[int | None, Field(ge=4, le=6, title="Max Probes")] = 6
+    misconceptions: Annotated[
+        list[ApprovedMisconceptionIn] | None, Field(max_length=30, title="Misconceptions")
+    ] = None
+    paragraphs: Annotated[
+        list[SourceParagraphIn] | None, Field(max_length=1000, title="Paragraphs")
+    ] = None
+    targets: Annotated[list[ApprovedConceptIn], Field(max_length=3, min_length=2, title="Targets")]
+
+
+class GenerateMissionOut(BaseModel):
+    context_pack: ContextPackIn
+    probe_plan: Annotated[dict[str, list[str]], Field(title="Probe Plan")]
+    rubric: MissionRubric
+    source_chunk_ids: Annotated[list[UUID], Field(title="Source Chunk Ids")]
+    ungrounded_concept_ids: Annotated[list[UUID], Field(title="Ungrounded Concept Ids")]
+
+
 class HistoryTurnIn(BaseModel):
     answer_text: Annotated[str, Field(max_length=20000, title="Answer Text")]
     answer_type: Annotated[
@@ -953,6 +1059,12 @@ class EnvelopeGenerateMisconceptionsOut(BaseModel):
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 
+class EnvelopeGenerateMissionOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: GenerateMissionOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
 class EnvelopeNextTurnOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: NextTurnOut
@@ -962,6 +1074,12 @@ class EnvelopeNextTurnOut(BaseModel):
 class EnvelopeParentSummaryOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: ParentSummaryOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
+class EnvelopeSelectTargetsOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: SelectTargetsOut
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 

@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from urllib.parse import urlparse
 
 import httpx
 import pytest
@@ -16,6 +17,8 @@ PASSWORD = "auth-flow-password-1"
 @pytest.fixture
 async def provider() -> AsyncIterator[SupabaseIdentityProvider]:
     s = Settings()
+    if urlparse(s.supabase_url).hostname not in {"localhost", "127.0.0.1", "::1"}:
+        pytest.skip("Auth integration fixtures may write only to the local Supabase stack")
     anon = s.supabase_anon_key.get_secret_value()
     service = s.supabase_service_role_key.get_secret_value()
     if not anon or not service:

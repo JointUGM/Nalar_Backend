@@ -18,6 +18,9 @@ class GetJobQuery:
             if job.kind == ROSTER_KIND:
                 if not await self._uow.authz.can_manage_roster(actor_id, job.entity_id):
                     raise NotFound()
+            elif job.kind == "mission_generate":
+                if not await self._uow.authz.is_mission_creator(actor_id, job.entity_id):
+                    raise NotFound()
             elif job.school_id is None or not await self._uow.authz.is_school_teacher(
                 actor_id, job.school_id
             ):

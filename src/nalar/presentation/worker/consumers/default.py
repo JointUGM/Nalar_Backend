@@ -8,6 +8,10 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
     ComputeSessionFlagsHandler,
 )
 from nalar.application.features.integrity.messages import SESSION_FLAGS_KIND
+from nalar.application.features.missions.commands.generate_mission import (
+    GENERATION_KIND,
+    BuildMissionHandler,
+)
 from nalar.application.features.release.commands.finalize_publication import (
     FinalizePublicationHandler,
 )
@@ -18,6 +22,11 @@ from nalar.presentation.worker.runner import Handler
 
 
 def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
+    async def generate_mission(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(BuildMissionHandler)
+            await handler.execute(UUID(str(message["mission_id"])), UUID(str(message["job_id"])))
+
     async def compute_session_flags(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(ComputeSessionFlagsHandler)
@@ -36,6 +45,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             await handler.execute(UUID(str(message["import_id"])), UUID(str(message["job_id"])))
 
     return {
+        GENERATION_KIND: generate_mission,
         SESSION_FLAGS_KIND: compute_session_flags,
         FINALIZE_KIND: finalize,
         ROSTER_KIND: import_roster,

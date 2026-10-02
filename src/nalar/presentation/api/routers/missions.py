@@ -24,6 +24,7 @@ from nalar.application.ports.missions import VersionDraft
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.missions import (
     MissionCreatedOut,
+    MissionGenerationQueuedOut,
     MissionIn,
     MissionPageOut,
     MissionSummaryOut,
@@ -47,11 +48,14 @@ async def create_mission(
     return MissionCreatedOut(mission_id=mission_id)
 
 
-@router.post("/missions/{mission_id}/generate", status_code=202)
+@router.post(
+    "/missions/{mission_id}/generate", status_code=202, response_model=MissionGenerationQueuedOut
+)
 async def generate_mission(
     mission_id: UUID, user: CurrentUser, handler: FromDishka[GenerateMissionHandler]
-) -> None:
-    await handler.execute(user.id, mission_id)
+) -> MissionGenerationQueuedOut:
+    queued = await handler.execute(user.id, mission_id)
+    return MissionGenerationQueuedOut(job_id=queued.job_id)
 
 
 @router.get("/schools/{school_id}/missions", response_model=MissionPageOut)

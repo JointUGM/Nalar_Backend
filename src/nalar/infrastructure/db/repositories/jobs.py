@@ -1,3 +1,4 @@
+import json
 from uuid import UUID
 
 from nalar.application.ports.jobs import Job
@@ -31,10 +32,14 @@ class PgJobStore:
     async def get(self, job_id: UUID) -> Job | None:
         row = await self._conn.fetchrow(
             "select id, school_id, kind, status::text as status, entity_type, entity_id,"
-            " requested_by, attempts, error_code, updated_at from jobs where id = $1",
+            " requested_by, attempts, error_code, updated_at, result from jobs where id = $1",
             job_id,
         )
-        return Job(**dict(row)) if row else None
+        if row is None:
+            return None
+        values = dict(row)
+        values["result"] = json.loads(row["result"]) if row["result"] else None
+        return Job(**values)
 
     async def mark_running(self, job_id: UUID) -> bool:
         return (

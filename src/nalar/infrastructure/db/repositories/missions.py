@@ -1,10 +1,16 @@
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
+from nalar.application.ports.ai_contract import (
+    ApprovedConceptIn,
+    ApprovedMisconceptionIn,
+    SourceParagraphIn,
+)
 from nalar.application.ports.missions import (
+    GenerationCatalog,
     MissionRef,
     MissionSummary,
     VersionDraft,
@@ -40,6 +46,113 @@ _MISSION_PAGE = """
 class PgMissionsRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
+
+    async def active_generation_job(self, mission_id: UUID) -> UUID | None:
+        await self._conn.execute("select id from missions where id = $1 for update", mission_id)
+        job_id: UUID | None = await self._conn.fetchval(
+            "select id from jobs where entity_id = $1 and entity_type = 'missions'"
+            " and kind = 'mission_generate' and status in ('queued', 'running')"
+            " order by created_at desc limit 1",
+            mission_id,
+        )
+        return job_id
+
+    async def generation_catalog(self, mission: MissionRef) -> GenerationCatalog:
+        objective: str = await self._conn.fetchval(
+            "select learning_objective from missions where id = $1",
+            mission.id,
+        )
+        concepts = await self._conn.fetch(
+            "select id, name, coalesce(description, '') as description, source_chunk_ids"
+            " from concepts where knowledge_base_id = $1 and school_id = $2"
+            " and review_status = 'approved' and archived_at is null order by created_at, id",
+            mission.knowledge_base_id,
+            mission.school_id,
+        )
+        wrong = await self._conn.fetch(
+            "select m.id, m.concept_id, m.statement, m.correct_understanding,"
+            " m.detection_cues, m.counter_examples, m.source_chunk_ids from misconceptions m"
+            " join concepts c on c.id = m.concept_id"
+            " where m.knowledge_base_id = $1 and m.school_id = $2"
+            " and m.review_status = 'approved' and m.archived_at is null"
+            " and c.review_status = 'approved' and c.archived_at is null"
+            " order by m.created_at, m.id",
+            mission.knowledge_base_id,
+            mission.school_id,
+        )
+        return GenerationCatalog(
+            objective,
+            tuple(ApprovedConceptIn.model_validate(dict(c)) for c in concepts),
+            tuple(ApprovedMisconceptionIn.model_validate(dict(m)) for m in wrong),
+        )
+
+    async def generation_paragraphs(
+        self, mission: MissionRef, chunk_ids: Sequence[UUID]
+    ) -> list[SourceParagraphIn]:
+        rows = await self._conn.fetch(
+            "select * from public.get_kb_chunks($1, $2, $3::uuid[])",
+            mission.school_id,
+            mission.knowledge_base_id,
+            list(chunk_ids),
+        )
+        return [
+            SourceParagraphIn.model_validate(
+                {
+                    "id": r["chunk_id"],
+                    "kind": r["kind"],
+                    "content": r["content"],
+                    "heading_path": r["heading_path"] or "",
+                    "page_start": r["page_start"],
+                    "page_end": r["page_end"],
+                }
+            )
+            for r in rows
+        ]
+
+    async def claim_generation(
+        self, job_id: UUID, now: datetime, stale_after_s: float
+    ) -> int | None:
+        attempt: int | None = await self._conn.fetchval(
+            "update jobs set status = 'running', attempts = attempts + 1 where id = $1"
+            " and kind = 'mission_generate' and (status = 'queued'"
+            " or (status = 'running' and updated_at < $2)) returning attempts",
+            job_id,
+            now - timedelta(seconds=stale_after_s),
+        )
+        return attempt
+
+    async def touch_generation(self, job_id: UUID, attempt: int) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update jobs set updated_at = now() where id = $1 and attempts = $2"
+                " and status = 'running' returning id",
+                job_id,
+                attempt,
+            )
+            is not None
+        )
+
+    async def checkpoint_generation(
+        self, job_id: UUID, attempt: int, result: Mapping[str, Any], status: str = "running"
+    ) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update jobs set result = $3::jsonb, status = $4::job_status where id = $1"
+                " and attempts = $2 and status = 'running' returning id",
+                job_id,
+                attempt,
+                json.dumps(dict(result)),
+                status,
+            )
+            is not None
+        )
+
+    async def attach_generation_job(self, version_id: UUID, job_id: UUID) -> None:
+        await self._conn.execute(
+            "update mission_versions set generation_job_id = $2 where id = $1",
+            version_id,
+            job_id,
+        )
 
     async def kb_school_id(self, kb_id: UUID) -> UUID | None:
         school_id: UUID | None = await self._conn.fetchval(

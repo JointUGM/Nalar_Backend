@@ -144,15 +144,25 @@ async def test_unapproved_target_is_rejected_at_create(
     ]
 
 
-async def test_generation_is_unavailable_until_s2(conn: asyncpg.Connection, world: World) -> None:
+async def test_generation_queues_and_reuses_the_active_job(
+    conn: asyncpg.Connection, world: World
+) -> None:
     async with api_client(conn) as api:
         mission_id = await new_mission(api, world)
         response = await api.post(
             f"/missions/{mission_id}/generate", json={}, headers=as_user(world.teacher_id)
         )
-    assert (response.status_code, response.json()["error"]["code"]) == (
-        503,
-        "MISSION_GENERATION_UNAVAILABLE",
+        repeated = await api.post(
+            f"/missions/{mission_id}/generate", json={}, headers=as_user(world.teacher_id)
+        )
+    assert response.status_code == repeated.status_code == 202
+    assert response.json()["job_id"] == repeated.json()["job_id"]
+    assert (
+        await conn.fetchval(
+            "select count(*) from jobs where entity_id = $1 and kind = 'mission_generate'",
+            mission_id,
+        )
+        == 1
     )
 
 

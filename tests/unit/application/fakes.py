@@ -28,11 +28,15 @@ from nalar.application.ports.ai_contract import (
     ExtractConceptsOut,
     GenerateMisconceptionsIn,
     GenerateMisconceptionsOut,
+    GenerateMissionIn,
+    GenerateMissionOut,
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    SelectTargetsIn,
+    SelectTargetsOut,
     WarmIn,
     WarmOut,
 )
@@ -105,6 +109,16 @@ class RawBody(BaseModel):
 
 
 class ScriptedAiGateway:
+    async def select_targets(
+        self, body: SelectTargetsIn, request_id: str
+    ) -> AiResult[SelectTargetsOut]:
+        return cast(AiResult[SelectTargetsOut], await self._reply("select_targets", body))
+
+    async def generate_mission(
+        self, body: GenerateMissionIn, request_id: str
+    ) -> AiResult[GenerateMissionOut]:
+        return cast(AiResult[GenerateMissionOut], await self._reply("generate_mission", body))
+
     def __init__(self) -> None:
         self.replies: dict[str, list[Reply]] = defaultdict(list)
         self.calls: list[tuple[str, BaseModel]] = []

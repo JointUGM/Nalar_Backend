@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 
@@ -16,6 +17,7 @@ class Job:
     attempts: int
     error_code: str | None
     updated_at: datetime
+    result: Mapping[str, Any] | None = None
 
 
 class JobStore(Protocol):
