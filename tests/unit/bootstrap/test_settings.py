@@ -62,3 +62,23 @@ def test_gmail_password_display_spaces_are_removed_and_errors_hide_input() -> No
             smtp_app_password="sensitive-secret",
         )
     assert "sensitive-secret" not in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://other.test/activate",
+        "https://nalar.test/activate?redirect=other",
+        "https://nalar.test/activate#",
+        "https://nalar.test/activate?",
+    ],
+)
+def test_account_activation_rejects_other_origins_and_preexisting_url_parameters(url: str) -> None:
+    with pytest.raises(ValueError):
+        Settings(
+            _env_file=None,
+            env="test",
+            account_email_enabled=True,
+            account_email_activation_url=url,
+            cors_origins=["https://nalar.test"],
+        )

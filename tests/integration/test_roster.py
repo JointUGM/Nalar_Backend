@@ -35,6 +35,16 @@ class FakeAuthAdmin:
     def __init__(self, conn: asyncpg.Connection) -> None:
         self._conn = conn
 
+    async def get_account(self, user_id: UUID) -> AuthAccount | None:
+        row = await self._conn.fetchrow(
+            "select id, last_sign_in_at, email from auth.users where id = $1",
+            user_id,
+        )
+        return AuthAccount(row["id"], row["last_sign_in_at"], row["email"]) if row else None
+
+    async def send_setup_email(self, email: str, redirect_to: str) -> None:
+        raise AssertionError("Roster import must not send email synchronously")
+
     async def create_or_find(self, email: str, full_name: str) -> AuthAccount:
         existing = await self._conn.fetchrow(
             "select id, last_sign_in_at from auth.users where email = $1", email
