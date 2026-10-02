@@ -65,6 +65,43 @@ class InvitationPage:
 
 
 class ActivationsRepo(Protocol):
+    async def bind_proof(self, notification_id: UUID, token: UUID) -> bool:
+        """Bind the newly issued Auth recovery proof to this private activation generation."""
+        ...
+
+    async def claim_activation(
+        self,
+        activation_id: UUID,
+        proof_digest: str,
+        token: UUID,
+        now: datetime,
+        lease_until: datetime,
+    ) -> PendingInvitation | None: ...
+
+    async def checkpoint_activation(
+        self,
+        invitation: PendingInvitation,
+        token: UUID,
+        now: datetime,
+    ) -> bool: ...
+
+    async def complete_activation(
+        self,
+        invitation: PendingInvitation,
+        token: UUID,
+        now: datetime,
+    ) -> bool: ...
+
+    async def abort_activation(
+        self,
+        notification_id: UUID,
+        token: UUID,
+        *,
+        failed: bool,
+    ) -> None: ...
+
+    async def reconcile_login(self, user_id: UUID, now: datetime) -> None: ...
+
     async def request_recipients(
         self, school_id: UUID, user_ids: list[UUID], *, lock: bool = False
     ) -> list[InvitationRecipient]: ...

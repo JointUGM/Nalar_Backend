@@ -60,7 +60,9 @@ _STATUS = (
                case when n.payload->>'category' in (
                    'ineligible', 'expired', 'auth_identity_changed', 'eligibility_changed',
                    'acceptance_unknown', 'admission_exhausted', 'auth', 'rate_limited',
-                   'connect', 'transport', 'provider_error', 'deadline', 'auth_lookup', 'superseded'
+                   'connect', 'transport', 'provider_error', 'deadline', 'auth_lookup',
+                   'superseded',
+                   'proof_binding', 'activation_failed', 'already_active'
                ) then n.payload->>'category' else null end as reason,
                a.created_at, n.sent_at,
                case when n.status = 'pending' and n.payload->>'phase' = 'prepared'
@@ -83,6 +85,191 @@ _STATUS = (
 class PgActivationsRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
+
+    async def bind_proof(self, notification_id: UUID, token: UUID) -> bool:
+        return (
+            await self._conn.fetchval(
+                """
+            update account_activations a set code_hash =
+                   encode(sha256(convert_to(u.recovery_token, 'UTF8')), 'hex')
+              from notifications n, auth.users u
+             where n.id=$1 and n.payload->>'token'=$2::uuid::text and n.status='pending'
+               and n.payload->>'phase'='submitting'
+               and n.dedupe_key='account-invitation:' || a.id::text
+               and u.id=a.user_id and lower(u.email)=lower(a.recipient_email)
+               and nullif(u.recovery_token, '') is not null
+               and a.code_hash is distinct from
+                   encode(sha256(convert_to(u.recovery_token, 'UTF8')), 'hex')
+               and a.consumed_at is null and a.superseded_at is null
+            returning a.id
+            """,
+                notification_id,
+                token,
+            )
+            is not None
+        )
+
+    async def claim_activation(
+        self,
+        activation_id: UUID,
+        proof_digest: str,
+        token: UUID,
+        now: datetime,
+        lease_until: datetime,
+    ) -> PendingInvitation | None:
+        row = await self._conn.fetchrow(
+            "select n.id, a.id as activation_id, a.user_id, a.school_id, a.issued_by,"
+            " a.recipient_email, n.payload from account_activations a join notifications n"
+            " on n.dedupe_key='account-invitation:' || a.id::text"
+            " and n.school_id=a.school_id and n.recipient_id=a.user_id"
+            " where a.id=$1 and a.channel='email' and a.code_hash=$2 and a.expires_at>$3"
+            " and a.consumed_at is null and a.superseded_at is null"
+            " and n.type='account_invitation' and n.status='sent'"
+            " and n.payload->>'transport'='supabase_auth_v1'",
+            activation_id,
+            proof_digest,
+            now,
+        )
+        if row is None:
+            return None
+        invitation = self._invitation(row)
+        if not await self._activation_eligible(invitation):
+            return None
+        claimed = await self._conn.fetchval(
+            "update notifications n set payload=payload || jsonb_build_object("
+            " 'activation_token',$2::uuid::text,'activation_until',$4::timestamptz,"
+            " 'activation_phase','verifying') from account_activations a"
+            " where n.id=$1 and n.status='sent' and a.id=$5 and a.code_hash=$6"
+            " and a.expires_at>$3 and a.consumed_at is null and a.superseded_at is null"
+            " and (n.payload->>'activation_until' is null"
+            " or (n.payload->>'activation_until')::timestamptz<=$3) returning n.id",
+            invitation.id,
+            token,
+            now,
+            lease_until,
+            activation_id,
+            proof_digest,
+        )
+        return invitation if claimed else None
+
+    async def _activation_eligible(self, invitation: PendingInvitation) -> bool:
+        return bool(
+            await self._conn.fetchval(
+                "select exists(select 1 from school_memberships where user_id=$1 and school_id=$2"
+                " and role='school_admin' and status='active')",
+                invitation.issuer_id,
+                invitation.school_id,
+            )
+        ) and await self.eligible(invitation)
+
+    async def _activation_current(
+        self,
+        invitation: PendingInvitation,
+        token: UUID,
+        now: datetime,
+    ) -> bool:
+        return await self._activation_eligible(invitation) and bool(
+            await self._conn.fetchval(
+                "select exists(select 1 from notifications n join account_activations a"
+                " on a.id=$4 where n.id=$1 and n.status='sent'"
+                " and n.payload->>'activation_token'=$2::uuid::text"
+                " and (n.payload->>'activation_until')::timestamptz>$3 and a.expires_at>$3"
+                " and a.consumed_at is null and a.superseded_at is null)",
+                invitation.id,
+                token,
+                now,
+                invitation.activation_id,
+            )
+        )
+
+    async def checkpoint_activation(
+        self,
+        invitation: PendingInvitation,
+        token: UUID,
+        now: datetime,
+    ) -> bool:
+        if not await self._activation_current(invitation, token, now):
+            return False
+        return (
+            await self._conn.fetchval(
+                "update notifications set payload=payload ||"
+                ' \'{"activation_phase":"password_submitting"}\'::jsonb'
+                " where id=$1 and payload->>'activation_token'=$2::uuid::text"
+                " and payload->>'activation_phase'='verifying' returning id",
+                invitation.id,
+                token,
+            )
+            is not None
+        )
+
+    async def complete_activation(
+        self,
+        invitation: PendingInvitation,
+        token: UUID,
+        now: datetime,
+    ) -> bool:
+        if not await self._activation_current(invitation, token, now):
+            return False
+        if not await self._conn.fetchval(
+            "select exists(select 1 from notifications where id=$1"
+            " and payload->>'activation_phase'='password_submitting')",
+            invitation.id,
+        ):
+            return False
+        await self._conn.execute(
+            "update account_activations set consumed_at=$2 where id=$1",
+            invitation.activation_id,
+            now,
+        )
+        await self._conn.execute(
+            "update profiles set onboarding_required=false where id=$1", invitation.user_id
+        )
+        await self._conn.execute(
+            "update notifications set payload=(payload-'activation_token'-'activation_until') ||"
+            ' \'{"activation_phase":"completed"}\'::jsonb where id=$1',
+            invitation.id,
+        )
+        return True
+
+    async def abort_activation(self, notification_id: UUID, token: UUID, *, failed: bool) -> None:
+        await self._conn.execute(
+            "update notifications set status=case when $3 then 'failed'::notification_status"
+            " else status end,"
+            " payload=(payload-'activation_token'-'activation_until') || jsonb_build_object("
+            " 'activation_phase','failed','category',"
+            " case when $3 then 'activation_failed' else null end)"
+            " where id=$1 and payload->>'activation_token'=$2::uuid::text",
+            notification_id,
+            token,
+            failed,
+        )
+
+    async def reconcile_login(self, user_id: UUID, now: datetime) -> None:
+        profile = await self._conn.fetchval(
+            "select id from profiles where id=$1 and onboarding_required for update",
+            user_id,
+        )
+        if profile is None:
+            return
+        await self._conn.execute(
+            "update account_activations set consumed_at=$2 where user_id=$1"
+            " and channel='email' and consumed_at is null and superseded_at is null",
+            user_id,
+            now,
+        )
+        await self._conn.execute(
+            "update profiles set onboarding_required=false where id=$1", user_id
+        )
+        await self._conn.execute(
+            "update notifications set status=case when status='pending'"
+            " then 'failed'::notification_status else status end,"
+            " payload=(payload-'token'-'lease_until'-'dispatch_until'"
+            " -'activation_token'-'activation_until') ||"
+            ' \'{"activation_phase":"completed","category":"already_active"}\'::jsonb'
+            " where recipient_id=$1 and type='account_invitation'"
+            " and payload->>'transport'='supabase_auth_v1'",
+            user_id,
+        )
 
     async def request_recipients(
         self, school_id: UUID, user_ids: list[UUID], *, lock: bool = False
@@ -142,6 +329,11 @@ class PgActivationsRepo:
             own_notification = row["notification_id"] if row["school_id"] == school_id else None
             if row["consumed_at"] is not None:
                 return InvitationAdmission(user_id, None, False, "already_active")
+            if (
+                payload.get("activation_until")
+                and datetime.fromisoformat(payload["activation_until"]) > now
+            ):
+                return InvitationAdmission(user_id, None, False, "in_progress")
             live = row["superseded_at"] is None
             leased = (
                 payload.get("lease_until") and datetime.fromisoformat(payload["lease_until"]) > now
@@ -472,8 +664,10 @@ class PgActivationsRepo:
             return False
         payload = json.loads(row["payload"])
         await self._conn.execute(
-            "update account_activations set expires_at = $2 where id = $1"
-            " and consumed_at is null and superseded_at is null",
+            "update account_activations a set expires_at = $2, code_hash=("
+            " select encode(sha256(convert_to(nullif(u.recovery_token,''),'UTF8')),'hex')"
+            " from auth.users u where u.id=a.user_id) where a.id = $1"
+            " and a.consumed_at is null and a.superseded_at is null",
             UUID(payload["activation_id"]),
             now + link_lifetime,
         )
