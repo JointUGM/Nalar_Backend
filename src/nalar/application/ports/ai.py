@@ -20,11 +20,15 @@ from nalar.application.ports.ai_contract import (
     ExtractConceptsOut,
     GenerateMisconceptionsIn,
     GenerateMisconceptionsOut,
+    GenerateMissionIn,
+    GenerateMissionOut,
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    SelectTargetsIn,
+    SelectTargetsOut,
     WarmIn,
     WarmOut,
 )
@@ -63,6 +67,14 @@ class AiServiceError(Exception):
 
 
 class AiGateway(Protocol):
+    async def select_targets(
+        self, body: SelectTargetsIn, request_id: str
+    ) -> AiResult[SelectTargetsOut]: ...
+
+    async def generate_mission(
+        self, body: GenerateMissionIn, request_id: str
+    ) -> AiResult[GenerateMissionOut]: ...
+
     async def next_turn(self, body: NextTurnIn, request_id: str) -> AiResult[NextTurnOut]: ...
 
     async def warm_run(self, body: WarmIn, request_id: str) -> AiResult[WarmOut]: ...

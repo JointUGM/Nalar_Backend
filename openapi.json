@@ -646,6 +646,16 @@
             ],
             "title": "Error Code"
           },
+          "generation_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MissionGenerationResultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1368,6 +1378,53 @@
           "mission_id"
         ],
         "title": "MissionCreatedOut",
+        "type": "object"
+      },
+      "MissionGenerationQueuedOut": {
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "MissionGenerationQueuedOut",
+        "type": "object"
+      },
+      "MissionGenerationResultOut": {
+        "properties": {
+          "ungrounded_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Ungrounded Concept Ids",
+            "type": "array"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_id",
+          "version_number",
+          "ungrounded_concept_ids"
+        ],
+        "title": "MissionGenerationResultOut",
         "type": "object"
       },
       "MissionIn": {
@@ -4829,7 +4886,9 @@
           "202": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/MissionGenerationQueuedOut"
+                }
               }
             },
             "description": "Successful Response"

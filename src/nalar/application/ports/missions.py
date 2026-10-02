@@ -4,6 +4,11 @@ from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID
 
+from nalar.application.ports.ai_contract import (
+    ApprovedConceptIn,
+    ApprovedMisconceptionIn,
+    SourceParagraphIn,
+)
 from nalar.domain.context_pack import PackMisconception, Target
 
 
@@ -20,6 +25,13 @@ class MissionRef:
     knowledge_base_id: UUID
     school_subject_id: UUID
     created_by: UUID
+
+
+@dataclass(frozen=True)
+class GenerationCatalog:
+    learning_objective: str
+    concepts: tuple[ApprovedConceptIn, ...]
+    misconceptions: tuple[ApprovedMisconceptionIn, ...]
 
 
 @dataclass(frozen=True)
@@ -66,6 +78,26 @@ class MissionSummary:
 
 
 class MissionsRepo(Protocol):
+    async def generation_catalog(self, mission: MissionRef) -> GenerationCatalog: ...
+
+    async def generation_paragraphs(
+        self, mission: MissionRef, chunk_ids: Sequence[UUID]
+    ) -> list[SourceParagraphIn]: ...
+
+    async def active_generation_job(self, mission_id: UUID) -> UUID | None: ...
+
+    async def claim_generation(
+        self, job_id: UUID, now: datetime, stale_after_s: float
+    ) -> int | None: ...
+
+    async def touch_generation(self, job_id: UUID, attempt: int) -> bool: ...
+
+    async def checkpoint_generation(
+        self, job_id: UUID, attempt: int, result: Mapping[str, Any], status: str = "running"
+    ) -> bool: ...
+
+    async def attach_generation_job(self, version_id: UUID, job_id: UUID) -> None: ...
+
     async def kb_school_id(self, kb_id: UUID) -> UUID | None: ...
 
     async def mission_ref(self, mission_id: UUID) -> MissionRef | None: ...

@@ -12,3 +12,10 @@ class JobOut(BaseModel):
     entity_id: UUID
     error_code: str | None
     updated_at: datetime
+    generation_result: "MissionGenerationResultOut | None" = None
+
+
+class MissionGenerationResultOut(BaseModel):
+    version_id: UUID
+    version_number: int
+    ungrounded_concept_ids: list[UUID]

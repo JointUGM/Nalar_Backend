@@ -19,6 +19,11 @@ class MissionCreatedOut(BaseModel):
     mission_id: UUID
 
 
+class MissionGenerationQueuedOut(BaseModel):
+    job_id: UUID
+    status: str = "queued"
+
+
 class RubricIn(Body):
     claim: Descriptors = Field(min_length=5, max_length=5)
     evidence: Descriptors = Field(min_length=5, max_length=5)
