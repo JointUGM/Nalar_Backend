@@ -12,6 +12,7 @@ from nalar.presentation.api.middleware.csrf import CsrfMiddleware
 from nalar.presentation.api.middleware.errors import install_error_handlers
 from nalar.presentation.api.middleware.request_context import RequestContextMiddleware
 from nalar.presentation.api.routers import (
+    account_invitations,
     admin,
     auth,
     health,
@@ -59,6 +60,7 @@ def create_app(
     install_error_handlers(app)
     app.include_router(health.router)
     for router in (
+        account_invitations.router,
         admin.router,
         auth.router,
         me.router,

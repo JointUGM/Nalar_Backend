@@ -107,6 +107,7 @@ async def api_client(
     background: RecordingBackground | None = None,
     identity: FakeIdentityProvider | None = None,
     storage: FakeStorage | None = None,
+    providers: tuple[Provider, ...] = (),
 ) -> AsyncIterator[httpx.AsyncClient]:
     settings = Settings(env="test", cors_origins=["http://test"])
     adapters = HarnessAdapters(
@@ -117,7 +118,7 @@ async def api_client(
         identity or FakeIdentityProvider(),
         storage or FakeStorage(),
     )
-    container = build_container(settings, adapters)
+    container = build_container(settings, adapters, *providers)
     transport = httpx.ASGITransport(app=create_app(settings, container), raise_app_exceptions=False)
     try:
 

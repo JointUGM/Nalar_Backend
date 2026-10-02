@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     account_email_batch_size: int = Field(default=32, ge=1, le=100)
     account_email_sender_spacing_s: float = Field(default=1, ge=0, allow_inf_nan=False)
     account_email_auth_cooldown_s: float = Field(default=1800, gt=0, allow_inf_nan=False)
+    account_email_resend_cooldown_s: float = Field(default=60, ge=60, allow_inf_nan=False)
+    account_email_lookup_timeout_s: float = Field(default=30, gt=0, allow_inf_nan=False)
+    account_email_lookup_concurrency: int = Field(default=4, ge=1, le=8)
     kb_max_upload_bytes: int = 50 * 1024 * 1024
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0
