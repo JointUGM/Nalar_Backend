@@ -41,6 +41,7 @@ from nalar.application.ports.ai_contract import (
     WarmOut,
 )
 from nalar.application.ports.auth import AuthTokens
+from nalar.application.ports.mailer import BeforeSubmit, MailSubmission
 from nalar.application.ports.sessions import TurnContext
 from nalar.application.ports.turns import NewTurn, TurnAnalysis
 from nalar.domain.labels import SessionEndReason, SessionStatus
@@ -355,12 +356,13 @@ class FakeIdentityProvider:
 
 class FakeMailer:
     enabled = True
+    sender_key = "fake-gmail"
 
     def __init__(self) -> None:
         self.sent: list[tuple[str, str, str]] = []
-        self.keys: set[str] = set()
 
-    async def send(self, to: str, subject: str, text: str, *, idempotency_key: str) -> None:
-        if idempotency_key not in self.keys:
-            self.sent.append((to, subject, text))
-            self.keys.add(idempotency_key)
+    async def send(self, submission: MailSubmission, *, before_submit: BeforeSubmit) -> bool:
+        if not await before_submit():
+            return False
+        self.sent.append((submission.recipient, submission.subject, submission.text))
+        return True

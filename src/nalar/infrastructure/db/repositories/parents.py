@@ -34,8 +34,40 @@ class PgParentsRepo:
         self._conn = conn
 
     async def digest_recipients(
-        self, released_after: datetime | None, parent_id: UUID | None = None
+        self,
+        released_after: datetime | None,
+        parent_id: UUID | None = None,
+        *,
+        for_submission: bool = False,
     ) -> list[DigestRecipient]:
+        if for_submission:
+            if parent_id is None:
+                raise ValueError("submission requires a parent")
+            await self._conn.fetch("select id from profiles where id = $1 for update", parent_id)
+            await self._conn.fetch(
+                "select student_id from parent_student_links where parent_id = $1"
+                " order by student_id for update",
+                parent_id,
+            )
+            await self._conn.fetch(
+                "select p.id from publications p"
+                " join parent_summaries ps on ps.publication_id = p.id"
+                " join parent_student_links l on l.student_id = ps.student_id"
+                " where l.parent_id = $1 order by p.id for share of p, ps",
+                parent_id,
+            )
+            await self._conn.fetch(
+                "select s.id from sessions s"
+                " join parent_student_links l on l.student_id = s.student_id"
+                " where l.parent_id = $1 order by s.id for share of s",
+                parent_id,
+            )
+            await self._conn.fetch(
+                "select e.id from session_evaluations e join sessions s on s.id = e.session_id"
+                " join parent_student_links l on l.student_id = s.student_id"
+                " where l.parent_id = $1 order by e.id for share of e",
+                parent_id,
+            )
         rows = await self._conn.fetch(
             f"""
             select pr.id as parent_id, l.school_id, pr.contact_email,

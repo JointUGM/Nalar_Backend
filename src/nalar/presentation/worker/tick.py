@@ -15,6 +15,7 @@ def cron_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
     async def scheduler_tick(message: dict[str, Any]) -> None:
         async with container() as scope:
             await (await scope.get(TickHandler)).execute()
+            await (await scope.get(WeeklyDigestHandler)).dispatch_due()
 
     async def release_reminders(message: dict[str, Any]) -> None:
         async with container() as scope:

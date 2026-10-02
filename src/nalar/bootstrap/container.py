@@ -88,6 +88,7 @@ from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
+from nalar.application.features.scheduler.commands.deliver_digest import DeliverDigestHandler
 from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
 from nalar.application.features.scheduler.commands.weekly_digest import (
     DigestTiming,
@@ -137,7 +138,7 @@ from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
-from nalar.infrastructure.email.resend import DisabledMailer, ResendMailer
+from nalar.infrastructure.email.smtp import DisabledMailer, GmailSmtpMailer
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
 from nalar.infrastructure.readiness import PoolAndAiProbe
 from nalar.infrastructure.storage.supabase_storage import SupabaseStorage
@@ -236,23 +237,32 @@ class InfrastructureProvider(Provider):
     def digest_timing(self) -> DigestTiming:
         s = self._settings
         return DigestTiming(
-            timedelta(seconds=s.digest_lease_s),
-            timedelta(seconds=s.digest_retry_window_s),
-            s.digest_max_attempts,
+            lease=timedelta(seconds=s.digest_lease_s),
+            retry_window=timedelta(seconds=s.digest_retry_window_s),
+            max_attempts=s.digest_max_attempts,
+            dispatch_ttl=timedelta(seconds=s.digest_dispatch_ttl_s),
+            retry_delays=tuple(timedelta(seconds=v) for v in s.digest_retry_delays_s),
+            daily_limit=s.digest_daily_limit,
+            batch_size=s.digest_batch_size,
+            sender_spacing=timedelta(seconds=s.digest_sender_spacing_s),
+            quota_cooldown=timedelta(seconds=s.digest_quota_cooldown_s),
+            auth_cooldown=timedelta(seconds=s.digest_auth_cooldown_s),
         )
 
     @provide(scope=Scope.APP)
-    async def mailer(self) -> AsyncIterator[Mailer]:
+    def mailer(self) -> Mailer:
         s = self._settings
-        if not s.resend_api_key or not s.resend_api_key.get_secret_value() or not s.email_from:
-            yield DisabledMailer()
-            return
-        async with httpx.AsyncClient(
-            base_url="https://api.resend.com",
-            headers={"Authorization": f"Bearer {s.resend_api_key.get_secret_value()}"},
-            timeout=s.email_timeout_s,
-        ) as http:
-            yield ResendMailer(http, s.email_from)
+        if not s.email_enabled:
+            return DisabledMailer()
+        assert s.smtp_username and s.smtp_app_password
+        return GmailSmtpMailer(
+            s.smtp_username,
+            s.smtp_app_password.get_secret_value(),
+            s.email_from_name,
+            command_timeout_s=s.smtp_command_timeout_s,
+            data_timeout_s=s.smtp_data_timeout_s,
+            total_timeout_s=s.email_timeout_s,
+        )
 
     @provide(scope=Scope.APP)
     async def token_verifier(self) -> AsyncIterator[TokenVerifier]:
@@ -379,6 +389,7 @@ class ApplicationProvider(Provider):
         IngestTelemetryHandler,
         TickHandler,
         WeeklyDigestHandler,
+        DeliverDigestHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,

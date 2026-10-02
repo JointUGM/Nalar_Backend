@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Protocol
+from datetime import datetime, timedelta
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 
@@ -20,9 +20,24 @@ class NotificationsRepo(Protocol):
         dedupe_key: str,
         items: list[dict[str, str]],
         now: datetime,
+        expires_at: datetime,
     ) -> None: ...
 
     async def pending_digests(self, now: datetime) -> list[PendingDigest]: ...
+
+    async def get_digest(self, digest_id: UUID) -> PendingDigest | None: ...
+
+    async def reserve_due_digests(
+        self, now: datetime, dispatch_until: datetime, limit: int
+    ) -> list[UUID]:
+        """Reserve due messages in the same transaction as their queue insertion."""
+        ...
+
+    async def mark_digest_submitting(
+        self, digest_id: UUID, token: UUID, now: datetime, sender_key: str
+    ) -> bool:
+        """Fence one potentially accepted submission before SMTP DATA."""
+        ...
 
     async def claim_digest(
         self,
@@ -31,6 +46,10 @@ class NotificationsRepo(Protocol):
         lease_until: datetime,
         token: UUID,
         delivery: dict[str, Any],
+        *,
+        sender_key: str,
+        daily_limit: int,
+        sender_spacing: timedelta,
     ) -> PendingDigest | None:
         """Atomically lease pending delivery and preserve its first request body."""
         ...
@@ -41,7 +60,15 @@ class NotificationsRepo(Protocol):
         token: UUID,
         status: str,
         now: datetime,
-    ) -> None:
+        *,
+        outcome: Literal["accepted", "rejected", "unknown", "skipped"] = "skipped",
+        category: str | None = None,
+        retry_at: datetime | None = None,
+        sender_hold_until: datetime | None = None,
+        sender_suspended: bool = False,
+        smtp_code: int | None = None,
+        enhanced_code: str | None = None,
+    ) -> bool:
         """Fence completion by claim token; pending releases a retryable lease."""
         ...
 
