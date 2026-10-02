@@ -54,10 +54,15 @@ from nalar.application.features.missions.commands.generate_mission import (
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
+from nalar.application.features.onboarding.commands.request_invitations import (
+    InvitationRequestLimits,
+    RequestInvitationsHandler,
+)
 from nalar.application.features.onboarding.commands.send_invitation import (
     InvitationTiming,
     SendAccountInvitationHandler,
 )
+from nalar.application.features.onboarding.queries.list_invitations import ListInvitationsQuery
 from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
 from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
@@ -233,6 +238,16 @@ class InfrastructureProvider(Provider):
             batch_size=s.account_email_batch_size,
             sender_spacing=timedelta(seconds=s.account_email_sender_spacing_s),
             auth_cooldown=timedelta(seconds=s.account_email_auth_cooldown_s),
+        )
+
+    @provide(scope=Scope.APP)
+    def invitation_request_limits(self) -> InvitationRequestLimits:
+        s = self._settings
+        return InvitationRequestLimits(
+            timedelta(seconds=s.account_email_queue_ttl_s),
+            timedelta(seconds=s.account_email_resend_cooldown_s),
+            s.account_email_lookup_timeout_s,
+            s.account_email_lookup_concurrency,
         )
 
     @provide(scope=Scope.APP)
@@ -422,6 +437,8 @@ class ApplicationProvider(Provider):
         WeeklyDigestHandler,
         DeliverDigestHandler,
         SendAccountInvitationHandler,
+        RequestInvitationsHandler,
+        ListInvitationsQuery,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,
