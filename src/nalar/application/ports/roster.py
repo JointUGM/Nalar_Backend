@@ -58,8 +58,16 @@ class RosterRepo(Protocol):
     async def profile_by_email(self, email: str) -> UUID | None: ...
 
     async def ensure_profile(
-        self, user_id: UUID, full_name: str, email: str | None, has_real_email: bool
-    ) -> None: ...
+        self,
+        user_id: UUID,
+        full_name: str,
+        email: str | None,
+        has_real_email: bool,
+        *,
+        onboarding_required: bool = False,
+    ) -> bool:
+        """Insert a profile and its onboarding marker atomically; report whether inserted."""
+        ...
 
     async def claim_nisn(self, user_id: UUID, nisn: str) -> bool:
         """False when the NISN already belongs to another account."""

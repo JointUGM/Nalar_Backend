@@ -13,6 +13,7 @@ class RosterLimits:
     max_bytes: int
     stale_after_s: float
     student_login_domain: str
+    invitation_queue_ttl_s: float
 
 
 @dataclass(frozen=True)

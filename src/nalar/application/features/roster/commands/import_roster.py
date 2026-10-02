@@ -124,11 +124,29 @@ class ImportRosterHandler:
         async with self._uow:
             await self._guard(claim)
             existing = await self._uow.roster.profile_by_email(email) if real else None
-        user_id = existing or await self._admin.create_or_find(email, full_name)
+        if existing is not None:
+            return existing
+        account = await self._admin.create_or_find(email, full_name)
         async with self._uow:
             await self._guard(claim)
-            await self._uow.roster.ensure_profile(user_id, full_name, email if real else None, real)
-        return user_id
+            await self._uow.roster.ensure_profile(
+                account.id,
+                full_name,
+                email if real else None,
+                real,
+                onboarding_required=real and account.last_sign_in_at is None,
+            )
+        return account.id
+
+    async def _invite(self, claim: ImportClaim, user_id: UUID) -> None:
+        now = self._clock.now()
+        await self._uow.activations.queue_initial(
+            user_id,
+            claim.ref.school_id,
+            claim.ref.uploaded_by,
+            now,
+            now + timedelta(seconds=self._limits.invitation_queue_ttl_s),
+        )
 
     async def _student(self, claim: ImportClaim, row: RosterRow) -> None:
         ref = claim.ref
@@ -173,6 +191,9 @@ class ImportRosterHandler:
                 await self._uow.roster.ensure_parent_link(
                     parent_id, student_id, ref.school_id, row.relationship
                 )
+            await self._invite(claim, student_id)
+            if parent_id:
+                await self._invite(claim, parent_id)
 
     async def _teacher(self, claim: ImportClaim, row: RosterRow) -> None:
         assert row.email
@@ -183,3 +204,4 @@ class ImportRosterHandler:
                 claim.ref.school_id, teacher_id, "teacher"
             ):
                 raise RowRejected("role", "Keanggotaan akun tidak aktif.")
+            await self._invite(claim, teacher_id)

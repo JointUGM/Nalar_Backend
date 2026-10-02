@@ -1,9 +1,11 @@
 import secrets
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 import httpx
 
-from nalar.application.ports.auth_admin import AuthAdminError
+from nalar.application.ports.auth_admin import AuthAccount, AuthAdminError
 
 _PAGE_SIZE = 200
 
@@ -14,9 +16,9 @@ class SupabaseAuthAdmin:
     def __init__(self, http: httpx.AsyncClient) -> None:
         self._http = http
 
-    async def create_or_find(self, email: str, full_name: str) -> UUID:
+    async def create_or_find(self, email: str, full_name: str) -> AuthAccount:
         try:
-            return await self.ensure_user(email, secrets.token_urlsafe(32), full_name)
+            return await self._ensure_account(email, secrets.token_urlsafe(32), full_name)
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
             raise AuthAdminError(retryable=status in (408, 429) or status >= 500) from exc
@@ -26,6 +28,9 @@ class SupabaseAuthAdmin:
             raise AuthAdminError(retryable=False) from exc
 
     async def ensure_user(self, email: str, password: str, full_name: str) -> UUID:
+        return (await self._ensure_account(email, password, full_name)).id
+
+    async def _ensure_account(self, email: str, password: str, full_name: str) -> AuthAccount:
         response = await self._http.post(
             "/auth/v1/admin/users",
             json={
@@ -36,13 +41,19 @@ class SupabaseAuthAdmin:
             },
         )
         if response.status_code in (200, 201):
-            return UUID(response.json()["id"])
+            return self._account(response.json())
         if response.status_code in (409, 422):
             return await self._find(email)
         response.raise_for_status()
         raise RuntimeError(f"unexpected auth admin status {response.status_code}")
 
-    async def _find(self, email: str) -> UUID:
+    def _account(self, user: dict[str, Any]) -> AuthAccount:
+        signed_in = user.get("last_sign_in_at")
+        return AuthAccount(
+            UUID(user["id"]), datetime.fromisoformat(signed_in) if signed_in else None
+        )
+
+    async def _find(self, email: str) -> AuthAccount:
         page = 1
         while True:
             response = await self._http.get(
@@ -52,7 +63,7 @@ class SupabaseAuthAdmin:
             users = response.json().get("users", [])
             for user in users:
                 if str(user.get("email", "")).lower() == email.lower():
-                    return UUID(user["id"])
+                    return self._account(user)
             if len(users) < _PAGE_SIZE:
-                raise LookupError(f"auth user not found: {email}")
+                raise LookupError("Auth user not found")
             page += 1
