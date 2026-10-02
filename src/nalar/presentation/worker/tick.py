@@ -3,6 +3,9 @@ from typing import Any
 
 from dishka import AsyncContainer
 
+from nalar.application.features.onboarding.commands.send_invitation import (
+    SendAccountInvitationHandler,
+)
 from nalar.application.features.release.commands.release_reminders import (
     ReleaseRemindersHandler,
 )
@@ -16,6 +19,7 @@ def cron_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
         async with container() as scope:
             await (await scope.get(TickHandler)).execute()
             await (await scope.get(WeeklyDigestHandler)).dispatch_due()
+            await (await scope.get(SendAccountInvitationHandler)).dispatch_due()
 
     async def release_reminders(message: dict[str, Any]) -> None:
         async with container() as scope:

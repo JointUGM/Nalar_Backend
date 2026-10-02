@@ -12,6 +12,10 @@ from nalar.application.features.missions.commands.generate_mission import (
     GENERATION_KIND,
     BuildMissionHandler,
 )
+from nalar.application.features.onboarding.commands.send_invitation import (
+    SendAccountInvitationHandler,
+)
+from nalar.application.features.onboarding.messages import ACCOUNT_INVITATION_KIND
 from nalar.application.features.release.commands.finalize_publication import (
     FinalizePublicationHandler,
 )
@@ -24,6 +28,11 @@ from nalar.presentation.worker.runner import Handler
 
 
 def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
+    async def send_invitation(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(SendAccountInvitationHandler)
+            await handler.execute(UUID(str(message["notification_id"])))
+
     async def deliver_digest(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(DeliverDigestHandler)
@@ -52,6 +61,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             await handler.execute(UUID(str(message["import_id"])), UUID(str(message["job_id"])))
 
     return {
+        ACCOUNT_INVITATION_KIND: send_invitation,
         DIGEST_DELIVERY_KIND: deliver_digest,
         GENERATION_KIND: generate_mission,
         SESSION_FLAGS_KIND: compute_session_flags,
