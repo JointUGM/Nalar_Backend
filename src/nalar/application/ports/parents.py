@@ -49,7 +49,11 @@ class DigestRecipient:
 
 class ParentsRepo(Protocol):
     async def digest_recipients(
-        self, released_after: datetime | None, parent_id: UUID | None = None
+        self,
+        released_after: datetime | None,
+        parent_id: UUID | None = None,
+        *,
+        for_submission: bool = False,
     ) -> list[DigestRecipient]:
         """Current opted-in parents and summaries satisfying the app's visibility rule."""
         ...

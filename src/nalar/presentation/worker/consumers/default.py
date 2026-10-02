@@ -18,10 +18,17 @@ from nalar.application.features.release.commands.finalize_publication import (
 from nalar.application.features.release.messages import FINALIZE_KIND
 from nalar.application.features.roster.commands.import_roster import ImportRosterHandler
 from nalar.application.features.roster.messages import ROSTER_KIND
+from nalar.application.features.scheduler.commands.deliver_digest import DeliverDigestHandler
+from nalar.application.features.scheduler.messages import DIGEST_DELIVERY_KIND
 from nalar.presentation.worker.runner import Handler
 
 
 def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
+    async def deliver_digest(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(DeliverDigestHandler)
+            await handler.execute(UUID(str(message["notification_id"])))
+
     async def generate_mission(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(BuildMissionHandler)
@@ -45,6 +52,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             await handler.execute(UUID(str(message["import_id"])), UUID(str(message["job_id"])))
 
     return {
+        DIGEST_DELIVERY_KIND: deliver_digest,
         GENERATION_KIND: generate_mission,
         SESSION_FLAGS_KIND: compute_session_flags,
         FINALIZE_KIND: finalize,
