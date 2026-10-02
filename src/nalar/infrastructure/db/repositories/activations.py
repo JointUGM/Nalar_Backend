@@ -1,11 +1,18 @@
 import hashlib
 import json
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from nalar.application.features.onboarding.messages import invitation_message
-from nalar.application.ports.activations import PendingInvitation
+from nalar.application.ports.activations import (
+    InvitationAdmission,
+    InvitationPage,
+    InvitationRecipient,
+    InvitationState,
+    InvitationStatus,
+    PendingInvitation,
+)
 from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.queue.pgmq import PgmqSender
@@ -20,10 +27,214 @@ _INVITATION = """
        and n.payload->>'transport' = 'supabase_auth_v1'
 """
 
+_RECIPIENT_SCOPE = """
+    (exists (select 1 from school_memberships m
+              where m.school_id = $1 and m.user_id = p.id and m.status = 'active')
+     or exists (select 1 from parent_student_links l
+                 join school_memberships m on m.user_id = l.student_id
+                  and m.school_id = l.school_id and m.role = 'student' and m.status = 'active'
+                 join class_enrollments e on e.student_id = l.student_id
+                  and e.school_id = l.school_id and e.status = 'active'
+                where l.parent_id = p.id and l.school_id = $1))
+"""
+
+_STATUS = (
+    """
+    with recipients as (
+        select p.id as user_id, n.id as notification_id,
+               case
+                 when a.consumed_at is not null then 'activated'
+                 when not p.has_real_email or nullif(btrim(p.contact_email), '') is null
+                   then 'requires_assistance'
+                 when not p.onboarding_required and a.id is not null then 'active'
+                 when a.id is null then 'not_requested'
+                 when a.superseded_at is not null then 'superseded'
+                 when n.status = 'pending' and n.payload->>'phase' = 'prepared' then
+                   case when (n.payload->>'expires_at')::timestamptz <= $2
+                        then 'expired' else 'pending' end
+                 when a.expires_at <= $2 then 'expired'
+                 when n.status = 'pending' then 'pending'
+                 when n.status = 'sent' then 'sent'
+                 else 'failed'
+               end as state,
+               case when n.payload->>'category' in (
+                   'ineligible', 'expired', 'auth_identity_changed', 'eligibility_changed',
+                   'acceptance_unknown', 'admission_exhausted', 'auth', 'rate_limited',
+                   'connect', 'transport', 'provider_error', 'deadline', 'auth_lookup', 'superseded'
+               ) then n.payload->>'category' else null end as reason,
+               a.created_at, n.sent_at,
+               case when n.status = 'pending' and n.payload->>'phase' = 'prepared'
+                    then (n.payload->>'expires_at')::timestamptz else a.expires_at end as expires_at
+          from profiles p
+          left join lateral (
+              select a.* from account_activations a
+               where a.user_id = p.id and a.school_id = $1 and a.channel = 'email'
+               order by a.created_at desc, a.id desc limit 1
+          ) a on true
+          left join notifications n on n.dedupe_key = 'account-invitation:' || a.id::text
+           and n.school_id = $1 and n.recipient_id = p.id and n.type = 'account_invitation'
+         where
+"""
+    + _RECIPIENT_SCOPE
+    + ") "
+)
+
 
 class PgActivationsRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
+
+    async def request_recipients(
+        self, school_id: UUID, user_ids: list[UUID], *, lock: bool = False
+    ) -> list[InvitationRecipient]:
+        rows = await self._conn.fetch(
+            "select p.id, p.contact_email, p.has_real_email, p.onboarding_required"
+            " from profiles p where "
+            + _RECIPIENT_SCOPE
+            + " and p.id = any($2::uuid[]) order by p.id"
+            + (" for update of p" if lock else ""),
+            school_id,
+            user_ids,
+        )
+        return [
+            InvitationRecipient(
+                row["id"], row["contact_email"], row["has_real_email"], row["onboarding_required"]
+            )
+            for row in rows
+        ]
+
+    async def enable_onboarding(self, user_id: UUID, email: str) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update profiles p set onboarding_required = true where p.id = $1"
+                " and p.has_real_email and lower(p.contact_email) = lower($2)"
+                " and not exists(select 1 from account_activations a where a.user_id=p.id"
+                " and a.consumed_at is not null) returning id",
+                user_id,
+                email,
+            )
+            is not None
+        )
+
+    async def request_invitation(
+        self,
+        user_id: UUID,
+        school_id: UUID,
+        actor_id: UUID,
+        now: datetime,
+        expires_at: datetime,
+        *,
+        resend: bool,
+        cooldown: timedelta,
+    ) -> InvitationAdmission:
+        row = await self._conn.fetchrow(
+            "select a.id, a.school_id, a.expires_at, a.created_at, a.superseded_at,"
+            " a.consumed_at, n.id as notification_id, n.status::text, n.sent_at, n.payload"
+            " from account_activations a left join notifications n"
+            " on n.dedupe_key='account-invitation:' || a.id::text and n.type='account_invitation'"
+            " and n.recipient_id=a.user_id and n.school_id=a.school_id"
+            " where a.user_id=$1 and a.channel='email'"
+            " order by a.created_at desc, a.id desc limit 1",
+            user_id,
+        )
+        if row:
+            payload = json.loads(row["payload"]) if row["payload"] else {}
+            own_notification = row["notification_id"] if row["school_id"] == school_id else None
+            if row["consumed_at"] is not None:
+                return InvitationAdmission(user_id, None, False, "already_active")
+            live = row["superseded_at"] is None
+            leased = (
+                payload.get("lease_until") and datetime.fromisoformat(payload["lease_until"]) > now
+            )
+            if live and row["status"] == "pending" and leased:
+                return InvitationAdmission(user_id, own_notification, False, "in_progress")
+            if live and row["status"] == "pending" and payload.get("phase") == "submitting":
+                await self._conn.execute(
+                    "update notifications set status='failed',"
+                    " payload=(payload - 'token' - 'lease_until' - 'dispatch_until') ||"
+                    ' \'{"outcome":"unknown","category":"acceptance_unknown"}\'::jsonb'
+                    " where id=$1 and status='pending'",
+                    row["notification_id"],
+                )
+                retryable = True
+            else:
+                expiry = (
+                    datetime.fromisoformat(payload["expires_at"])
+                    if row["status"] == "pending" and payload.get("phase") == "prepared"
+                    else row["expires_at"]
+                )
+                retryable = row["status"] == "failed" or expiry <= now or not live
+            if live and not retryable:
+                reason = "already_pending" if row["status"] == "pending" else "already_sent"
+                return InvitationAdmission(
+                    user_id, own_notification if row["status"] == "pending" else None, False, reason
+                )
+            if not resend:
+                return InvitationAdmission(user_id, None, False, "resend_required")
+            last_submission = max(
+                [row["created_at"], row["sent_at"] or row["created_at"]]
+                + [datetime.fromisoformat(value) for value in payload.get("submission_times", [])]
+            )
+            if last_submission + cooldown > now:
+                return InvitationAdmission(user_id, None, False, "cooldown")
+            await self._conn.execute(
+                "update account_activations set superseded_at=$2 where user_id=$1"
+                " and channel='email' and consumed_at is null and superseded_at is null",
+                user_id,
+                now,
+            )
+            if row["status"] == "pending":
+                await self._conn.execute(
+                    "update notifications set status='failed',"
+                    " payload=(payload - 'token' - 'lease_until' - 'dispatch_until') ||"
+                    ' \'{"outcome":"skipped","category":"superseded"}\'::jsonb'
+                    " where id=$1 and status='pending'",
+                    row["notification_id"],
+                )
+        recipient = await self._conn.fetchval(
+            "select contact_email from profiles"
+            " where id=$1 and onboarding_required and has_real_email",
+            user_id,
+        )
+        if not recipient:
+            return InvitationAdmission(user_id, None, False, "requires_assistance")
+        notification_id = await self._create_invitation(
+            user_id, school_id, actor_id, recipient, now, expires_at
+        )
+        return InvitationAdmission(user_id, notification_id, True, "resend" if row else "initial")
+
+    async def list_invitations(
+        self, school_id: UUID, now: datetime, cursor: UUID | None, limit: int
+    ) -> InvitationPage:
+        counts_rows = await self._conn.fetch(
+            _STATUS + "select state, count(*) as count from recipients group by state",
+            school_id,
+            now,
+        )
+        rows = await self._conn.fetch(
+            _STATUS + "select * from recipients where ($3::uuid is null or user_id > $3)"
+            " order by user_id limit $4",
+            school_id,
+            now,
+            cursor,
+            limit + 1,
+        )
+        items = [
+            InvitationStatus(
+                row["user_id"],
+                row["notification_id"],
+                cast(InvitationState, row["state"]),
+                row["reason"],
+                row["created_at"],
+                row["sent_at"],
+                row["expires_at"],
+            )
+            for row in rows[:limit]
+        ]
+        counts = {cast(InvitationState, row["state"]): int(row["count"]) for row in counts_rows}
+        return InvitationPage(
+            items, counts, sum(counts.values()), items[-1].user_id if len(rows) > limit else None
+        )
 
     def _invitation(self, row: Any) -> PendingInvitation:
         payload = json.loads(row["payload"])
@@ -342,6 +553,19 @@ class PgActivationsRepo:
             user_id,
         ):
             return None
+        return await self._create_invitation(
+            user_id, school_id, actor_id, recipient, now, expires_at
+        )
+
+    async def _create_invitation(
+        self,
+        user_id: UUID,
+        school_id: UUID,
+        actor_id: UUID,
+        recipient: str,
+        now: datetime,
+        expires_at: datetime,
+    ) -> UUID:
         activation_id = uuid4()
         await self._conn.execute(
             "insert into account_activations"
