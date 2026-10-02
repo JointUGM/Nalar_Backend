@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     auth_timeout_s: float = 5.0
     access_token_ttl_s: int = 3600
     login_rate_limit_per_minute: int = 10
+    auth_password_min_length: int = Field(default=8, ge=8, le=256)
+    auth_password_required_characters: tuple[
+        Literal["lowercase", "uppercase", "digit", "symbol"], ...
+    ] = ()
+    auth_activation_timeout_s: float = Field(default=15, gt=0, allow_inf_nan=False)
+    auth_activation_lease_s: float = Field(default=60, gt=0, allow_inf_nan=False)
     redis_url: SecretStr = SecretStr("redis://127.0.0.1:6379")
     redis_timeout_s: float = 0.25
     session_lifetime_s: int = 43200
@@ -125,6 +131,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def session_limits(self) -> Self:
+        if (
+            self.auth_activation_lease_s
+            <= self.auth_activation_timeout_s + 2 * self.db_command_timeout_s
+        ):
+            raise ValueError("activation lease must cover Auth and database deadlines")
         if self.session_lifetime_s < 60 or self.session_refresh_margin_s < 0:
             raise ValueError("invalid session lifetime or refresh margin")
         if self.session_refresh_lock_s <= self.auth_timeout_s:
