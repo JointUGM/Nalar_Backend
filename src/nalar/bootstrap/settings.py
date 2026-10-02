@@ -2,7 +2,7 @@ import math
 import re
 from typing import Literal, Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     roster_max_upload_bytes: int = 5 * 1024 * 1024
     roster_stale_after_s: float = 120.0
     student_login_domain: str = "siswa.nalar.id"
+    account_email_queue_ttl_s: float = Field(default=172800, gt=0)
     kb_max_upload_bytes: int = 50 * 1024 * 1024
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0

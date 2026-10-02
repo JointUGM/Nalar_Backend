@@ -8,14 +8,14 @@ from nalar.application.features.roster.commands.import_roster import (
     ImportRosterHandler,
 )
 from nalar.application.features.roster.commands.upload_roster import RosterLimits
-from nalar.application.ports.auth_admin import AuthAdminError
+from nalar.application.ports.auth_admin import AuthAccount, AuthAdminError
 from nalar.infrastructure.db.repositories.roster import PgRosterRepo
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import World, build_world, create_teacher
 from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import FakeClock, FakeStorage
 
-LIMITS = RosterLimits(5 * 1024 * 1024, 120, "siswa.nalar.id")
+LIMITS = RosterLimits(5 * 1024 * 1024, 120, "siswa.nalar.id", 172800)
 
 HEADER = "role,full_name,email,nisn,class_name,grade_level,parent_email,parent_name,relationship"
 ROSTER = (
@@ -35,17 +35,17 @@ class FakeAuthAdmin:
     def __init__(self, conn: asyncpg.Connection) -> None:
         self._conn = conn
 
-    async def create_or_find(self, email: str, full_name: str) -> UUID:
-        existing: UUID | None = await self._conn.fetchval(
-            "select id from auth.users where email = $1", email
+    async def create_or_find(self, email: str, full_name: str) -> AuthAccount:
+        existing = await self._conn.fetchrow(
+            "select id, last_sign_in_at from auth.users where email = $1", email
         )
         if existing:
-            return existing
+            return AuthAccount(existing["id"], existing["last_sign_in_at"])
         user_id = uuid4()
         await self._conn.execute(
             "insert into auth.users (id, email) values ($1, $2)", user_id, email
         )
-        return user_id
+        return AuthAccount(user_id, None)
 
 
 async def upload(
@@ -118,6 +118,11 @@ async def test_reimporting_the_same_file_creates_no_duplicates(
     )
     assert counts is not None
     assert dict(counts) == {"students": 1, "classes": 1, "teachers": 1, "parents": 1}
+    assert await conn.fetchval("select count(*) from account_activations") == 2
+    assert (
+        await conn.fetchval("select count(*) from notifications where type = 'account_invitation'")
+        == 2
+    )
 
 
 async def test_known_teacher_from_another_school_gains_a_membership(
@@ -153,7 +158,7 @@ async def test_only_a_school_admin_uploads(conn: asyncpg.Connection, world: Worl
 class InterruptedAuthAdmin(FakeAuthAdmin):
     interrupted = False
 
-    async def create_or_find(self, email: str, full_name: str) -> UUID:
+    async def create_or_find(self, email: str, full_name: str) -> AuthAccount:
         if email == "joko@smp.id" and not self.interrupted:
             self.interrupted = True
             raise AuthAdminError(retryable=True)
@@ -264,7 +269,7 @@ async def test_invalid_header_marks_import_failed(conn: asyncpg.Connection, worl
 class CrashedAuthAdmin(FakeAuthAdmin):
     crashed = False
 
-    async def create_or_find(self, email: str, full_name: str) -> UUID:
+    async def create_or_find(self, email: str, full_name: str) -> AuthAccount:
         user_id = await super().create_or_find(email, full_name)
         if not self.crashed:
             self.crashed = True
@@ -317,3 +322,123 @@ async def test_upload_rejects_unreadable_files_before_storage(
     assert response.status_code == 400
     assert response.json()["error"]["code"] == code
     assert storage.objects == {}
+
+
+async def test_shared_parent_receives_one_invitation_across_schools(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    other = await build_world(conn, "SMP Kedua")
+    storage = FakeStorage()
+    first = f"{HEADER}\nstudent,A,,1111111111,7A,7,parent@mail.id,Wali,ibu\n"
+    second = f"{HEADER}\nstudent,B,,2222222222,7A,7,parent@mail.id,Wali,ibu\n"
+    await run(conn, storage, await upload(conn, world, storage, first))
+    await run(conn, storage, await upload(conn, other, storage, second))
+    row = await conn.fetchrow(
+        "select a.school_id, n.payload, n.id from account_activations a"
+        " join notifications n on n.dedupe_key = 'account-invitation:' || a.id::text"
+        " where a.user_id = (select id from profiles where contact_email = 'parent@mail.id')"
+    )
+    assert row is not None
+    assert row["school_id"] == world.school_id
+    assert await conn.fetchval("select count(*) from account_activations") == 1
+    assert "parent@mail.id" not in row["payload"]
+    assert (
+        await conn.fetchval(
+            "select count(*) from pgmq.q_nalar_default where message->>'notification_id' = $1",
+            str(row["id"]),
+        )
+        == 1
+    )
+
+
+async def test_rejected_row_does_not_queue_accounts_created_before_validation(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    await conn.execute("update classes set archived_at = now() where id = $1", world.class_id)
+    storage = FakeStorage()
+    class_name = await conn.fetchval("select name from classes where id = $1", world.class_id)
+    text = (
+        f"{HEADER}\nstudent,A,new.student@mail.id,3333333333,{class_name},8,"
+        "new.parent@mail.id,Wali,ibu\n"
+    )
+    body = await upload(conn, world, storage, text)
+    await run(conn, storage, body)
+    view = await PgRosterRepo(conn).import_view(UUID(body["import_id"]))
+    assert view is not None and view.rows_failed == 1
+    assert await conn.fetchval("select count(*) from account_activations") == 0
+    assert (
+        await conn.fetchval("select count(*) from notifications where type = 'account_invitation'")
+        == 0
+    )
+
+
+async def test_previously_used_auth_account_is_not_invited_by_import(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    user_id = uuid4()
+    await conn.execute(
+        "insert into auth.users (id, email, last_sign_in_at) values ($1, $2, now())",
+        user_id,
+        "used@mail.id",
+    )
+    storage = FakeStorage()
+    text = f"{HEADER}\nteacher,Guru,used@mail.id,,,,,,\n"
+    await run(conn, storage, await upload(conn, world, storage, text))
+    assert (
+        await conn.fetchval("select count(*) from school_memberships where user_id = $1", user_id)
+        == 1
+    )
+    assert await conn.fetchval("select count(*) from account_activations") == 0
+
+
+async def test_failed_admission_can_retry_with_its_persisted_onboarding_marker(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    await conn.execute("update classes set archived_at = now() where id = $1", world.class_id)
+    class_name = await conn.fetchval("select name from classes where id = $1", world.class_id)
+    storage = FakeStorage()
+    text = f"{HEADER}\nstudent,A,pending@mail.id,4444444444,{class_name},8,,,\n"
+    await run(conn, storage, await upload(conn, world, storage, text))
+    assert await conn.fetchval("select count(*) from account_activations") == 0
+    assert await conn.fetchval(
+        "select onboarding_required from profiles where contact_email = 'pending@mail.id'"
+    )
+    await conn.execute("update classes set archived_at = null where id = $1", world.class_id)
+    await run(conn, storage, await upload(conn, world, storage, text))
+    await run(conn, storage, await upload(conn, world, storage, text))
+    assert await conn.fetchval("select count(*) from account_activations") == 1
+
+
+async def test_invitation_and_queue_message_roll_back_with_row_transaction(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    from datetime import timedelta
+
+    from nalar.infrastructure.db.repositories.activations import PgActivationsRepo
+
+    await conn.execute(
+        "update profiles set onboarding_required = true, has_real_email = true where id = $1",
+        world.teacher_id,
+    )
+    before = await conn.fetchval("select count(*) from pgmq.q_nalar_default")
+    now = FakeClock().now()
+    with pytest.raises(ImportInterrupted):
+        async with uow_on(conn) as uow:
+            notification_id = await uow.activations.queue_initial(
+                world.teacher_id,
+                world.school_id,
+                world.admin_id,
+                now,
+                now + timedelta(seconds=LIMITS.invitation_queue_ttl_s),
+            )
+            assert notification_id is not None
+            raise ImportInterrupted("Row transaction interrupted")
+    assert await conn.fetchval("select count(*) from account_activations") == 0
+    assert await conn.fetchval("select count(*) from pgmq.q_nalar_default") == before
+    repo = PgActivationsRepo(conn)
+    assert (
+        await repo.queue_initial(
+            world.teacher_id, world.school_id, world.teacher_id, now, now + timedelta(hours=48)
+        )
+        is None
+    )

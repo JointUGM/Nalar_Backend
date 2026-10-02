@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Protocol, Self
 
+from nalar.application.ports.activations import ActivationsRepo
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
@@ -52,6 +53,7 @@ class UnitOfWork(Protocol):
     missions: MissionsRepo
     knowledge: KnowledgeRepo
     roster: RosterRepo
+    activations: ActivationsRepo
 
     async def __aenter__(self) -> Self: ...
 

@@ -125,16 +125,25 @@ class PgRosterRepo:
         return user_id
 
     async def ensure_profile(
-        self, user_id: UUID, full_name: str, email: str | None, has_real_email: bool
-    ) -> None:
-        await self._conn.execute(
-            "insert into profiles (id, full_name, contact_email, has_real_email)"
-            " values ($1, $2, $3, $4) on conflict (id) do nothing",
+        self,
+        user_id: UUID,
+        full_name: str,
+        email: str | None,
+        has_real_email: bool,
+        *,
+        onboarding_required: bool = False,
+    ) -> bool:
+        inserted = await self._conn.fetchval(
+            "insert into profiles"
+            " (id, full_name, contact_email, has_real_email, onboarding_required)"
+            " values ($1, $2, $3, $4, $5) on conflict (id) do nothing returning id",
             user_id,
             full_name,
             email,
             has_real_email,
+            onboarding_required,
         )
+        return inserted is not None
 
     async def claim_nisn(self, user_id: UUID, nisn: str) -> bool:
         await self._conn.execute(

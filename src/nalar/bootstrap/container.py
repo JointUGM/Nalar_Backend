@@ -191,6 +191,7 @@ class InfrastructureProvider(Provider):
             self._settings.roster_max_upload_bytes,
             self._settings.roster_stale_after_s,
             self._settings.student_login_domain,
+            self._settings.account_email_queue_ttl_s,
         )
 
     @provide(scope=Scope.APP)
