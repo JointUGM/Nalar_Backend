@@ -22,6 +22,11 @@ class InvalidInput(AppError):
     message = "Data yang dikirim tidak valid."
 
 
+class InvalidActivation(InvalidInput):
+    code = "INVALID_ACTIVATION"
+    message = "Tautan aktivasi tidak valid atau sudah kedaluwarsa."
+
+
 class Unauthenticated(AppError):
     code = "UNAUTHENTICATED"
     message = "Silakan masuk terlebih dahulu."

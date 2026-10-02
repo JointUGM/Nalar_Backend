@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID
 
@@ -23,7 +23,20 @@ class AuthTokens:
     expires_at: int
 
 
+@dataclass(frozen=True)
+class RecoveryProof:
+    user_id: UUID
+    email: str
+    access_token: str = field(repr=False)
+
+
 class IdentityProvider(Protocol):
+    async def verify_recovery(self, token_hash: str) -> RecoveryProof: ...
+
+    async def update_password(self, proof: RecoveryProof, password: str) -> None:
+        """Set the password using the recipient's temporary recovery session."""
+        ...
+
     async def sign_in(self, email: str, password: str) -> AuthTokens:
         """Exchange a password for tokens, or raise InvalidCredentials."""
         ...
