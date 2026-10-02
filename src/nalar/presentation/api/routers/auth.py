@@ -4,6 +4,10 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, Request, Response
 
 from nalar.application.errors import DependencyUnavailable, TooManyRequests
+from nalar.application.features.onboarding.commands.activate_account import ActivateAccountHandler
+from nalar.application.features.onboarding.commands.reconcile_login import (
+    ReconcileOnboardingHandler,
+)
 from nalar.application.ports.auth import (
     AuthTokens,
     BrowserSessions,
@@ -11,7 +15,7 @@ from nalar.application.ports.auth import (
     LoginAttempts,
 )
 from nalar.presentation.api.deps import SessionCookie
-from nalar.presentation.api.schemas.auth import LoginIn, SessionOut
+from nalar.presentation.api.schemas.auth import ActivateIn, LoginIn, SessionOut
 
 router = APIRouter(prefix="/auth", tags=["auth"], route_class=DishkaRoute)
 
@@ -29,11 +33,18 @@ async def login(
     provider: FromDishka[IdentityProvider],
     attempts: FromDishka[LoginAttempts],
     sessions: FromDishka[BrowserSessions],
+    onboarding: FromDishka[ReconcileOnboardingHandler],
 ) -> SessionOut:
     email = body.email.strip().lower()
     if not await attempts.allow(email):
         raise TooManyRequests()
     tokens = await provider.sign_in(email, body.password.get_secret_value())
+    try:
+        await onboarding.execute(tokens.user_id)
+    except DependencyUnavailable:
+        with suppress(DependencyUnavailable, TooManyRequests):
+            await provider.sign_out(tokens.access_token)
+        raise
     previous = request.cookies.get(request.app.state.session_cookie_name)
     if previous:
         await sessions.delete(previous)
@@ -48,6 +59,19 @@ async def login(
         path="/",
     )
     return _metadata(tokens, response)
+
+
+@router.post("/activate", status_code=204)
+async def activate(
+    body: ActivateIn,
+    handler: FromDishka[ActivateAccountHandler],
+    attempts: FromDishka[LoginAttempts],
+) -> None:
+    if not await attempts.allow(f"activation:{body.activation_id}"):
+        raise TooManyRequests()
+    await handler.execute(
+        body.activation_id, body.token_hash.get_secret_value(), body.password.get_secret_value()
+    )
 
 
 @router.get("/session", response_model=SessionOut)

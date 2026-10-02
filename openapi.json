@@ -1,6 +1,39 @@
 {
   "components": {
     "schemas": {
+      "ActivateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "activation_id": {
+            "format": "uuid",
+            "title": "Activation Id",
+            "type": "string"
+          },
+          "password": {
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string",
+            "writeOnly": true
+          },
+          "token_hash": {
+            "format": "password",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Token Hash",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "activation_id",
+          "token_hash",
+          "password"
+        ],
+        "title": "ActivateIn",
+        "type": "object"
+      },
       "AnswerAccepted": {
         "properties": {
           "next_prompt_url": {
@@ -4335,6 +4368,40 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/auth/activate": {
+      "post": {
+        "operationId": "activate_api_v1_auth_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Activate",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login_api_v1_auth_login_post",
