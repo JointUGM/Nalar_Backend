@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import AsyncIterator
 from datetime import timedelta
 
@@ -53,6 +54,10 @@ from nalar.application.features.missions.commands.generate_mission import (
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
+from nalar.application.features.onboarding.commands.send_invitation import (
+    InvitationTiming,
+    SendAccountInvitationHandler,
+)
 from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
 from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
@@ -203,7 +208,32 @@ class InfrastructureProvider(Provider):
             headers={"apikey": key, "Authorization": f"Bearer {key}"},
             timeout=s.auth_timeout_s,
         ) as http:
-            yield SupabaseAuthAdmin(http)
+            yield SupabaseAuthAdmin(
+                http,
+                email_request_timeout_s=s.account_email_request_timeout_s,
+                email_total_timeout_s=s.account_email_total_timeout_s,
+            )
+
+    @provide(scope=Scope.APP)
+    def invitation_timing(self) -> InvitationTiming:
+        s = self._settings
+        return InvitationTiming(
+            enabled=s.account_email_enabled,
+            activation_url=s.account_email_activation_url,
+            sender_key="supabase-auth:"
+            + hashlib.sha256(s.supabase_url.rstrip("/").encode()).hexdigest(),
+            total_timeout_s=s.account_email_total_timeout_s,
+            lease=timedelta(seconds=s.account_email_lease_s),
+            dispatch_ttl=timedelta(seconds=s.account_email_dispatch_ttl_s),
+            link_lifetime=timedelta(seconds=s.account_email_link_lifetime_s),
+            max_attempts=s.account_email_max_attempts,
+            retry_delays=tuple(timedelta(seconds=v) for v in s.account_email_retry_delays_s),
+            hourly_limit=s.account_email_hourly_limit,
+            daily_limit=s.account_email_daily_limit,
+            batch_size=s.account_email_batch_size,
+            sender_spacing=timedelta(seconds=s.account_email_sender_spacing_s),
+            auth_cooldown=timedelta(seconds=s.account_email_auth_cooldown_s),
+        )
 
     @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
@@ -391,6 +421,7 @@ class ApplicationProvider(Provider):
         TickHandler,
         WeeklyDigestHandler,
         DeliverDigestHandler,
+        SendAccountInvitationHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,

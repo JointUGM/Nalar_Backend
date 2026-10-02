@@ -1,6 +1,7 @@
 import math
 import re
 from typing import Literal, Self
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,7 +46,21 @@ class Settings(BaseSettings):
     roster_max_upload_bytes: int = 5 * 1024 * 1024
     roster_stale_after_s: float = 120.0
     student_login_domain: str = "siswa.nalar.id"
-    account_email_queue_ttl_s: float = Field(default=172800, gt=0)
+    account_email_queue_ttl_s: float = Field(default=172800, gt=0, allow_inf_nan=False)
+    account_email_enabled: bool = False
+    account_email_activation_url: str | None = None
+    account_email_request_timeout_s: float = Field(default=10, gt=0, allow_inf_nan=False)
+    account_email_total_timeout_s: float = Field(default=15, gt=0, allow_inf_nan=False)
+    account_email_lease_s: float = Field(default=60, gt=0, allow_inf_nan=False)
+    account_email_dispatch_ttl_s: float = Field(default=1080, gt=0, allow_inf_nan=False)
+    account_email_link_lifetime_s: float = Field(default=3600, gt=0, allow_inf_nan=False)
+    account_email_max_attempts: int = Field(default=3, ge=1, le=3)
+    account_email_retry_delays_s: tuple[int, ...] = (1800, 7200)
+    account_email_hourly_limit: int = Field(default=20, ge=1, le=20)
+    account_email_daily_limit: int = Field(default=200, ge=1, le=200)
+    account_email_batch_size: int = Field(default=32, ge=1, le=100)
+    account_email_sender_spacing_s: float = Field(default=1, ge=0, allow_inf_nan=False)
+    account_email_auth_cooldown_s: float = Field(default=1800, gt=0, allow_inf_nan=False)
     kb_max_upload_bytes: int = 50 * 1024 * 1024
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0
@@ -67,6 +82,43 @@ class Settings(BaseSettings):
     @property
     def session_cookie_name(self) -> str:
         return "__Host-nalar_session" if self.env in ("staging", "prod") else "nalar_session"
+
+    @model_validator(mode="after")
+    def account_delivery_limits(self) -> Self:
+        if not self.account_email_enabled:
+            return self
+        if not (
+            self.account_email_request_timeout_s
+            < self.account_email_total_timeout_s
+            < self.account_email_lease_s
+            < self.account_email_dispatch_ttl_s
+            < self.account_email_queue_ttl_s
+        ):
+            raise ValueError("invalid account-email timeout or lease ordering")
+        if len(self.account_email_retry_delays_s) < self.account_email_max_attempts - 1 or any(
+            delay <= 0 for delay in self.account_email_retry_delays_s
+        ):
+            raise ValueError("invalid account-email retry delays")
+        url = urlsplit(self.account_email_activation_url or "")
+        origin = f"{url.scheme}://{url.netloc}"
+        if (
+            url.path != "/activate"
+            or self.account_email_activation_url != origin + "/activate"
+            or url.query
+            or url.fragment
+            or url.username is not None
+            or url.password is not None
+            or not url.hostname
+            or origin not in self.cors_origins
+        ):
+            raise ValueError("account activation URL must use a configured frontend origin")
+        if url.scheme != "https" and not (
+            self.env in ("local", "test")
+            and url.scheme == "http"
+            and url.hostname in ("localhost", "127.0.0.1", "::1")
+        ):
+            raise ValueError("account activation URL requires HTTPS")
+        return self
 
     @model_validator(mode="after")
     def session_limits(self) -> Self:
