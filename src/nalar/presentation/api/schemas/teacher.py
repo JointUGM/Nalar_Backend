@@ -1,10 +1,69 @@
 from datetime import datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, model_validator
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
 from nalar.presentation.api.schemas.common import Body
+
+
+class AttentionEntryOut(BaseModel):
+    item_id: UUID
+    created_at: datetime
+
+
+class SafetyAttentionOut(AttentionEntryOut):
+    kind: Literal["safety"]
+    session_id: UUID
+    publication_id: UUID
+    student_name: str
+    paused_at: datetime | None
+
+
+class FlagAttentionOut(AttentionEntryOut):
+    kind: Literal["flag"]
+    flag_id: UUID
+    flag_type: str
+    severity: str
+    session_id: UUID
+    publication_id: UUID
+    student_name: str
+
+
+class KbReviewAttentionOut(AttentionEntryOut):
+    kind: Literal["kb_review"]
+    knowledge_base_id: UUID
+    topic_title: str
+    pending_concepts: int
+    pending_misconceptions: int
+
+
+class ReleaseReadyAttentionOut(AttentionEntryOut):
+    kind: Literal["release_ready"]
+    publication_id: UUID
+    class_name: str
+    mission_title: str
+    eligible_count: int
+
+
+AttentionItemOut = Annotated[
+    SafetyAttentionOut | FlagAttentionOut | KbReviewAttentionOut | ReleaseReadyAttentionOut,
+    Field(discriminator="kind"),
+]
+
+
+class AttentionCountsOut(BaseModel):
+    safety: int
+    flag: int
+    kb_review: int
+    release_ready: int
+    total: int
+
+
+class AttentionPageOut(BaseModel):
+    items: list[AttentionItemOut]
+    counts: AttentionCountsOut
+    next_cursor: str | None
 
 
 class RoleOut(BaseModel):

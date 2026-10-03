@@ -107,6 +107,7 @@ from nalar.application.features.results.commands.review_flag import ReviewFlagHa
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
+from nalar.application.features.results.queries.teacher_attention import TeacherAttentionQuery
 from nalar.application.features.roster.commands.import_roster import ImportRosterHandler
 from nalar.application.features.roster.commands.upload_roster import (
     RosterLimits,
@@ -504,6 +505,7 @@ class ApplicationProvider(Provider):
         MonitorQuery,
         SessionReportQuery,
         ClassMapQuery,
+        TeacherAttentionQuery,
         SafetyActionHandler,
         OverrideScoreHandler,
         ReviewFlagHandler,

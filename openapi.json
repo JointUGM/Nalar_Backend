@@ -175,6 +175,93 @@
         "title": "AssignmentsOut",
         "type": "object"
       },
+      "AttentionCountsOut": {
+        "properties": {
+          "flag": {
+            "title": "Flag",
+            "type": "integer"
+          },
+          "kb_review": {
+            "title": "Kb Review",
+            "type": "integer"
+          },
+          "release_ready": {
+            "title": "Release Ready",
+            "type": "integer"
+          },
+          "safety": {
+            "title": "Safety",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "safety",
+          "flag",
+          "kb_review",
+          "release_ready",
+          "total"
+        ],
+        "title": "AttentionCountsOut",
+        "type": "object"
+      },
+      "AttentionPageOut": {
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/AttentionCountsOut"
+          },
+          "items": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "flag": "#/components/schemas/FlagAttentionOut",
+                  "kb_review": "#/components/schemas/KbReviewAttentionOut",
+                  "release_ready": "#/components/schemas/ReleaseReadyAttentionOut",
+                  "safety": "#/components/schemas/SafetyAttentionOut"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SafetyAttentionOut"
+                },
+                {
+                  "$ref": "#/components/schemas/FlagAttentionOut"
+                },
+                {
+                  "$ref": "#/components/schemas/KbReviewAttentionOut"
+                },
+                {
+                  "$ref": "#/components/schemas/ReleaseReadyAttentionOut"
+                }
+              ]
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "next_cursor"
+        ],
+        "title": "AttentionPageOut",
+        "type": "object"
+      },
       "BankQuestionIn": {
         "additionalProperties": false,
         "properties": {
@@ -591,6 +678,65 @@
           "quote"
         ],
         "title": "EvidenceOut",
+        "type": "object"
+      },
+      "FlagAttentionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "flag_id": {
+            "format": "uuid",
+            "title": "Flag Id",
+            "type": "string"
+          },
+          "flag_type": {
+            "title": "Flag Type",
+            "type": "string"
+          },
+          "item_id": {
+            "format": "uuid",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "flag",
+            "title": "Kind",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "created_at",
+          "kind",
+          "flag_id",
+          "flag_type",
+          "severity",
+          "session_id",
+          "publication_id",
+          "student_name"
+        ],
+        "title": "FlagAttentionOut",
         "type": "object"
       },
       "FlagReviewIn": {
@@ -1200,6 +1346,53 @@
           "next_cursor"
         ],
         "title": "KbPageOut",
+        "type": "object"
+      },
+      "KbReviewAttentionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "item_id": {
+            "format": "uuid",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "kb_review",
+            "title": "Kind",
+            "type": "string"
+          },
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "pending_concepts": {
+            "title": "Pending Concepts",
+            "type": "integer"
+          },
+          "pending_misconceptions": {
+            "title": "Pending Misconceptions",
+            "type": "integer"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "created_at",
+          "kind",
+          "knowledge_base_id",
+          "topic_title",
+          "pending_concepts",
+          "pending_misconceptions"
+        ],
+        "title": "KbReviewAttentionOut",
         "type": "object"
       },
       "KbSummaryOut": {
@@ -2747,6 +2940,53 @@
         "title": "ReleasePreviewOut",
         "type": "object"
       },
+      "ReleaseReadyAttentionOut": {
+        "properties": {
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "eligible_count": {
+            "title": "Eligible Count",
+            "type": "integer"
+          },
+          "item_id": {
+            "format": "uuid",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "release_ready",
+            "title": "Kind",
+            "type": "string"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "created_at",
+          "kind",
+          "publication_id",
+          "class_name",
+          "mission_title",
+          "eligible_count"
+        ],
+        "title": "ReleaseReadyAttentionOut",
+        "type": "object"
+      },
       "ReleasedOut": {
         "properties": {
           "released_to_parents_at": {
@@ -3576,6 +3816,62 @@
           "acted_at"
         ],
         "title": "SafetyActionOut",
+        "type": "object"
+      },
+      "SafetyAttentionOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "item_id": {
+            "format": "uuid",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "safety",
+            "title": "Kind",
+            "type": "string"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "created_at",
+          "kind",
+          "session_id",
+          "publication_id",
+          "student_name",
+          "paused_at"
+        ],
+        "title": "SafetyAttentionOut",
         "type": "object"
       },
       "SectionItemOut": {
@@ -7651,6 +7947,83 @@
           }
         ],
         "summary": "Assignments",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/attention": {
+      "get": {
+        "operationId": "attention_api_v1_teacher_attention_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttentionPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Attention",
         "tags": [
           "teacher"
         ]
