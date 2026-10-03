@@ -44,6 +44,9 @@ from nalar.application.features.administration.queries.list_curriculum_versions 
     ListCurriculumVersionsQuery,
 )
 from nalar.application.features.administration.queries.list_people import ListPeopleQuery
+from nalar.application.features.administration.queries.list_school_curriculum_versions import (
+    ListSchoolCurriculumVersionsQuery,
+)
 from nalar.application.features.administration.queries.list_schools import ListSchoolsQuery
 from nalar.application.features.administration.queries.list_subjects import ListSubjectsQuery
 from nalar.application.features.auth.commands.change_password import (
@@ -531,6 +534,7 @@ class ApplicationProvider(Provider):
         ListPeopleQuery,
         ListSchoolsQuery,
         ListSubjectsQuery,
+        ListSchoolCurriculumVersionsQuery,
         UploadRosterHandler,
         ImportRosterHandler,
         GetImportQuery,

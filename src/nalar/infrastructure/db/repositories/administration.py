@@ -285,12 +285,18 @@ class PgAdministrationRepo:
             "select ss.id as school_subject_id, ss.name, cs.cp_version_id, ss.cp_subject_id,"
             " (select pr.full_name from knowledge_bases kb join profiles pr"
             " on pr.id = kb.owner_teacher_id where kb.school_subject_id = ss.id"
-            " order by kb.created_at desc, kb.id limit 1) as kb_owner_name"
+            " order by kb.created_at desc, kb.id limit 1) as kb_owner_name,"
+            " coalesce((select jsonb_agg(jsonb_build_object('knowledge_base_id',kb.id,"
+            " 'topic_title',kb.topic_title,'owner_teacher_id',kb.owner_teacher_id,"
+            " 'owner_name',pr.full_name,'status',kb.status::text) order by kb.topic_title,kb.id)"
+            " from knowledge_bases kb left join profiles pr on pr.id = kb.owner_teacher_id"
+            " where kb.school_id = ss.school_id and kb.school_subject_id = ss.id), '[]')"
+            " as knowledge_bases"
             " from school_subjects ss left join cp_subjects cs on cs.id = ss.cp_subject_id"
             " where ss.school_id = $1 order by ss.name, ss.id",
             school_id,
         )
-        return [dict(r) for r in rows]
+        return [dict(r) | {"knowledge_bases": json.loads(r["knowledge_bases"])} for r in rows]
 
     async def set_curriculum(
         self, school_id: UUID, subject_id: UUID, version_id: UUID, cp_subject_id: UUID | None
@@ -588,6 +594,17 @@ class PgAdministrationRepo:
                 " from cp_versions v order by v.effective_on desc,v.id"
             )
         ]
+
+    async def published_curriculum_versions(self) -> list[AdminRow]:
+        rows = await self._conn.fetch(
+            "select v.id,v.title as name,v.decree_code,v.effective_on,v.published_at,v.is_current,"
+            " coalesce((select jsonb_agg(jsonb_build_object("
+            " 'id',cs.id,'name',cs.name,'phase',cs.phase)"
+            " order by cs.name,cs.phase,cs.id) from cp_subjects cs where cs.cp_version_id = v.id),"
+            " '[]') as subjects from cp_versions v where v.status = 'published'"
+            " order by v.is_current desc,v.effective_on desc,v.id"
+        )
+        return [dict(r) | {"subjects": json.loads(r["subjects"])} for r in rows]
 
     async def curriculum_version(self, version_id: UUID) -> AdminRow | None:
         versions = await self.curriculum_versions()

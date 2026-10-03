@@ -19,6 +19,7 @@ from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import (
     World,
     add_membership,
+    assign_teacher,
     build_world,
     create_class,
     create_teacher,
@@ -28,6 +29,101 @@ from tests.integration.support.uow import uow_on
 from tests.integration.test_release import settled
 from tests.integration.test_roster import FakeAuthAdmin
 from tests.unit.application.fakes import FakeClock
+
+
+async def test_school_admin_can_choose_published_curriculum_without_platform_access(
+    conn: asyncpg.Connection,
+    world: World,
+) -> None:
+    foreign = await build_world(conn, "Other school")
+    versions = [uuid4(), uuid4(), uuid4()]
+    await conn.executemany(
+        "insert into cp_versions(id,title,decree_code,effective_on,status)"
+        " values($1,$2,$3,'2026-10-01',$4::cp_version_status)",
+        [
+            (version, status, str(version), status)
+            for version, status in zip(versions, ("published", "draft", "superseded"), strict=True)
+        ],
+    )
+    cp_subject = uuid4()
+    await conn.execute(
+        "insert into cp_subjects(id,cp_version_id,name,phase) values($1,$2,'IPA','D')",
+        cp_subject,
+        versions[0],
+    )
+    url = f"/schools/{world.school_id}/curriculum-versions"
+    async with api_client(conn) as api:
+        response = await api.get(url, headers=as_user(world.admin_id))
+        assert response.status_code == 200, response.text
+        choices = response.json()
+        ids = {row["id"] for row in choices}
+        assert str(versions[0]) in ids
+        assert str(versions[1]) not in ids and str(versions[2]) not in ids
+        selected = next(row for row in choices if row["id"] == str(versions[0]))
+        assert selected["subjects"] == [{"id": str(cp_subject), "name": "IPA", "phase": "D"}]
+        assert set(selected) == {
+            "id",
+            "name",
+            "decree_code",
+            "effective_on",
+            "published_at",
+            "is_current",
+            "subjects",
+        }
+        mapped = await api.put(
+            f"/schools/{world.school_id}/subjects/{world.subject_id}/curriculum",
+            json={"cp_version_id": selected["id"], "cp_subject_id": selected["subjects"][0]["id"]},
+            headers=as_user(world.admin_id),
+        )
+        assert mapped.status_code == 204, mapped.text
+        for actor in (world.teacher_id, world.student_id, world.parent_id, foreign.admin_id):
+            assert (await api.get(url, headers=as_user(actor))).status_code == 404
+        assert (
+            await api.get("/platform/curriculum-versions", headers=as_user(world.admin_id))
+        ).status_code == 404
+        await conn.execute("update schools set is_active = false where id = $1", world.school_id)
+        assert (await api.get(url, headers=as_user(world.admin_id))).status_code == 404
+
+
+async def test_school_subjects_expose_only_local_kb_metadata_for_owner_transfer(
+    conn: asyncpg.Connection,
+    world: World,
+) -> None:
+    foreign = await build_world(conn, "Other school")
+    teacher = await create_teacher(conn, world.school_id)
+    await assign_teacher(conn, world.school_id, world.class_id, world.subject_id, teacher)
+    url = f"/schools/{world.school_id}/subjects"
+    async with api_client(conn) as api:
+        response = await api.get(url, headers=as_user(world.admin_id))
+        assert response.status_code == 200, response.text
+        subject = next(
+            row for row in response.json() if row["school_subject_id"] == str(world.subject_id)
+        )
+        [kb] = subject["knowledge_bases"]
+        assert kb["knowledge_base_id"] == str(world.kb_id)
+        assert kb["owner_teacher_id"] == str(world.teacher_id)
+        assert set(kb) == {
+            "knowledge_base_id",
+            "topic_title",
+            "owner_teacher_id",
+            "owner_name",
+            "status",
+        }
+        assert all(
+            k["knowledge_base_id"] != str(foreign.kb_id)
+            for row in response.json()
+            for k in row["knowledge_bases"]
+        )
+        transferred = await api.post(
+            f"/knowledge-bases/{kb['knowledge_base_id']}/owner",
+            json={"teacher_id": str(teacher)},
+            headers=as_user(world.admin_id),
+        )
+        assert transferred.status_code == 204, transferred.text
+        after = (await api.get(url, headers=as_user(world.admin_id))).json()
+        assert after[0]["knowledge_bases"][0]["owner_teacher_id"] == str(teacher)
+        assert (await api.get(url, headers=as_user(foreign.admin_id))).status_code == 404
+        assert (await api.get(url, headers=as_user(world.teacher_id))).status_code == 404
 
 
 class PlatformAuthAdmin(FakeAuthAdmin):

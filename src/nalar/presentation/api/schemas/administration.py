@@ -77,12 +77,21 @@ class ClassOut(BaseModel):
     archived_at: datetime | None
 
 
+class SubjectKnowledgeBaseOut(BaseModel):
+    knowledge_base_id: UUID
+    topic_title: str
+    owner_teacher_id: UUID
+    owner_name: str | None
+    status: str
+
+
 class SubjectOut(BaseModel):
     school_subject_id: UUID
     name: str
     cp_version_id: UUID | None
     cp_subject_id: UUID | None
     kb_owner_name: str | None
+    knowledge_bases: list[SubjectKnowledgeBaseOut]
 
 
 class CurriculumMappingIn(Body):
@@ -96,11 +105,27 @@ class AssignmentIn(Body):
     teacher_id: UUID | None
 
 
-class AssignmentOut(AssignmentIn):
+class SchoolAssignmentOut(AssignmentIn):
     academic_year_id: UUID
     class_name: str
     subject_name: str
     teacher_name: str
+
+
+class CurriculumSubjectChoiceOut(BaseModel):
+    id: UUID
+    name: str
+    phase: str
+
+
+class SchoolCurriculumVersionOut(BaseModel):
+    id: UUID
+    name: str
+    decree_code: str
+    effective_on: date
+    published_at: datetime | None
+    is_current: bool
+    subjects: list[CurriculumSubjectChoiceOut]
 
 
 class KbOwnerIn(Body):

@@ -34,6 +34,9 @@ from nalar.application.features.administration.queries.list_curriculum_versions 
     ListCurriculumVersionsQuery,
 )
 from nalar.application.features.administration.queries.list_people import ListPeopleQuery
+from nalar.application.features.administration.queries.list_school_curriculum_versions import (
+    ListSchoolCurriculumVersionsQuery,
+)
 from nalar.application.features.administration.queries.list_schools import ListSchoolsQuery
 from nalar.application.features.administration.queries.list_subjects import ListSubjectsQuery
 from nalar.application.ports.administration import (
@@ -49,7 +52,6 @@ from nalar.presentation.api.schemas.administration import (
     AcademicYearIn,
     AdminEmailIn,
     AssignmentIn,
-    AssignmentOut,
     ClassIn,
     ClassOut,
     ClassPatchIn,
@@ -63,7 +65,9 @@ from nalar.presentation.api.schemas.administration import (
     PersonEditIn,
     Role,
     SchoolAdminOut,
+    SchoolAssignmentOut,
     SchoolCreatedOut,
+    SchoolCurriculumVersionOut,
     SchoolIn,
     SchoolsPageOut,
     SchoolStatusIn,
@@ -74,6 +78,20 @@ router = APIRouter(tags=["administration"], route_class=DishkaRoute)
 type RequestKey = Annotated[UUID, Header(alias="Idempotency-Key")]
 type PageLimit = Annotated[int, Query(ge=1, le=100)]
 type Search = Annotated[str, Query(max_length=200)]
+
+
+@router.get(
+    "/schools/{school_id}/curriculum-versions", response_model=list[SchoolCurriculumVersionOut]
+)
+async def school_curriculum_versions(
+    school_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[ListSchoolCurriculumVersionsQuery],
+) -> list[SchoolCurriculumVersionOut]:
+    return [
+        SchoolCurriculumVersionOut.model_validate(row)
+        for row in await query.execute(user.id, school_id)
+    ]
 
 
 @router.get("/schools/{school_id}/people", response_model=PeoplePageOut)
@@ -163,15 +181,15 @@ async def set_curriculum(
     return Response(status_code=204)
 
 
-@router.get("/schools/{school_id}/assignments", response_model=list[AssignmentOut])
+@router.get("/schools/{school_id}/assignments", response_model=list[SchoolAssignmentOut])
 async def assignments(
     school_id: UUID,
     user: CurrentUser,
     query: FromDishka[ListAssignmentsQuery],
     academic_year_id: UUID | None = None,
-) -> list[AssignmentOut]:
+) -> list[SchoolAssignmentOut]:
     return [
-        AssignmentOut.model_validate(row)
+        SchoolAssignmentOut.model_validate(row)
         for row in await query.execute(user.id, school_id, academic_year_id)
     ]
 
