@@ -67,6 +67,9 @@ class WindowSessionOut(BaseModel):
 
 
 class MissionCardOut(BaseModel):
+    run_id: UUID
+    attempt_number: int
+    is_granted_attempt: bool
     publication_id: UUID
     session_id: UUID | None
     mission_title: str
@@ -84,6 +87,10 @@ class StudentMissionsOut(BaseModel):
     upcoming: list[MissionCardOut]
     open: list[MissionCardOut]
     completed: list[MissionCardOut]
+
+
+class WindowStartIn(Body):
+    run_id: UUID | None = None
 
 
 class AnswerIn(Body):

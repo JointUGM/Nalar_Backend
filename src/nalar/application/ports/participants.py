@@ -19,6 +19,10 @@ class JoinTarget:
     anchor_problem: str
     max_duration_minutes: int
     live_warmup: Mapping[str, Any] | None
+    kind: str = "primary"
+    grant_student_id: UUID | None = None
+    opens_at: datetime | None = None
+    closes_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -41,8 +45,10 @@ class ParticipantsRepo(Protocol):
 
     async def run_target(self, run_id: UUID) -> JoinTarget | None: ...
 
-    async def window_target(self, publication_id: UUID) -> JoinTarget | None:
-        """The publication's primary run, locked FOR SHARE."""
+    async def window_target(
+        self, publication_id: UUID, run_id: UUID | None = None, lock: bool = False
+    ) -> JoinTarget | None:
+        """The requested run, optionally locked after the publication admission lock."""
         ...
 
     async def get(self, run_id: UUID, student_id: UUID) -> Participant | None: ...

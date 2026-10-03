@@ -101,6 +101,7 @@ class VersionSummaryOut(BaseModel):
 
 
 class MissionSummaryOut(BaseModel):
+    created_by_name: str | None
     id: UUID
     title: str
     knowledge_base_id: UUID
@@ -112,3 +113,12 @@ class MissionSummaryOut(BaseModel):
 class MissionPageOut(BaseModel):
     items: list[MissionSummaryOut]
     next_cursor: str | None
+
+
+class VersionHistoryOut(BaseModel):
+    version_number: int
+    status: str
+    created_at: datetime
+    created_by_name: str | None
+    reviewed_at: datetime | None
+    locked_at: datetime | None

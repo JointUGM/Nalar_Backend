@@ -165,9 +165,16 @@ async def test_window_session_is_created_once(conn: asyncpg.Connection, world: W
     publication_id = await publish(
         conn, world.school_id, version_id, world.class_id, world.teacher_id
     )
-    await create_run(conn, world.school_id, publication_id, mode="window", status="open")
+    run_id = await create_run(conn, world.school_id, publication_id, mode="window", status="open")
+    clock = FakeClock()
+    await conn.execute(
+        "update publication_runs set opens_at = $2, closes_at = $3 where id = $1",
+        run_id,
+        clock.now() - timedelta(minutes=1),
+        clock.now() + timedelta(hours=1),
+    )
     student = await new_student(conn, world)
-    async with api_client(conn) as api:
+    async with api_client(conn, clock=clock) as api:
         url = f"/student/publications/{publication_id}/window-session"
         first = await api.post(url, headers=as_user(student))
         second = await api.post(url, headers=as_user(student))
@@ -191,6 +198,9 @@ async def test_student_missions_show_the_attempt_status(
     assert card["session_id"] == str(world.session_id)
     assert set(card) == {
         "publication_id",
+        "run_id",
+        "attempt_number",
+        "is_granted_attempt",
         "session_id",
         "mission_title",
         "subject_name",

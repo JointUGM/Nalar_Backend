@@ -7,6 +7,52 @@ from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from nalar.presentation.api.schemas.common import Body
 
 
+class AttemptGrantIn(Body):
+    student_id: UUID
+    reason: str = Field(min_length=1, max_length=2000)
+    opens_at: AwareDatetime | None = None
+    closes_at: AwareDatetime | None = None
+
+
+class AttemptGrantOut(BaseModel):
+    grant_id: UUID
+    run_id: UUID
+
+
+class DashboardWeekOut(BaseModel):
+    week_start: datetime
+    week_end: datetime
+    sessions_completed: int
+    students: int
+    active_misconceptions: int
+    concepts_with_misconceptions: int
+    changed_mind_rate: float | None
+    open_flags: int
+
+
+class DashboardTrendOut(BaseModel):
+    week_start: datetime
+    mastered: int
+    developing: int
+    misconception: int
+
+
+class ChangedMisconceptionOut(BaseModel):
+    misconception_id: UUID
+    statement: str
+    held: int
+    resolved: int
+
+
+class TeacherDashboardOut(BaseModel):
+    this_week: DashboardWeekOut
+    last_week: DashboardWeekOut
+    trend: list[DashboardTrendOut]
+    top_changed: list[ChangedMisconceptionOut]
+    as_of: datetime
+    timezone: str
+
+
 class StudentConceptCountsOut(BaseModel):
     mastered: int
     developing: int

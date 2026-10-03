@@ -39,19 +39,23 @@ _STUDENT_MISSIONS = """
     select p.id as publication_id, mi.title as mission_title, ss.name as subject_name,
            r.mode::text as mode, r.opens_at, r.closes_at, r.status::text as run_status,
            latest.status::text as latest_status, latest.id as session_id,
-           mv.max_duration_minutes
+           mv.max_duration_minutes, r.id as run_id, (r.kind = 'grant') as is_granted_attempt,
+           coalesce(latest.attempt_number, (select coalesce(max(x.attempt_number), 0) + 1
+               from sessions x where x.publication_id = p.id and x.student_id = $1))::int
+               as attempt_number
       from class_enrollments ce
       join school_memberships m on m.school_id = ce.school_id and m.user_id = ce.student_id
        and m.role = 'student' and m.status = 'active'
       join publications p on p.class_id = ce.class_id and p.cancelled_at is null
-      join publication_runs r on r.publication_id = p.id and r.kind = 'primary'
+      join publication_runs r on r.publication_id = p.id
+       and (r.kind = 'primary' or (r.kind = 'grant' and r.grant_student_id = $1))
       join mission_versions mv on mv.id = p.mission_version_id
       join missions mi on mi.id = mv.mission_id
       join knowledge_bases kb on kb.id = mi.knowledge_base_id
       join school_subjects ss on ss.id = kb.school_subject_id
       left join lateral (
-          select s.id, s.status from sessions s
-           where s.publication_id = p.id and s.student_id = $1
+          select s.id, s.status, s.attempt_number from sessions s
+           where s.run_id = r.id and s.student_id = $1
            order by s.attempt_number desc limit 1
       ) latest on true
      where ce.student_id = $1 and ce.status = 'active'
@@ -95,6 +99,15 @@ def _mission_row(row: asyncpg.Record) -> StudentMissionRow:
 
 
 class PgSessionsRepo:
+    async def next_attempt_number(self, publication_id: UUID, student_id: UUID) -> int:
+        number: int = await self._conn.fetchval(
+            "select coalesce(max(attempt_number), 0) + 1 from sessions"
+            " where publication_id = $1 and student_id = $2",
+            publication_id,
+            student_id,
+        )
+        return number
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 

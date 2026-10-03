@@ -211,7 +211,32 @@ class AttentionCounts:
     total: int
 
 
+@dataclass(frozen=True)
+class DashboardBucket:
+    sessions_completed: int
+    students: int
+    active_misconceptions: int
+    concepts_with_misconceptions: int
+    changed_mind_rate: float | None
+    open_flags: int
+    mastered: int
+    developing: int
+    misconception: int
+
+
+@dataclass(frozen=True)
+class ChangedMisconception:
+    misconception_id: UUID
+    statement: str
+    held: int
+    resolved: int
+
+
 class ResultsRepo(Protocol):
+    async def teacher_dashboard(
+        self, actor_id: UUID, school_id: UUID, bounds: list[tuple[datetime, datetime]]
+    ) -> tuple[list[DashboardBucket], list[ChangedMisconception]]: ...
+
     async def class_students(
         self, class_id: UUID, publication_id: UUID | None
     ) -> list[ClassStudent] | None:

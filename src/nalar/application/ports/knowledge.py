@@ -53,6 +53,7 @@ class KbSummary:
     pending_count: int
     approved_concept_count: int
     created_at: datetime
+    owner_name: str | None = None
 
 
 @dataclass(frozen=True)

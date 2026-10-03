@@ -7,9 +7,11 @@ from nalar.application.ports.results import (
     AttentionCounts,
     AttentionCursor,
     AttentionItem,
+    ChangedMisconception,
     ClassMapInput,
     ClassMapStudent,
     ClassStudent,
+    DashboardBucket,
     FlagAttention,
     KbReviewAttention,
     Monitor,
@@ -270,8 +272,107 @@ _CLASS_STUDENTS = """
      order by pr.full_name, ce.student_id
 """
 
+_DASHBOARD = """
+    with scoped_publications as materialized (
+        select p.id from publications p
+          join classes c on c.id = p.class_id and c.archived_at is null
+          join mission_versions mv on mv.id = p.mission_version_id
+          join missions mi on mi.id = mv.mission_id
+          join knowledge_bases kb on kb.id = mi.knowledge_base_id
+         where p.school_id = $2 and exists (
+             select 1 from teaching_assignments ta where ta.teacher_id = $1
+               and ta.school_id = $2 and ta.class_id = p.class_id
+               and ta.school_subject_id = kb.school_subject_id)
+    ), buckets as (
+        select i, ($3::timestamptz[])[i] as starts, ($4::timestamptz[])[i] as ends
+          from generate_subscripts($3::timestamptz[], 1) i
+    ), scoped_sessions as materialized (
+        select s.* from sessions s join scoped_publications p on p.id = s.publication_id
+    ), latest as (
+        select distinct on (b.i, s.publication_id, s.student_id)
+               b.i, s.id, s.status
+          from buckets b join scoped_sessions s
+            on coalesce(s.ended_at, s.started_at) >= b.starts
+           and coalesce(s.ended_at, s.started_at) < b.ends
+         order by b.i, s.publication_id, s.student_id, s.attempt_number desc, s.id desc
+    ), observations as materialized (
+        select l.i, r.* from latest l
+          join session_evaluations e on e.session_id = l.id and e.status = 'completed'
+          join session_concept_results r on r.session_id = l.id
+         where l.status = 'completed'
+    ), outcomes as (
+        select i,
+               count(*) filter (where outcome = 'mastered')::int as mastered,
+               count(*) filter (where outcome = 'developing')::int as developing,
+               count(*) filter (where outcome = 'misconception')::int as misconception,
+               count(distinct misconception_id) filter (
+                   where outcome = 'misconception' and not resolved_in_session)::int
+                   as active_misconceptions,
+               count(distinct concept_id) filter (
+                   where outcome = 'misconception' and not resolved_in_session)::int
+                   as concepts_with_misconceptions,
+               count(*) filter (where initial_misconception_id is not null
+                                    and resolved_in_session)::float8 /
+                   nullif(count(*) filter (where initial_misconception_id is not null), 0)
+                   as changed_mind_rate
+          from observations group by i
+    ), completed as (
+        select b.i, count(*)::int as sessions_completed,
+               count(distinct s.student_id)::int as students
+          from buckets b join scoped_sessions s
+            on s.ended_at >= b.starts and s.ended_at < b.ends and s.status = 'completed'
+         group by b.i
+    ), flags as (
+        select b.i, count(*)::int as open_flags
+          from buckets b join authenticity_flags f
+            on f.created_at >= b.starts and f.created_at < b.ends and f.status = 'open'
+          join scoped_sessions s on s.id = f.session_id group by b.i
+    ), changed as (
+        select m.id as misconception_id, m.statement, count(*)::int as held,
+               count(*) filter (where o.resolved_in_session)::int as resolved
+          from observations o join misconceptions m on m.id = o.initial_misconception_id
+         where o.i = 4 group by m.id, m.statement
+         order by resolved desc, held desc, m.id limit 5
+    )
+    select b.i, coalesce(c.sessions_completed, 0) as sessions_completed,
+           coalesce(c.students, 0) as students,
+           coalesce(o.active_misconceptions, 0) as active_misconceptions,
+           coalesce(o.concepts_with_misconceptions, 0) as concepts_with_misconceptions,
+           o.changed_mind_rate, coalesce(f.open_flags, 0) as open_flags,
+           coalesce(o.mastered, 0) as mastered, coalesce(o.developing, 0) as developing,
+           coalesce(o.misconception, 0) as misconception,
+           coalesce((select jsonb_agg(to_jsonb(changed) order by resolved desc, held desc,
+                                     misconception_id) from changed), '[]') as top_changed
+      from buckets b left join outcomes o on o.i = b.i
+      left join completed c on c.i = b.i left join flags f on f.i = b.i order by b.i
+"""
+
 
 class PgResultsRepo:
+    async def teacher_dashboard(
+        self, actor_id: UUID, school_id: UUID, bounds: list[tuple[datetime, datetime]]
+    ) -> tuple[list[DashboardBucket], list[ChangedMisconception]]:
+        rows = await self._conn.fetch(
+            _DASHBOARD,
+            actor_id,
+            school_id,
+            [start for start, _ in bounds],
+            [end for _, end in bounds],
+        )
+        buckets = []
+        for row in rows:
+            data = dict(row)
+            data.pop("i")
+            data.pop("top_changed")
+            buckets.append(DashboardBucket(**data))
+        changed = [
+            ChangedMisconception(
+                UUID(c["misconception_id"]), c["statement"], c["held"], c["resolved"]
+            )
+            for c in json.loads(rows[0]["top_changed"])
+        ]
+        return buckets, changed
+
     async def class_students(
         self, class_id: UUID, publication_id: UUID | None
     ) -> list[ClassStudent] | None:

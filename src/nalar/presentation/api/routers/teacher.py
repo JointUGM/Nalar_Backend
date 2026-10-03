@@ -1,9 +1,14 @@
 from dataclasses import asdict
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
+from nalar.application.features.publications.commands.grant_attempt import (
+    GrantAttempt,
+    GrantAttemptHandler,
+)
 from nalar.application.features.publications.commands.publish import Publish, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
@@ -20,12 +25,15 @@ from nalar.application.features.results.queries.teacher_attention import (
     TeacherAttention,
     TeacherAttentionQuery,
 )
+from nalar.application.features.results.queries.teacher_dashboard import TeacherDashboardQuery
 from nalar.application.ports.publications import NewRun
 from nalar.domain.labels import RunMode
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.teacher import (
     AssignmentOut,
     AssignmentsOut,
+    AttemptGrantIn,
+    AttemptGrantOut,
     AttentionPageOut,
     ClassStudentsOut,
     CountsOut,
@@ -34,9 +42,44 @@ from nalar.presentation.api.schemas.teacher import (
     PublishIn,
     PublishOut,
     RunSummaryOut,
+    TeacherDashboardOut,
 )
 
 router = APIRouter(tags=["teacher"], route_class=DishkaRoute)
+
+
+@router.post(
+    "/publications/{publication_id}/attempt-grants", status_code=201, response_model=AttemptGrantOut
+)
+async def grant_attempt(
+    publication_id: UUID,
+    body: AttemptGrantIn,
+    user: CurrentUser,
+    handler: FromDishka[GrantAttemptHandler],
+    idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> AttemptGrantOut:
+    return AttemptGrantOut(
+        **asdict(
+            await handler.execute(
+                GrantAttempt(
+                    user.id,
+                    publication_id,
+                    body.student_id,
+                    body.reason,
+                    idempotency_key,
+                    body.opens_at,
+                    body.closes_at,
+                )
+            )
+        )
+    )
+
+
+@router.get("/teacher/dashboard", response_model=TeacherDashboardOut)
+async def dashboard(
+    user: CurrentUser, query: FromDishka[TeacherDashboardQuery], school_id: UUID
+) -> TeacherDashboardOut:
+    return TeacherDashboardOut.model_validate(asdict(await query.execute(user.id, school_id)))
 
 
 @router.get("/teacher/classes/{class_id}/students", response_model=ClassStudentsOut)

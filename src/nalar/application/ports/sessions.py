@@ -71,6 +71,9 @@ class StudentMissionRow:
     latest_status: SessionStatus | None
     max_duration_minutes: int
     session_id: UUID | None = None
+    run_id: UUID | None = None
+    attempt_number: int = 1
+    is_granted_attempt: bool = False
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,10 @@ class StudentReflection:
 
 
 class SessionsRepo(Protocol):
+    async def next_attempt_number(self, publication_id: UUID, student_id: UUID) -> int:
+        """Allocate while the caller holds the publication admission lock."""
+        ...
+
     async def student_reflections(
         self, student_id: UUID, limit: int, after: tuple[datetime, UUID] | None
     ) -> list[StudentReflection]:
@@ -112,7 +119,7 @@ class SessionsRepo(Protocol):
     async def get_ref(self, session_id: UUID) -> SessionRef | None: ...
 
     async def student_mission_rows(self, student_id: UUID) -> list[StudentMissionRow]:
-        """Primary runs of publications in the student's active classes, newest first."""
+        """Primary and personally granted runs in the student's active classes, newest first."""
         ...
 
     async def touch(self, session_id: UUID, now: datetime) -> None: ...

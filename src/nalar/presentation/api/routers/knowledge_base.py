@@ -107,6 +107,7 @@ async def list_kbs(
                 topic_title=kb.topic_title,
                 school_subject_id=kb.school_subject_id,
                 owner_teacher_id=kb.owner_teacher_id,
+                owner_name=kb.owner_name,
                 material_count=kb.material_count,
                 built_section_count=kb.built_section_count,
                 pending_count=kb.pending_count,

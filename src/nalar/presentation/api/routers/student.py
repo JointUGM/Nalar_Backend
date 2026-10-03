@@ -55,6 +55,7 @@ from nalar.presentation.api.schemas.student import (
     WarmupOut,
     WarmupSavedOut,
     WindowSessionOut,
+    WindowStartIn,
 )
 
 router = APIRouter(prefix="/student", tags=["student"], route_class=DishkaRoute)
@@ -70,6 +71,9 @@ async def missions(
             MissionCardOut(
                 publication_id=card.publication_id,
                 session_id=card.session_id,
+                run_id=card.run_id,
+                attempt_number=card.attempt_number,
+                is_granted_attempt=card.is_granted_attempt,
                 mission_title=card.mission_title,
                 subject_name=card.subject_name,
                 mode=card.mode,
@@ -149,9 +153,14 @@ async def warmup_choice(
     response_model=WindowSessionOut,
 )
 async def window_session(
-    publication_id: UUID, user: CurrentUser, handler: FromDishka[StartWindowSessionHandler]
+    publication_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[StartWindowSessionHandler],
+    body: WindowStartIn | None = None,
 ) -> WindowSessionOut:
-    session = await handler.execute(StartWindowSession(user.id, publication_id))
+    session = await handler.execute(
+        StartWindowSession(user.id, publication_id, body.run_id if body else None)
+    )
     return WindowSessionOut(
         session_id=session.session_id,
         status=session.status,

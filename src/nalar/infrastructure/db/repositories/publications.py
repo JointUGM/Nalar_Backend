@@ -4,11 +4,13 @@ from uuid import UUID
 from nalar.application.ports.publications import (
     Assignment,
     ClassRef,
+    GrantPublication,
     NewRun,
     PublicationCounts,
     PublicationSummary,
     Published,
     RunSummary,
+    StoredGrant,
     VersionForPublish,
 )
 from nalar.domain.labels import RunMode, RunStatus
@@ -24,6 +26,79 @@ _TEACHES_PUBLICATION_CLASS = """
 
 
 class PgPublicationsRepo:
+    async def lock_for_grant(self, publication_id: UUID) -> GrantPublication | None:
+        row = await self._conn.fetchrow(
+            "select school_id, class_id, cancelled_at, released_to_parents_at"
+            " from publications where id = $1 for update",
+            publication_id,
+        )
+        return GrantPublication(**dict(row)) if row else None
+
+    async def grant_by_key(
+        self, publication_id: UUID, actor_id: UUID, key: UUID
+    ) -> StoredGrant | None:
+        row = await self._conn.fetchrow(
+            "select id as run_id, grant_request_digest as digest from publication_runs"
+            " where publication_id = $1 and granted_by = $2 and grant_request_key = $3",
+            publication_id,
+            actor_id,
+            key,
+        )
+        return StoredGrant(**dict(row)) if row else None
+
+    async def has_outstanding_grant(
+        self, publication_id: UUID, student_id: UUID, now: datetime
+    ) -> bool:
+        await self._conn.execute(
+            "update publication_runs set status = 'closed', closed_at = closes_at"
+            " where publication_id = $1 and grant_student_id = $2 and kind = 'grant'"
+            " and status in ('scheduled', 'open') and closes_at <= $3",
+            publication_id,
+            student_id,
+            now,
+        )
+        return bool(
+            await self._conn.fetchval(
+                "select exists(select 1 from publication_runs where publication_id = $1"
+                " and grant_student_id = $2 and kind = 'grant' and status <> 'closed')",
+                publication_id,
+                student_id,
+            )
+        )
+
+    async def create_grant(
+        self,
+        publication_id: UUID,
+        school_id: UUID,
+        student_id: UUID,
+        actor_id: UUID,
+        key: UUID,
+        digest: str,
+        reason: str,
+        opens_at: datetime,
+        closes_at: datetime,
+        now: datetime,
+    ) -> UUID:
+        run_id: UUID = await self._conn.fetchval(
+            "insert into publication_runs (school_id, publication_id, kind, mode, status,"
+            " grant_student_id, granted_by, grant_reason, grant_request_key, grant_request_digest,"
+            " opens_at, closes_at) values ($1, $2, 'grant', 'window',"
+            " case when $8::timestamptz <= $10::timestamptz"
+            " then 'open'::run_status else 'scheduled'::run_status end,"
+            " $3, $4, $5, $6, $7, $8, $9) returning id",
+            school_id,
+            publication_id,
+            student_id,
+            actor_id,
+            reason,
+            key,
+            digest,
+            opens_at,
+            closes_at,
+            now,
+        )
+        return run_id
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 
