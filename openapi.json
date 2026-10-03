@@ -219,11 +219,52 @@
         "title": "AssignmentIn",
         "type": "object"
       },
+      "AssignmentOut": {
+        "properties": {
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "grade_level": {
+            "title": "Grade Level",
+            "type": "integer"
+          },
+          "school_id": {
+            "format": "uuid",
+            "title": "School Id",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_id",
+          "class_id",
+          "class_name",
+          "grade_level",
+          "school_subject_id",
+          "subject_name"
+        ],
+        "title": "AssignmentOut",
+        "type": "object"
+      },
       "AssignmentsOut": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/nalar__presentation__api__schemas__teacher__AssignmentOut"
+              "$ref": "#/components/schemas/AssignmentOut"
             },
             "title": "Items",
             "type": "array"
@@ -1238,6 +1279,30 @@
           "cp_version_id"
         ],
         "title": "CurriculumMappingIn",
+        "type": "object"
+      },
+      "CurriculumSubjectChoiceOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phase"
+        ],
+        "title": "CurriculumSubjectChoiceOut",
         "type": "object"
       },
       "CurriculumSubjectIn": {
@@ -5135,6 +5200,61 @@
         "title": "SchoolAdminOut",
         "type": "object"
       },
+      "SchoolAssignmentOut": {
+        "additionalProperties": false,
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "teacher_name": {
+            "title": "Teacher Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "class_id",
+          "school_subject_id",
+          "teacher_id",
+          "academic_year_id",
+          "class_name",
+          "subject_name",
+          "teacher_name"
+        ],
+        "title": "SchoolAssignmentOut",
+        "type": "object"
+      },
       "SchoolCreatedOut": {
         "properties": {
           "pending_activation": {
@@ -5152,6 +5272,62 @@
           "pending_activation"
         ],
         "title": "SchoolCreatedOut",
+        "type": "object"
+      },
+      "SchoolCurriculumVersionOut": {
+        "properties": {
+          "decree_code": {
+            "title": "Decree Code",
+            "type": "string"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumSubjectChoiceOut"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "decree_code",
+          "effective_on",
+          "published_at",
+          "is_current",
+          "subjects"
+        ],
+        "title": "SchoolCurriculumVersionOut",
         "type": "object"
       },
       "SchoolIn": {
@@ -5713,6 +5889,48 @@
         "title": "StudentReflectionsOut",
         "type": "object"
       },
+      "SubjectKnowledgeBaseOut": {
+        "properties": {
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
+          "owner_teacher_id": {
+            "format": "uuid",
+            "title": "Owner Teacher Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "knowledge_base_id",
+          "topic_title",
+          "owner_teacher_id",
+          "owner_name",
+          "status"
+        ],
+        "title": "SubjectKnowledgeBaseOut",
+        "type": "object"
+      },
       "SubjectOut": {
         "properties": {
           "cp_subject_id": {
@@ -5750,6 +5968,13 @@
             ],
             "title": "Kb Owner Name"
           },
+          "knowledge_bases": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectKnowledgeBaseOut"
+            },
+            "title": "Knowledge Bases",
+            "type": "array"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -5765,7 +5990,8 @@
           "name",
           "cp_version_id",
           "cp_subject_id",
-          "kb_owner_name"
+          "kb_owner_name",
+          "knowledge_bases"
         ],
         "title": "SubjectOut",
         "type": "object"
@@ -6492,61 +6718,6 @@
         "title": "WindowStartIn",
         "type": "object"
       },
-      "nalar__presentation__api__schemas__administration__AssignmentOut": {
-        "additionalProperties": false,
-        "properties": {
-          "academic_year_id": {
-            "format": "uuid",
-            "title": "Academic Year Id",
-            "type": "string"
-          },
-          "class_id": {
-            "format": "uuid",
-            "title": "Class Id",
-            "type": "string"
-          },
-          "class_name": {
-            "title": "Class Name",
-            "type": "string"
-          },
-          "school_subject_id": {
-            "format": "uuid",
-            "title": "School Subject Id",
-            "type": "string"
-          },
-          "subject_name": {
-            "title": "Subject Name",
-            "type": "string"
-          },
-          "teacher_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Teacher Id"
-          },
-          "teacher_name": {
-            "title": "Teacher Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "class_id",
-          "school_subject_id",
-          "teacher_id",
-          "academic_year_id",
-          "class_name",
-          "subject_name",
-          "teacher_name"
-        ],
-        "title": "AssignmentOut",
-        "type": "object"
-      },
       "nalar__presentation__api__schemas__missions__WarmupChoiceIn": {
         "additionalProperties": false,
         "properties": {
@@ -6584,47 +6755,6 @@
           "choice_id"
         ],
         "title": "WarmupChoiceIn",
-        "type": "object"
-      },
-      "nalar__presentation__api__schemas__teacher__AssignmentOut": {
-        "properties": {
-          "class_id": {
-            "format": "uuid",
-            "title": "Class Id",
-            "type": "string"
-          },
-          "class_name": {
-            "title": "Class Name",
-            "type": "string"
-          },
-          "grade_level": {
-            "title": "Grade Level",
-            "type": "integer"
-          },
-          "school_id": {
-            "format": "uuid",
-            "title": "School Id",
-            "type": "string"
-          },
-          "school_subject_id": {
-            "format": "uuid",
-            "title": "School Subject Id",
-            "type": "string"
-          },
-          "subject_name": {
-            "title": "Subject Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "school_id",
-          "class_id",
-          "class_name",
-          "grade_level",
-          "school_subject_id",
-          "subject_name"
-        ],
-        "title": "AssignmentOut",
         "type": "object"
       }
     },
@@ -9352,7 +9482,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/nalar__presentation__api__schemas__administration__AssignmentOut"
+                    "$ref": "#/components/schemas/SchoolAssignmentOut"
                   },
                   "title": "Response Assignments Api V1 Schools  School Id  Assignments Get",
                   "type": "array"
@@ -9620,6 +9750,58 @@
           }
         ],
         "summary": "Edit Class",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/curriculum-versions": {
+      "get": {
+        "operationId": "school_curriculum_versions_api_v1_schools__school_id__curriculum_versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SchoolCurriculumVersionOut"
+                  },
+                  "title": "Response School Curriculum Versions Api V1 Schools  School Id  Curriculum Versions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Curriculum Versions",
         "tags": [
           "administration"
         ]
