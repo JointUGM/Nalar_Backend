@@ -27,6 +27,8 @@ class InvitationsQueuedOut(BaseModel):
 
 class InvitationStatusOut(BaseModel):
     user_id: UUID
+    full_name: str
+    role: str
     notification_id: UUID | None
     state: InvitationState
     reason: str | None

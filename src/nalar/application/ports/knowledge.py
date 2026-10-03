@@ -65,6 +65,12 @@ class MaterialView:
 
 
 @dataclass(frozen=True)
+class PageSource:
+    page_start: int
+    page_end: int
+
+
+@dataclass(frozen=True)
 class ConceptView:
     id: UUID
     name: str
@@ -72,6 +78,7 @@ class ConceptView:
     review_status: str
     cp_learning_outcome_id: UUID | None
     source_chunk_ids: tuple[UUID, ...]
+    sources: tuple[PageSource, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -84,6 +91,7 @@ class MisconceptionView:
     counter_examples: tuple[str, ...]
     review_status: str
     source_chunk_ids: tuple[UUID, ...]
+    sources: tuple[PageSource, ...] = ()
 
 
 @dataclass(frozen=True)

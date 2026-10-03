@@ -70,9 +70,24 @@ class StudentMissionRow:
     run_status: RunStatus
     latest_status: SessionStatus | None
     max_duration_minutes: int
+    session_id: UUID | None = None
+
+
+@dataclass(frozen=True)
+class StudentReflection:
+    session_id: UUID
+    mission_title: str
+    completed_at: datetime
+    content: str
 
 
 class SessionsRepo(Protocol):
+    async def student_reflections(
+        self, student_id: UUID, limit: int, after: tuple[datetime, UUID] | None
+    ) -> list[StudentReflection]:
+        """Stored terminal reflections scoped to the caller's active student memberships."""
+        ...
+
     async def create_with_anchor(
         self,
         *,

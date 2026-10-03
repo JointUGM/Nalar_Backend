@@ -54,6 +54,8 @@ class InvitationStatus:
     created_at: datetime | None
     sent_at: datetime | None
     expires_at: datetime | None
+    full_name: str
+    role: str
 
 
 @dataclass(frozen=True)
@@ -121,7 +123,12 @@ class ActivationsRepo(Protocol):
     ) -> InvitationAdmission: ...
 
     async def list_invitations(
-        self, school_id: UUID, now: datetime, cursor: UUID | None, limit: int
+        self,
+        school_id: UUID,
+        now: datetime,
+        cursor: UUID | None,
+        limit: int,
+        state: InvitationState | None = None,
     ) -> InvitationPage: ...
 
     async def get_invitation(self, notification_id: UUID) -> PendingInvitation | None: ...

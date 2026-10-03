@@ -11,10 +11,23 @@ from nalar.application.features.roster.commands.upload_roster import (
     UploadRosterHandler,
 )
 from nalar.application.features.roster.queries.get_import import GetImportQuery
+from nalar.application.features.roster.queries.list_academic_years import ListAcademicYearsQuery
 from nalar.presentation.api.deps import CurrentUser
-from nalar.presentation.api.schemas.admin import RosterImportOut, RosterQueuedOut, RowErrorOut
+from nalar.presentation.api.schemas.admin import (
+    AcademicYearOut,
+    RosterImportOut,
+    RosterQueuedOut,
+    RowErrorOut,
+)
 
 router = APIRouter(tags=["admin"], route_class=DishkaRoute)
+
+
+@router.get("/schools/{school_id}/academic-years", response_model=list[AcademicYearOut])
+async def academic_years(
+    school_id: UUID, user: CurrentUser, query: FromDishka[ListAcademicYearsQuery]
+) -> list[AcademicYearOut]:
+    return [AcademicYearOut(**asdict(year)) for year in await query.execute(user.id, school_id)]
 
 
 @router.post("/schools/{school_id}/roster-imports", status_code=202, response_model=RosterQueuedOut)

@@ -28,6 +28,7 @@ from nalar.application.ports.knowledge import (
     MaterialView,
     MisconceptionView,
     NewMaterial,
+    PageSource,
     ReviewOutcome,
     SectionForBuild,
     SectionView,
@@ -65,7 +66,29 @@ _KB_PAGE = """
 """
 
 
+def _pages(chunk_ids: Sequence[UUID], pages: dict[UUID, PageSource]) -> tuple[PageSource, ...]:
+    return tuple(
+        sorted(
+            {pages[c] for c in chunk_ids if c in pages}, key=lambda p: (p.page_start, p.page_end)
+        )
+    )
+
+
 class PgKnowledgeRepo:
+    async def _source_pages(
+        self, school_id: UUID, kb_id: UUID, chunk_ids: list[UUID]
+    ) -> dict[UUID, PageSource]:
+        if not chunk_ids:
+            return {}
+        rows = await self._conn.fetch(
+            "select chunk_id, page_start, page_end from get_kb_chunks($1, $2, $3)"
+            " where page_start is not null and page_end is not null",
+            school_id,
+            kb_id,
+            chunk_ids,
+        )
+        return {row["chunk_id"]: PageSource(row["page_start"], row["page_end"]) for row in rows}
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 
@@ -255,7 +278,9 @@ class PgKnowledgeRepo:
 
     async def kb_detail(self, kb_id: UUID, approved_only: bool) -> KbDetail | None:
         head = await self._conn.fetchrow(
-            "select id, topic_title, owner_teacher_id from knowledge_bases where id = $1", kb_id
+            "select id, school_id, topic_title, owner_teacher_id from knowledge_bases"
+            " where id = $1",
+            kb_id,
         )
         if head is None:
             return None
@@ -284,6 +309,17 @@ class PgKnowledgeRepo:
             kb_id,
         )
         shown = {c["id"] for c in concepts}
+        source_pages = await self._source_pages(
+            head["school_id"],
+            kb_id,
+            list(
+                {
+                    chunk_id
+                    for item in (*concepts, *misconceptions)
+                    for chunk_id in item["source_chunk_ids"]
+                }
+            ),
+        )
         return KbDetail(
             id=head["id"],
             topic_title=head["topic_title"],
@@ -306,6 +342,7 @@ class PgKnowledgeRepo:
                     c["review_status"],
                     c["cp_learning_outcome_id"],
                     tuple(c["source_chunk_ids"]),
+                    _pages(c["source_chunk_ids"], source_pages),
                 )
                 for c in concepts
             ),
@@ -324,6 +361,7 @@ class PgKnowledgeRepo:
                     tuple(x["counter_examples"]),
                     x["review_status"],
                     tuple(x["source_chunk_ids"]),
+                    _pages(x["source_chunk_ids"], source_pages),
                 )
                 for x in misconceptions
             ),
@@ -755,8 +793,16 @@ class PgKnowledgeRepo:
     async def concept_view(self, concept_id: UUID) -> ConceptView | None:
         c = await self._conn.fetchrow(
             "select id, name, description, review_status::text as review_status,"
-            " cp_learning_outcome_id, source_chunk_ids from concepts where id = $1",
+            " cp_learning_outcome_id, source_chunk_ids, school_id, knowledge_base_id"
+            " from concepts where id = $1",
             concept_id,
+        )
+        pages = (
+            await self._source_pages(
+                c["school_id"], c["knowledge_base_id"], list(c["source_chunk_ids"])
+            )
+            if c
+            else {}
         )
         return (
             ConceptView(
@@ -766,6 +812,7 @@ class PgKnowledgeRepo:
                 c["review_status"],
                 c["cp_learning_outcome_id"],
                 tuple(c["source_chunk_ids"]),
+                _pages(c["source_chunk_ids"], pages),
             )
             if c
             else None
@@ -774,9 +821,17 @@ class PgKnowledgeRepo:
     async def misconception_view(self, misconception_id: UUID) -> MisconceptionView | None:
         x = await self._conn.fetchrow(
             "select id, concept_id, statement, correct_understanding, detection_cues,"
-            " counter_examples, review_status::text as review_status, source_chunk_ids"
+            " counter_examples, review_status::text as review_status, source_chunk_ids,"
+            " school_id, knowledge_base_id"
             " from misconceptions where id = $1",
             misconception_id,
+        )
+        pages = (
+            await self._source_pages(
+                x["school_id"], x["knowledge_base_id"], list(x["source_chunk_ids"])
+            )
+            if x
+            else {}
         )
         return (
             MisconceptionView(
@@ -788,6 +843,7 @@ class PgKnowledgeRepo:
                 tuple(x["counter_examples"]),
                 x["review_status"],
                 tuple(x["source_chunk_ids"]),
+                _pages(x["source_chunk_ids"], pages),
             )
             if x
             else None

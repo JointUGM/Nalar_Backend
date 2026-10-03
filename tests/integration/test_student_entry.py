@@ -188,8 +188,10 @@ async def test_student_missions_show_the_attempt_status(
     [card] = body["upcoming"] + body["open"] + body["completed"]
     assert card["publication_id"] == str(world.publication_id)
     assert card["attempt_status"] == "in_progress"
+    assert card["session_id"] == str(world.session_id)
     assert set(card) == {
         "publication_id",
+        "session_id",
         "mission_title",
         "subject_name",
         "mode",

@@ -24,6 +24,7 @@ class MonitorStudent:
     deadline_at: datetime | None
     open_flag_count: int
     safety_paused: bool
+    session_id: UUID | None = None
 
 
 @dataclass(frozen=True)
