@@ -11,7 +11,8 @@ class PgIdentityRepo:
     async def me(self, user_id: UUID) -> Me | None:
         profile = await self._conn.fetchrow(
             "select p.full_name, p.is_platform_admin,"
-            " exists (select 1 from parent_student_links l where l.parent_id = p.id) as is_parent"
+            " exists(select 1 from parent_student_links l join schools sc on sc.id = l.school_id"
+            " and sc.is_active where l.parent_id = p.id and l.deactivated_at is null) as is_parent"
             " from profiles p where p.id = $1",
             user_id,
         )

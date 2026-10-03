@@ -2,6 +2,7 @@ from types import TracebackType
 from typing import Protocol, Self
 
 from nalar.application.ports.activations import ActivationsRepo
+from nalar.application.ports.administration import AdministrationRepo
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
@@ -32,6 +33,7 @@ class UnitOfWork(Protocol):
     """One database transaction. Enqueued messages commit or roll back with it."""
 
     authz: Authz
+    administration: AdministrationRepo
     ai_invocations: AiInvocationLog
     jobs: JobStore
     queue: QueueSender

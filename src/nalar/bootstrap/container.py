@@ -15,6 +15,37 @@ from dishka import (
     provide_all,
 )
 
+from nalar.application.features.administration.commands.assign_teacher import AssignTeacherHandler
+from nalar.application.features.administration.commands.create_academic_year import (
+    CreateAcademicYearHandler,
+)
+from nalar.application.features.administration.commands.deactivate_person import (
+    DeactivatePersonHandler,
+)
+from nalar.application.features.administration.commands.edit_person import EditPersonHandler
+from nalar.application.features.administration.commands.install_school_admin import (
+    InstallSchoolAdminHandler,
+)
+from nalar.application.features.administration.commands.publish_curriculum import (
+    PublishCurriculumHandler,
+)
+from nalar.application.features.administration.commands.save_class import SaveClassHandler
+from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
+from nalar.application.features.administration.commands.set_school_status import (
+    SetSchoolStatusHandler,
+)
+from nalar.application.features.administration.commands.transfer_kb import TransferKbHandler
+from nalar.application.features.administration.queries.get_curriculum_version import (
+    GetCurriculumVersionQuery,
+)
+from nalar.application.features.administration.queries.list_assignments import ListAssignmentsQuery
+from nalar.application.features.administration.queries.list_classes import ListClassesQuery
+from nalar.application.features.administration.queries.list_curriculum_versions import (
+    ListCurriculumVersionsQuery,
+)
+from nalar.application.features.administration.queries.list_people import ListPeopleQuery
+from nalar.application.features.administration.queries.list_schools import ListSchoolsQuery
+from nalar.application.features.administration.queries.list_subjects import ListSubjectsQuery
 from nalar.application.features.auth.commands.change_password import (
     ChangePasswordHandler,
     PasswordMutationHandler,
@@ -483,6 +514,23 @@ class InfrastructureProvider(Provider):
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
     handlers = provide_all(
+        AssignTeacherHandler,
+        CreateAcademicYearHandler,
+        DeactivatePersonHandler,
+        EditPersonHandler,
+        InstallSchoolAdminHandler,
+        PublishCurriculumHandler,
+        SaveClassHandler,
+        SetCurriculumHandler,
+        SetSchoolStatusHandler,
+        TransferKbHandler,
+        GetCurriculumVersionQuery,
+        ListAssignmentsQuery,
+        ListClassesQuery,
+        ListCurriculumVersionsQuery,
+        ListPeopleQuery,
+        ListSchoolsQuery,
+        ListSubjectsQuery,
         UploadRosterHandler,
         ImportRosterHandler,
         GetImportQuery,

@@ -14,6 +14,7 @@ from nalar.presentation.api.middleware.request_context import RequestContextMidd
 from nalar.presentation.api.routers import (
     account_invitations,
     admin,
+    administration,
     auth,
     health,
     jobs,
@@ -51,7 +52,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_methods=["*"],
-        allow_headers=["Content-Type", "X-Request-Id", "X-Nalar-CSRF"],
+        allow_headers=["Content-Type", "X-Request-Id", "X-Nalar-CSRF", "Idempotency-Key"],
         allow_credentials=True,
         expose_headers=["X-Request-Id"],
     )
@@ -62,6 +63,7 @@ def create_app(
     for router in (
         account_invitations.router,
         admin.router,
+        administration.router,
         auth.router,
         me.router,
         teacher.router,

@@ -6,6 +6,7 @@ from typing import Self
 from asyncpg.transaction import Transaction
 
 from nalar.application.ports.activations import ActivationsRepo
+from nalar.application.ports.administration import AdministrationRepo
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
@@ -33,6 +34,7 @@ from nalar.application.ports.turns import TurnsRepo
 from nalar.infrastructure.db.authz import PgAuthz
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.activations import PgActivationsRepo
+from nalar.infrastructure.db.repositories.administration import PgAdministrationRepo
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
 from nalar.infrastructure.db.repositories.audit import PgAuditRepo
 from nalar.infrastructure.db.repositories.evaluations import PgEvaluationsRepo
@@ -62,6 +64,7 @@ type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
 
 class PgUnitOfWork:
     authz: Authz
+    administration: AdministrationRepo
     ai_invocations: AiInvocationLog
     jobs: JobStore
     queue: QueueSender
@@ -105,6 +108,7 @@ class PgUnitOfWork:
             self._transaction = None
             raise
         self.authz = PgAuthz(conn)
+        self.administration = PgAdministrationRepo(conn)
         self.ai_invocations = PgAiInvocationLog(conn)
         self.jobs = PgJobStore(conn)
         self.queue = PgmqSender(conn)
