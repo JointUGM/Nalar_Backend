@@ -1,3 +1,4 @@
+import json
 from typing import Any
 from uuid import UUID
 
@@ -5,10 +6,90 @@ import asyncpg
 import pytest
 
 from tests.integration.support.api import api_client, as_user
-from tests.integration.support.factories import World, build_world, create_student
+from tests.integration.support.factories import RUBRIC, World, build_world, create_student
 from tests.unit.application.fakes import FakeClock
 
 OUTCOMES = ["mastered"] * 12 + ["developing"] * 8 + ["misconception"] * 7 + ["not_observed"] * 2
+
+
+async def test_report_uses_published_rubric_and_deduplicated_activity(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    await conn.execute(
+        "insert into mission_versions (school_id, mission_id, version_number, anchor_problem,"
+        " rubric, created_by, probe_plan)"
+        " values ($1, $2, 2, 'New draft', $3::jsonb, $4, '{}'::jsonb)",
+        world.school_id,
+        world.mission_id,
+        json.dumps({dimension: ["Changed"] * 5 for dimension in RUBRIC}),
+        world.teacher_id,
+    )
+    turn = await conn.fetchval(
+        "select id from session_turns where session_id = $1", world.session_id
+    )
+    await conn.execute(
+        "insert into turn_metrics (turn_id, school_id, chars_pasted) values ($1, $2, 9999)",
+        turn,
+        world.school_id,
+    )
+    await conn.execute(
+        "insert into session_turns (school_id, session_id, turn_index, prompt_kind,"
+        " prompt_text, prompt_strategy)"
+        " values ($1, $2, 1, 'probe', 'Mengapa?', 'request_justification')",
+        world.school_id,
+        world.session_id,
+    )
+    body = {
+        "client_seq": 1,
+        "turn_index": 0,
+        "events": [
+            {"type": "paste", "at": "2026-10-03T00:00:00Z", "value": 80},
+            {"type": "visibility_hidden", "at": "2026-10-03T00:00:00Z", "value": 1250},
+            {
+                "type": "typing",
+                "at": "2026-10-03T00:00:00Z",
+                "value": {"chars": 4, "duration_ms": 900},
+            },
+        ],
+    }
+    async with api_client(conn) as api:
+        for _ in range(2):
+            assert (
+                await api.post(
+                    f"/student/sessions/{world.session_id}/telemetry",
+                    json=body,
+                    headers=as_user(world.student_id),
+                )
+            ).status_code == 200
+        unattributed = body | {"client_seq": 2, "turn_index": None}
+        assert (
+            await api.post(
+                f"/student/sessions/{world.session_id}/telemetry",
+                json=unattributed,
+                headers=as_user(world.student_id),
+            )
+        ).status_code == 200
+        response = await api.get(
+            f"/sessions/{world.session_id}/report", headers=as_user(world.teacher_id)
+        )
+        assert response.status_code == 200, response.text
+        student = await api.get(
+            f"/sessions/{world.session_id}/report", headers=as_user(world.student_id)
+        )
+        assert student.status_code == 404
+    report = response.json()
+    assert report["mission"] == {
+        "mission_id": str(world.mission_id),
+        "title": "Gaya dan Gerak",
+        "version_number": 1,
+    }
+    assert report["rubric"] == RUBRIC
+    assert report["turns"][0]["activity"] == {
+        "paste_chars": 80,
+        "away_seconds": 1.25,
+        "typing_ms": 900,
+    }
+    assert report["turns"][1]["activity"] == {"paste_chars": 0, "away_seconds": 0, "typing_ms": 0}
 
 
 async def evaluated_session(
@@ -61,9 +142,14 @@ async def test_class_map_counts_match_sql_on_32_students(
 ) -> None:
     await conn.execute("delete from session_turns where session_id = $1", world.session_id)
     await conn.execute("delete from sessions where id = $1", world.session_id)
+    holders: dict[str, str] = {}
     for outcome in OUTCOMES:
         student = await create_student(conn, world.school_id, world.class_id, world.year_id)
-        await evaluated_session(conn, world, student, 1, "completed", outcome)
+        session_id = await evaluated_session(conn, world, student, 1, "completed", outcome)
+        if outcome == "misconception" and not holders:
+            session_id = await evaluated_session(conn, world, student, 2, "completed", outcome)
+        if outcome == "misconception":
+            holders[str(student)] = str(session_id)
     retried = await create_student(conn, world.school_id, world.class_id, world.year_id)
     await evaluated_session(conn, world, retried, 1, "completed", "mastered")
     await evaluated_session(conn, world, retried, 2, "timed_out", None)
@@ -90,6 +176,10 @@ async def test_class_map_counts_match_sql_on_32_students(
     assert concept["mastered_count"] == counts["mastered"] == 12
     assert concept["developing_count"] == counts["developing"]
     assert concept["misconceptions"][0]["count"] == counts["misconception"] == 7
+    named = concept["misconceptions"][0]["students"]
+    assert {i["student_id"]: i["session_id"] for i in named} == holders
+    assert {i["student_id"] for i in named} == set(concept["misconceptions"][0]["student_ids"])
+    assert all(i["name"] == "Siswa Uji" for i in named)
     assert body["insight"] is None
 
 

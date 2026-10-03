@@ -7,6 +7,33 @@ from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from nalar.presentation.api.schemas.common import Body
 
 
+class StudentConceptCountsOut(BaseModel):
+    mastered: int
+    developing: int
+    misconception: int
+
+
+class ClassStudentOut(BaseModel):
+    student_id: UUID
+    full_name: str
+    session_id: UUID | None
+    status: (
+        Literal[
+            "not_started", "in_progress", "paused_safety", "completed", "timed_out", "ended_safety"
+        ]
+        | None
+    )
+    completed_at: datetime | None
+    concept_counts: StudentConceptCountsOut
+    open_flag_count: int
+    evaluation_status: Literal["pending", "completed", "failed", "no_answer"] | None
+
+
+class ClassStudentsOut(BaseModel):
+    items: list[ClassStudentOut]
+    publication_id: UUID | None
+
+
 class AttentionEntryOut(BaseModel):
     item_id: UUID
     created_at: datetime

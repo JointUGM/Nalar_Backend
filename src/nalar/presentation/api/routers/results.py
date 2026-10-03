@@ -26,6 +26,7 @@ from nalar.presentation.api.schemas.results import (
     FlagReviewOut,
     InsightOut,
     MisconceptionCountOut,
+    MisconceptionStudentOut,
     MonitorOut,
     MonitorRunOut,
     MonitorStudentOut,
@@ -35,7 +36,9 @@ from nalar.presentation.api.schemas.results import (
     ReportConceptResultOut,
     ReportEvaluationOut,
     ReportFlagOut,
+    ReportMissionOut,
     ReportOut,
+    ReportRubricOut,
     ReportScoreOut,
     ReportSessionOut,
     ReportStudentOut,
@@ -72,6 +75,7 @@ async def class_map(
     data, counts, insight = await query.execute(user.id, publication_id)
     names = dict(data.concepts)
     statements = {m: statement for m, _, statement in data.misconceptions}
+    students = {s.student_id: MisconceptionStudentOut(**asdict(s)) for s in data.students}
     return ClassMapOut(
         denominator=counts.denominator,
         incomplete_count=counts.incomplete_count,
@@ -92,6 +96,7 @@ async def class_map(
                         count=m.count,
                         resolved_count=m.resolved_count,
                         student_ids=list(m.student_ids),
+                        students=[students[s] for s in m.student_ids],
                     )
                     for m in c.misconceptions
                 ],
@@ -107,6 +112,8 @@ async def report(
 ) -> ReportOut:
     r = await query.execute(user.id, session_id)
     return ReportOut(
+        mission=ReportMissionOut(**asdict(r.mission)),
+        rubric=ReportRubricOut(**r.rubric),
         student=ReportStudentOut(id=r.student_id, name=r.student_name),
         session=ReportSessionOut(
             status=r.status,
