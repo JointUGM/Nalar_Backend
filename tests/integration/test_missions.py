@@ -6,10 +6,53 @@ import asyncpg
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import WarmIn, WarmOut
 from tests.integration.support.api import api_client, as_user
-from tests.integration.support.factories import RUBRIC, World, create_concept, create_teacher
+from tests.integration.support.factories import (
+    RUBRIC,
+    World,
+    assign_teacher,
+    build_world,
+    create_concept,
+    create_teacher,
+)
 from tests.unit.application.fakes import ScriptedAiGateway, invocation
 
 WARMED = AiResult(WarmOut(warmed=True), [invocation("probe_plan")])
+
+
+async def test_version_history_hides_other_authors_drafts_and_joins_display_names(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    colleague = await create_teacher(conn, world.school_id)
+    await assign_teacher(conn, world.school_id, world.class_id, world.subject_id, colleague)
+    await conn.execute("update profiles set full_name = 'Pak Budi' where id = $1", colleague)
+    await conn.execute(
+        "insert into mission_versions (school_id, mission_id, version_number, anchor_problem,"
+        " rubric, probe_plan, created_by) select school_id, mission_id, 2, anchor_problem,"
+        " rubric, probe_plan, $2 from mission_versions where id = $1",
+        world.version_id,
+        colleague,
+    )
+    other = await build_world(conn)
+    async with api_client(conn) as api:
+        url = f"/missions/{world.mission_id}/versions"
+        own = await api.get(url, headers=as_user(world.teacher_id))
+        assert own.status_code == 200, own.text
+        assert [(v["version_number"], v["created_by_name"], v["status"]) for v in own.json()] == [
+            (2, "Pak Budi", "draft"),
+            (1, "Bu Sari", "locked"),
+        ]
+        read = await api.get(url, headers=as_user(colleague))
+        assert [v["version_number"] for v in read.json()] == [1]
+        foreign = await api.get(url, headers=as_user(other.teacher_id))
+        assert foreign.status_code == 404
+        missions = await api.get(
+            f"/schools/{world.school_id}/missions", headers=as_user(world.teacher_id)
+        )
+        assert missions.json()["items"][0]["created_by_name"] == "Bu Sari"
+        kb = await api.get(
+            f"/schools/{world.school_id}/knowledge-bases", headers=as_user(world.teacher_id)
+        )
+        assert kb.json()["items"][0]["owner_name"] == "Bu Sari"
 
 
 def version_body(world: World, **overrides: Any) -> dict[str, Any]:

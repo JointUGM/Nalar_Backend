@@ -23,6 +23,118 @@ from tests.integration.support.factories import (
     publish,
 )
 from tests.integration.test_release import settled, student_session, summarize
+from tests.integration.test_results import evaluated_session
+from tests.unit.application.fakes import FakeClock, ScriptedAiGateway
+
+
+async def test_dashboard_uses_local_week_and_latest_scoped_observations(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    stamp = datetime(2026, 10, 4, 17, tzinfo=UTC)
+    clock = FakeClock(datetime(2026, 10, 5, 1, tzinfo=UTC))
+    await settled(conn, world)
+    latest = await evaluated_session(conn, world, world.student_id, 2, "completed", "mastered")
+    held_student = await create_student(conn, world.school_id, world.class_id, world.year_id)
+    held = await evaluated_session(conn, world, held_student, 1, "completed", "misconception")
+    incomplete_student = await create_student(conn, world.school_id, world.class_id, world.year_id)
+    old = await evaluated_session(conn, world, incomplete_student, 1, "completed", "developing")
+    incomplete = await create_session(
+        conn, world.school_id, world.publication_id, world.run_id, incomplete_student, 2
+    )
+    last_student = await create_student(conn, world.school_id, world.class_id, world.year_id)
+    previous = await evaluated_session(conn, world, last_student, 1, "completed", "developing")
+    await conn.execute(
+        "update sessions set ended_at = $2 where id = any($1::uuid[])",
+        [world.session_id, latest, held, old],
+        stamp,
+    )
+    await conn.execute(
+        "update sessions set started_at = $2, deadline_at = $2::timestamptz + interval '20 minutes'"
+        " where id = $1",
+        incomplete,
+        stamp,
+    )
+    await conn.execute(
+        "update sessions set ended_at = $2 where id = $1",
+        previous,
+        stamp.replace(hour=16, minute=59),
+    )
+    misconception = await conn.fetchval(
+        "select id from misconceptions where concept_id = $1 limit 1", world.concept_ids[0]
+    )
+    await conn.execute(
+        "update session_concept_results set initial_misconception_id = $2,"
+        " resolved_in_session = (session_id = $3) where session_id = any($1::uuid[])",
+        [latest, held],
+        misconception,
+        latest,
+    )
+    flag = await add_flag(conn, world, world.session_id)
+    await conn.execute("update authenticity_flags set created_at = $2 where id = $1", flag, stamp)
+    foreign = await build_world(conn)
+    await settled(conn, foreign)
+    await conn.execute("update sessions set ended_at = $2 where id = $1", foreign.session_id, stamp)
+    ai = ScriptedAiGateway()
+    async with api_client(conn, clock=clock, ai=ai) as api:
+        response = await api.get(
+            "/teacher/dashboard",
+            params={"school_id": str(world.school_id)},
+            headers=as_user(world.teacher_id),
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        current = body["this_week"]
+        assert current["week_start"] == "2026-10-05T00:00:00+07:00"
+        assert (current["sessions_completed"], current["students"], current["open_flags"]) == (
+            4,
+            3,
+            1,
+        )
+        assert (
+            current["active_misconceptions"],
+            current["concepts_with_misconceptions"],
+            current["changed_mind_rate"],
+        ) == (1, 1, 0.5)
+        assert body["trend"][-1] == {
+            "week_start": current["week_start"],
+            "mastered": 1,
+            "developing": 0,
+            "misconception": 1,
+        }
+        assert body["last_week"]["sessions_completed"] == 1
+        assert (
+            body["trend"][0]["mastered"]
+            == body["trend"][0]["developing"]
+            == body["trend"][0]["misconception"]
+            == 0
+        )
+        assert body["top_changed"] == [
+            {
+                "misconception_id": str(misconception),
+                "statement": "Gaya bisa habis",
+                "held": 2,
+                "resolved": 1,
+            }
+        ]
+        assert body["timezone"] == "Asia/Jakarta"
+        blocked = await api.get(
+            "/teacher/dashboard",
+            params={"school_id": str(foreign.school_id)},
+            headers=as_user(world.teacher_id),
+        )
+        assert blocked.status_code == 404
+        colleague = await create_teacher(conn, world.school_id)
+        empty = (
+            await api.get(
+                "/teacher/dashboard",
+                params={"school_id": str(world.school_id)},
+                headers=as_user(colleague),
+            )
+        ).json()
+        assert empty["this_week"]["sessions_completed"] == 0
+        assert empty["this_week"]["changed_mind_rate"] is None
+        assert empty["top_changed"] == []
+    assert ai.calls == []
 
 
 async def test_roster_counts_latest_attempt_without_child_join_fanout(

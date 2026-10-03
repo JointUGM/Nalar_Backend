@@ -52,8 +52,9 @@ _KB_PAGE = """
            (select count(*) from concepts c where c.knowledge_base_id = kb.id
              and c.review_status = 'approved' and c.archived_at is null)::int
                as approved_concept_count,
-           kb.created_at
+           kb.created_at, pr.full_name as owner_name
       from knowledge_bases kb
+      left join profiles pr on pr.id = kb.owner_teacher_id
      where kb.school_id = $2
        and ($3::uuid is null or kb.school_subject_id = $3)
        and (kb.owner_teacher_id = $1 or exists (

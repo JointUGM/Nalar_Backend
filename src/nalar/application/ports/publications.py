@@ -76,7 +76,45 @@ class PublicationSummary:
     counts: PublicationCounts
 
 
+@dataclass(frozen=True)
+class GrantPublication:
+    school_id: UUID
+    class_id: UUID
+    cancelled_at: datetime | None
+    released_to_parents_at: datetime | None
+
+
+@dataclass(frozen=True)
+class StoredGrant:
+    run_id: UUID
+    digest: str
+
+
 class PublicationsRepo(Protocol):
+    async def lock_for_grant(self, publication_id: UUID) -> GrantPublication | None: ...
+
+    async def grant_by_key(
+        self, publication_id: UUID, actor_id: UUID, key: UUID
+    ) -> StoredGrant | None: ...
+
+    async def has_outstanding_grant(
+        self, publication_id: UUID, student_id: UUID, now: datetime
+    ) -> bool: ...
+
+    async def create_grant(
+        self,
+        publication_id: UUID,
+        school_id: UUID,
+        student_id: UUID,
+        actor_id: UUID,
+        key: UUID,
+        digest: str,
+        reason: str,
+        opens_at: datetime,
+        closes_at: datetime,
+        now: datetime,
+    ) -> UUID: ...
+
     async def teacher_ids(self, publication_id: UUID) -> list[UUID]:
         """Active teachers assigned to the publication's class and subject."""
         ...

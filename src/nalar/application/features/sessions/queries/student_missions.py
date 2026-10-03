@@ -22,6 +22,9 @@ class MissionCard:
     attempt_status: str
     max_duration_minutes: int
     session_id: UUID | None = None
+    run_id: UUID | None = None
+    attempt_number: int = 1
+    is_granted_attempt: bool = False
 
     @property
     def bucket(self) -> Bucket:
@@ -45,6 +48,9 @@ class StudentMissionsQuery:
             MissionCard(
                 publication_id=r.publication_id,
                 session_id=r.session_id,
+                run_id=r.run_id,
+                attempt_number=r.attempt_number,
+                is_granted_attempt=r.is_granted_attempt,
                 mission_title=r.mission_title,
                 subject_name=r.subject_name,
                 mode=r.mode,

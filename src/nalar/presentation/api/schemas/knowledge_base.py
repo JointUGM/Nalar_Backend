@@ -15,6 +15,7 @@ class MaterialQueuedOut(BaseModel):
 
 
 class KbSummaryOut(BaseModel):
+    owner_name: str | None
     id: UUID
     topic_key: str
     topic_title: str

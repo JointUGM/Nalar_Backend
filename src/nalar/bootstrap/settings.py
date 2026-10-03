@@ -2,6 +2,7 @@ import math
 import re
 from typing import Literal, Self
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -81,6 +82,17 @@ class Settings(BaseSettings):
     default_concurrency: int = 4
 
     default_planner_mode: Literal["table", "hybrid"] = "table"
+    teacher_reporting_timezone: str = "Asia/Jakarta"
+    attempt_grant_window_minutes: int = Field(default=1440, gt=0)
+
+    @model_validator(mode="after")
+    def reporting_zone(self) -> Self:
+        try:
+            ZoneInfo(self.teacher_reporting_timezone)
+        except (ValueError, ZoneInfoNotFoundError):
+            raise ValueError("invalid teacher reporting timezone") from None
+        return self
+
     join_rate_limit_per_minute: int = 10
     turn_recovery_after_s: float = 15.0
     finalize_cooldown_s: float = 600.0

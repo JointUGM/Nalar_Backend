@@ -75,9 +75,24 @@ class MissionSummary:
     created_by: UUID
     latest_version: VersionSummary | None
     created_at: datetime
+    created_by_name: str | None = None
+
+
+@dataclass(frozen=True)
+class VersionHistoryEntry:
+    version_number: int
+    status: str
+    created_at: datetime
+    created_by_name: str | None
+    reviewed_at: datetime | None
+    locked_at: datetime | None
 
 
 class MissionsRepo(Protocol):
+    async def version_history(
+        self, mission_id: UUID, include_drafts: bool
+    ) -> list[VersionHistoryEntry]: ...
+
     async def generation_catalog(self, mission: MissionRef) -> GenerationCatalog: ...
 
     async def generation_paragraphs(

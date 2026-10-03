@@ -66,6 +66,7 @@ from nalar.application.features.missions.commands.generate_mission import (
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
+from nalar.application.features.missions.queries.list_versions import ListVersionsQuery
 from nalar.application.features.onboarding.commands.activate_account import (
     ActivateAccountHandler,
     ActivationPolicy,
@@ -87,6 +88,10 @@ from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
 from nalar.application.features.parents.queries.progress import ProgressQuery
 from nalar.application.features.parents.queries.reflections import ParentReflectionsQuery
+from nalar.application.features.publications.commands.grant_attempt import (
+    GrantAttemptHandler,
+    GrantTiming,
+)
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
@@ -109,6 +114,10 @@ from nalar.application.features.results.queries.class_students import ClassStude
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.results.queries.teacher_attention import TeacherAttentionQuery
+from nalar.application.features.results.queries.teacher_dashboard import (
+    ReportingTimezone,
+    TeacherDashboardQuery,
+)
 from nalar.application.features.roster.commands.import_roster import ImportRosterHandler
 from nalar.application.features.roster.commands.upload_roster import (
     RosterLimits,
@@ -192,6 +201,14 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def clock(self) -> Clock:
         return SystemClock()
+
+    @provide(scope=Scope.APP)
+    def reporting_timezone(self) -> ReportingTimezone:
+        return ReportingTimezone(self._settings.teacher_reporting_timezone)
+
+    @provide(scope=Scope.APP)
+    def grant_timing(self) -> GrantTiming:
+        return GrantTiming(timedelta(minutes=self._settings.attempt_grant_window_minutes))
 
     @provide(scope=Scope.APP)
     def background(self, container: AsyncContainer) -> BackgroundWork:
@@ -472,6 +489,7 @@ class ApplicationProvider(Provider):
         ListAcademicYearsQuery,
         MeQuery,
         PublishHandler,
+        GrantAttemptHandler,
         TeacherAssignmentsQuery,
         TeacherPublicationsQuery,
         OpenLobbyHandler,
@@ -507,6 +525,7 @@ class ApplicationProvider(Provider):
         SessionReportQuery,
         ClassMapQuery,
         ClassStudentsQuery,
+        TeacherDashboardQuery,
         TeacherAttentionQuery,
         SafetyActionHandler,
         OverrideScoreHandler,
@@ -529,6 +548,7 @@ class ApplicationProvider(Provider):
         ReviewVersionHandler,
         ListMissionsQuery,
         GetVersionQuery,
+        ListVersionsQuery,
         CreateKbHandler,
         AddMaterialHandler,
         DetectSectionsHandler,

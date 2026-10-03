@@ -20,6 +20,7 @@ from nalar.application.features.missions.queries.list_missions import (
     ListMissions,
     ListMissionsQuery,
 )
+from nalar.application.features.missions.queries.list_versions import ListVersionsQuery
 from nalar.application.ports.missions import VersionDraft
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.missions import (
@@ -29,6 +30,7 @@ from nalar.presentation.api.schemas.missions import (
     MissionPageOut,
     MissionSummaryOut,
     VersionCreatedOut,
+    VersionHistoryOut,
     VersionIn,
     VersionOut,
     VersionReviewedOut,
@@ -36,6 +38,13 @@ from nalar.presentation.api.schemas.missions import (
 )
 
 router = APIRouter(tags=["missions"], route_class=DishkaRoute)
+
+
+@router.get("/missions/{mission_id}/versions", response_model=list[VersionHistoryOut])
+async def list_versions(
+    mission_id: UUID, user: CurrentUser, query: FromDishka[ListVersionsQuery]
+) -> list[VersionHistoryOut]:
+    return [VersionHistoryOut(**asdict(v)) for v in await query.execute(user.id, mission_id)]
 
 
 @router.post("/missions", status_code=201, response_model=MissionCreatedOut)
@@ -75,6 +84,7 @@ async def list_missions(
                 title=m.title,
                 knowledge_base_id=m.knowledge_base_id,
                 created_by=m.created_by,
+                created_by_name=m.created_by_name,
                 latest_version=VersionSummaryOut(**asdict(m.latest_version))
                 if m.latest_version
                 else None,

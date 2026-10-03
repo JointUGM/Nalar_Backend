@@ -11,7 +11,8 @@ from nalar.infrastructure.db.pool import DbConnection
 _TARGET = """
     select r.id as run_id, r.school_id, r.publication_id, p.class_id, r.mode::text as mode,
            r.status::text as status, mi.title as mission_title, mv.anchor_problem,
-           mv.max_duration_minutes, mv.live_warmup
+           mv.max_duration_minutes, mv.live_warmup, r.kind::text as kind,
+           r.grant_student_id, r.opens_at, r.closes_at
       from publication_runs r
       join publications p on p.id = r.publication_id and p.cancelled_at is null
       join mission_versions mv on mv.id = p.mission_version_id
@@ -48,7 +49,8 @@ class PgParticipantsRepo:
     async def joinable_by_code(self, code: str) -> JoinTarget | None:
         return _target(
             await self._conn.fetchrow(
-                _TARGET + " where r.join_code = $1 and r.status in ('lobby', 'open')"
+                _TARGET + " where r.join_code = $1 and r.kind = 'primary'"
+                " and r.status in ('lobby', 'open')"
                 " for share of r",
                 code,
             )
@@ -57,7 +59,7 @@ class PgParticipantsRepo:
     async def latest_closed_by_code(self, code: str) -> JoinTarget | None:
         return _target(
             await self._conn.fetchrow(
-                _TARGET + " where r.join_code = $1 and r.status = 'closed'"
+                _TARGET + " where r.join_code = $1 and r.kind = 'primary' and r.status = 'closed'"
                 " order by r.closed_at desc limit 1",
                 code,
             )
@@ -66,11 +68,16 @@ class PgParticipantsRepo:
     async def run_target(self, run_id: UUID) -> JoinTarget | None:
         return _target(await self._conn.fetchrow(_TARGET + " where r.id = $1", run_id))
 
-    async def window_target(self, publication_id: UUID) -> JoinTarget | None:
+    async def window_target(
+        self, publication_id: UUID, run_id: UUID | None = None, lock: bool = False
+    ) -> JoinTarget | None:
         return _target(
             await self._conn.fetchrow(
-                _TARGET + " where r.publication_id = $1 and r.kind = 'primary' for share of r",
+                _TARGET + " where r.publication_id = $1"
+                " and (($2::uuid is null and r.kind = 'primary') or r.id = $2)"
+                + (" for share of r" if lock else ""),
                 publication_id,
+                run_id,
             )
         )
 

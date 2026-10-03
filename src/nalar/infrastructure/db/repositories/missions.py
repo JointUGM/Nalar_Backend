@@ -14,6 +14,7 @@ from nalar.application.ports.missions import (
     MissionRef,
     MissionSummary,
     VersionDraft,
+    VersionHistoryEntry,
     VersionRecord,
     VersionSummary,
     version_status,
@@ -23,8 +24,10 @@ from nalar.infrastructure.db.pool import DbConnection
 
 _MISSION_PAGE = """
     select mi.id, mi.title, mi.knowledge_base_id, mi.created_by, mi.created_at,
-           v.id as version_id, v.version_number, v.reviewed_at, v.locked_at
+           v.id as version_id, v.version_number, v.reviewed_at, v.locked_at,
+           pr.full_name as created_by_name
       from missions mi
+      left join profiles pr on pr.id = mi.created_by
       join knowledge_bases kb on kb.id = mi.knowledge_base_id
       left join lateral (
             select mv.id, mv.version_number, mv.reviewed_at, mv.locked_at
@@ -44,6 +47,23 @@ _MISSION_PAGE = """
 
 
 class PgMissionsRepo:
+    async def version_history(
+        self, mission_id: UUID, include_drafts: bool
+    ) -> list[VersionHistoryEntry]:
+        rows = await self._conn.fetch(
+            "select mv.version_number, mv.created_at, pr.full_name as created_by_name,"
+            " mv.reviewed_at, mv.locked_at from mission_versions mv"
+            " left join profiles pr on pr.id = mv.created_by where mv.mission_id = $1"
+            " and ($2 or mv.reviewed_at is not null or mv.locked_at is not null)"
+            " order by mv.version_number desc",
+            mission_id,
+            include_drafts,
+        )
+        return [
+            VersionHistoryEntry(**dict(r), status=version_status(r["reviewed_at"], r["locked_at"]))
+            for r in rows
+        ]
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 
@@ -369,6 +389,7 @@ class PgMissionsRepo:
                 title=r["title"],
                 knowledge_base_id=r["knowledge_base_id"],
                 created_by=r["created_by"],
+                created_by_name=r["created_by_name"],
                 latest_version=VersionSummary(
                     r["version_id"],
                     r["version_number"],

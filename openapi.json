@@ -175,6 +175,72 @@
         "title": "AssignmentsOut",
         "type": "object"
       },
+      "AttemptGrantIn": {
+        "additionalProperties": false,
+        "properties": {
+          "closes_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closes At"
+          },
+          "opens_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opens At"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "student_id",
+          "reason"
+        ],
+        "title": "AttemptGrantIn",
+        "type": "object"
+      },
+      "AttemptGrantOut": {
+        "properties": {
+          "grant_id": {
+            "format": "uuid",
+            "title": "Grant Id",
+            "type": "string"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "grant_id",
+          "run_id"
+        ],
+        "title": "AttemptGrantOut",
+        "type": "object"
+      },
       "AttentionCountsOut": {
         "properties": {
           "flag": {
@@ -412,6 +478,35 @@
           "section_id"
         ],
         "title": "BuildQueuedOut",
+        "type": "object"
+      },
+      "ChangedMisconceptionOut": {
+        "properties": {
+          "held": {
+            "title": "Held",
+            "type": "integer"
+          },
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          },
+          "resolved": {
+            "title": "Resolved",
+            "type": "integer"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "misconception_id",
+          "statement",
+          "held",
+          "resolved"
+        ],
+        "title": "ChangedMisconceptionOut",
         "type": "object"
       },
       "ClassMapOut": {
@@ -780,6 +875,92 @@
           "evaluated"
         ],
         "title": "CountsOut",
+        "type": "object"
+      },
+      "DashboardTrendOut": {
+        "properties": {
+          "developing": {
+            "title": "Developing",
+            "type": "integer"
+          },
+          "mastered": {
+            "title": "Mastered",
+            "type": "integer"
+          },
+          "misconception": {
+            "title": "Misconception",
+            "type": "integer"
+          },
+          "week_start": {
+            "format": "date-time",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "mastered",
+          "developing",
+          "misconception"
+        ],
+        "title": "DashboardTrendOut",
+        "type": "object"
+      },
+      "DashboardWeekOut": {
+        "properties": {
+          "active_misconceptions": {
+            "title": "Active Misconceptions",
+            "type": "integer"
+          },
+          "changed_mind_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed Mind Rate"
+          },
+          "concepts_with_misconceptions": {
+            "title": "Concepts With Misconceptions",
+            "type": "integer"
+          },
+          "open_flags": {
+            "title": "Open Flags",
+            "type": "integer"
+          },
+          "sessions_completed": {
+            "title": "Sessions Completed",
+            "type": "integer"
+          },
+          "students": {
+            "title": "Students",
+            "type": "integer"
+          },
+          "week_end": {
+            "format": "date-time",
+            "title": "Week End",
+            "type": "string"
+          },
+          "week_start": {
+            "format": "date-time",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "week_end",
+          "sessions_completed",
+          "students",
+          "active_misconceptions",
+          "concepts_with_misconceptions",
+          "changed_mind_rate",
+          "open_flags"
+        ],
+        "title": "DashboardWeekOut",
         "type": "object"
       },
       "EvidenceOut": {
@@ -1539,6 +1720,17 @@
             "title": "Material Count",
             "type": "integer"
           },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
           "owner_teacher_id": {
             "format": "uuid",
             "title": "Owner Teacher Id",
@@ -1563,6 +1755,7 @@
           }
         },
         "required": [
+          "owner_name",
           "id",
           "topic_key",
           "topic_title",
@@ -1981,6 +2174,10 @@
       },
       "MissionCardOut": {
         "properties": {
+          "attempt_number": {
+            "title": "Attempt Number",
+            "type": "integer"
+          },
           "attempt_status": {
             "title": "Attempt Status",
             "type": "string"
@@ -1996,6 +2193,10 @@
               }
             ],
             "title": "Closes At"
+          },
+          "is_granted_attempt": {
+            "title": "Is Granted Attempt",
+            "type": "boolean"
           },
           "max_duration_minutes": {
             "title": "Max Duration Minutes",
@@ -2026,6 +2227,11 @@
             "title": "Publication Id",
             "type": "string"
           },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
           "run_status": {
             "title": "Run Status",
             "type": "string"
@@ -2053,6 +2259,9 @@
           }
         },
         "required": [
+          "run_id",
+          "attempt_number",
+          "is_granted_attempt",
           "publication_id",
           "session_id",
           "mission_title",
@@ -2196,6 +2405,17 @@
             "title": "Created By",
             "type": "string"
           },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2222,6 +2442,7 @@
           }
         },
         "required": [
+          "created_by_name",
           "id",
           "title",
           "knowledge_base_id",
@@ -4562,6 +4783,49 @@
         "title": "SummaryPreviewOut",
         "type": "object"
       },
+      "TeacherDashboardOut": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "last_week": {
+            "$ref": "#/components/schemas/DashboardWeekOut"
+          },
+          "this_week": {
+            "$ref": "#/components/schemas/DashboardWeekOut"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "top_changed": {
+            "items": {
+              "$ref": "#/components/schemas/ChangedMisconceptionOut"
+            },
+            "title": "Top Changed",
+            "type": "array"
+          },
+          "trend": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardTrendOut"
+            },
+            "title": "Trend",
+            "type": "array"
+          }
+        },
+        "required": [
+          "this_week",
+          "last_week",
+          "trend",
+          "top_changed",
+          "as_of",
+          "timezone"
+        ],
+        "title": "TeacherDashboardOut",
+        "type": "object"
+      },
       "TelemetryAccepted": {
         "properties": {
           "accepted_client_seq": {
@@ -4757,6 +5021,68 @@
           "version_number"
         ],
         "title": "VersionCreatedOut",
+        "type": "object"
+      },
+      "VersionHistoryOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
+          },
+          "locked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locked At"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_number",
+          "status",
+          "created_at",
+          "created_by_name",
+          "reviewed_at",
+          "locked_at"
+        ],
+        "title": "VersionHistoryOut",
         "type": "object"
       },
       "VersionIn": {
@@ -5134,6 +5460,25 @@
           "prompt"
         ],
         "title": "WindowSessionOut",
+        "type": "object"
+      },
+      "WindowStartIn": {
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          }
+        },
+        "title": "WindowStartIn",
         "type": "object"
       },
       "nalar__presentation__api__schemas__missions__WarmupChoiceIn": {
@@ -6157,6 +6502,56 @@
       }
     },
     "/api/v1/missions/{mission_id}/versions": {
+      "get": {
+        "operationId": "list_versions_api_v1_missions__mission_id__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/VersionHistoryOut"
+                  },
+                  "title": "Response List Versions Api V1 Missions  Mission Id  Versions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "List Versions",
+        "tags": [
+          "missions"
+        ]
+      },
       "post": {
         "operationId": "create_version_api_v1_missions__mission_id__versions_post",
         "parameters": [
@@ -6629,6 +7024,74 @@
           }
         ],
         "summary": "Publish",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/attempt-grants": {
+      "post": {
+        "operationId": "grant_attempt_api_v1_publications__publication_id__attempt_grants_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptGrantIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptGrantOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Grant Attempt",
         "tags": [
           "teacher"
         ]
@@ -7745,6 +8208,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/WindowStartIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {
@@ -8374,6 +8854,54 @@
           }
         ],
         "summary": "Class Students",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/dashboard": {
+      "get": {
+        "operationId": "dashboard_api_v1_teacher_dashboard_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherDashboardOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Dashboard",
         "tags": [
           "teacher"
         ]
