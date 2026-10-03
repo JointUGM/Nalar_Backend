@@ -35,7 +35,7 @@ _RECIPIENT_SCOPE = """
                   and m.school_id = l.school_id and m.role = 'student' and m.status = 'active'
                  join class_enrollments e on e.student_id = l.student_id
                   and e.school_id = l.school_id and e.status = 'active'
-                where l.parent_id = p.id and l.school_id = $1))
+                where l.deactivated_at is null and l.parent_id = p.id and l.school_id = $1))
 """
 
 _STATUS = (
@@ -470,6 +470,7 @@ class PgActivationsRepo:
              where p.id = $1 and a.school_id = $2 and a.issued_by = $3
                and a.id = $5 and a.channel = 'email'
                and a.consumed_at is null and a.superseded_at is null
+               and exists(select 1 from schools sc where sc.id = $2 and sc.is_active)
                and p.onboarding_required and p.has_real_email
                and lower(p.contact_email) = lower($4)
                and lower(a.recipient_email) = lower($4)
@@ -481,7 +482,8 @@ class PgActivationsRepo:
                                  and m.status = 'active'
                                 join class_enrollments e on e.student_id = l.student_id
                                  and e.school_id = l.school_id and e.status = 'active'
-                               where l.parent_id = p.id and l.school_id = $2))
+                               where l.deactivated_at is null
+                                 and l.parent_id = p.id and l.school_id = $2))
              for update of p, a
             """,
             invitation.user_id,
@@ -718,11 +720,14 @@ class PgActivationsRepo:
         recipient = await self._conn.fetchval(
             """
             select p.contact_email from profiles p
-             where p.id = $1 and p.onboarding_required and p.has_real_email
+             where p.id = $1 and exists(select 1 from schools sc where sc.id = $2 and sc.is_active)
+               and p.onboarding_required and p.has_real_email
                and nullif(btrim(p.contact_email), '') is not null
-               and exists (select 1 from school_memberships m
+               and (exists (select 1 from school_memberships m
                             where m.school_id = $2 and m.user_id = $3
                               and m.role = 'school_admin' and m.status = 'active')
+                    or exists(select 1 from profiles issuer
+                               where issuer.id = $3 and issuer.is_platform_admin))
                and (exists (select 1 from school_memberships m
                              where m.school_id = $2 and m.user_id = p.id
                                and m.status = 'active')
@@ -732,7 +737,8 @@ class PgActivationsRepo:
                                  and m.status = 'active'
                                 join class_enrollments e on e.student_id = l.student_id
                                  and e.school_id = l.school_id and e.status = 'active'
-                               where l.parent_id = p.id and l.school_id = $2))
+                               where l.deactivated_at is null
+                                 and l.parent_id = p.id and l.school_id = $2))
              for update of p
             """,
             user_id,

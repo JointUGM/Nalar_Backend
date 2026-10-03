@@ -5,6 +5,10 @@ from uuid import UUID
 class Authz(Protocol):
     """Scope checks for the caller. Every check requires an active membership."""
 
+    async def is_platform_admin(self, user_id: UUID) -> bool: ...
+
+    async def manages_kb(self, user_id: UUID, kb_id: UUID) -> bool: ...
+
     async def teaches_class(self, user_id: UUID, class_id: UUID) -> bool: ...
 
     async def teaches_class_subject(

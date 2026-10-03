@@ -47,6 +47,7 @@ _STUDENT_MISSIONS = """
       join school_memberships m on m.school_id = ce.school_id and m.user_id = ce.student_id
        and m.role = 'student' and m.status = 'active'
       join publications p on p.class_id = ce.class_id and p.cancelled_at is null
+      join schools sc on sc.id = p.school_id and sc.is_active
       join publication_runs r on r.publication_id = p.id
        and (r.kind = 'primary' or (r.kind = 'grant' and r.grant_student_id = $1))
       join mission_versions mv on mv.id = p.mission_version_id
@@ -185,6 +186,7 @@ class PgSessionsRepo:
             " join missions mi on mi.id = mv.mission_id"
             " where s.student_id = $1 and s.status in ('completed','timed_out','ended_safety')"
             " and s.ended_at is not null"
+            " and exists(select 1 from schools sc where sc.id = s.school_id and sc.is_active)"
             " and exists (select 1 from school_memberships m where m.user_id = $1"
             " and m.school_id = s.school_id and m.role = 'student' and m.status = 'active')"
             " and ($3::timestamptz is null or (s.ended_at, s.id) < ($3, $4::uuid))"

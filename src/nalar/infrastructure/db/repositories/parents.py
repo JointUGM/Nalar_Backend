@@ -20,6 +20,9 @@ VISIBLE_SQL = """
       from parent_summaries ps
       join publications p on p.id = ps.publication_id
        and p.released_to_parents_at is not null and p.cancelled_at is null
+       and exists(select 1 from schools sc where sc.id = p.school_id and sc.is_active)
+       and exists(select 1 from school_memberships m where m.school_id = p.school_id
+                   and m.user_id = $1 and m.role = 'student' and m.status = 'active')
       join v_latest_sessions ls on ls.publication_id = p.id and ls.student_id = ps.student_id
        and ls.status = 'completed'
       join session_evaluations e on e.session_id = ls.id and e.status = 'completed'
@@ -77,7 +80,7 @@ class PgParentsRepo:
               join profiles pr on pr.id = l.parent_id
               join profiles ch on ch.id = l.student_id
               join lateral ({VISIBLE_SQL.replace("$1", "l.student_id")}) v on true
-             where pr.weekly_digest_enabled and pr.has_real_email
+             where l.deactivated_at is null and pr.weekly_digest_enabled and pr.has_real_email
                and nullif(trim(pr.contact_email), '') is not null
                and ($1::timestamptz is null or v.released_at >= $1)
                and ($2::uuid is null or pr.id = $2)
@@ -111,7 +114,10 @@ class PgParentsRepo:
             "  from parent_student_links l"
             "  join profiles pr on pr.id = l.student_id"
             "  join schools sc on sc.id = l.school_id"
-            " where l.parent_id = $1 and ($3::uuid is null or l.student_id > $3)"
+            " where l.parent_id = $1 and l.deactivated_at is null and sc.is_active"
+            " and exists(select 1 from school_memberships m where m.user_id = l.student_id"
+            " and m.school_id = l.school_id and m.role = 'student' and m.status = 'active')"
+            " and ($3::uuid is null or l.student_id > $3)"
             " order by l.student_id limit $2",
             parent_id,
             limit,

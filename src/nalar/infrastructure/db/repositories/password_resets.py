@@ -23,7 +23,7 @@ _RECIPIENT = """
                     and m.role='student' and m.status='active'
                    join class_enrollments e on e.student_id=l.student_id
                     and e.school_id=l.school_id and e.status='active'
-                  where l.parent_id=p.id))
+                  where l.deactivated_at is null and l.parent_id=p.id))
 """
 
 

@@ -86,10 +86,12 @@ class ActivateAccountHandler:
                         raise InvalidActivation()
                 await self._provider.update_password(proof, password)
                 async with self._uow:
+                    await self._uow.administration.lock_admin_handoffs(proof.user_id)
                     if not await self._uow.activations.complete_activation(
                         invitation, token, self._clock.now()
                     ):
                         raise DependencyUnavailable()
+                    await self._uow.administration.complete_admin_handoffs(proof.user_id)
                     await self._uow.audit.record(
                         invitation.school_id,
                         proof.user_id,

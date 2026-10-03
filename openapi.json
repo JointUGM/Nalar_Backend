@@ -1,6 +1,57 @@
 {
   "components": {
     "schemas": {
+      "AcademicYearCreatedOut": {
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "academic_year_id"
+        ],
+        "title": "AcademicYearCreatedOut",
+        "type": "object"
+      },
+      "AcademicYearIn": {
+        "additionalProperties": false,
+        "properties": {
+          "copy_classes_from": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copy Classes From"
+          },
+          "ends_on": {
+            "format": "date",
+            "title": "Ends On",
+            "type": "string"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "starts_on": {
+            "format": "date",
+            "title": "Starts On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "starts_on",
+          "ends_on"
+        ],
+        "title": "AcademicYearIn",
+        "type": "object"
+      },
       "AcademicYearOut": {
         "properties": {
           "ends_on": {
@@ -70,6 +121,22 @@
         "title": "ActivateIn",
         "type": "object"
       },
+      "AdminEmailIn": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "AdminEmailIn",
+        "type": "object"
+      },
       "AnswerAccepted": {
         "properties": {
           "next_prompt_url": {
@@ -118,24 +185,12 @@
         "title": "AnswerIn",
         "type": "object"
       },
-      "AssignmentOut": {
+      "AssignmentIn": {
+        "additionalProperties": false,
         "properties": {
           "class_id": {
             "format": "uuid",
             "title": "Class Id",
-            "type": "string"
-          },
-          "class_name": {
-            "title": "Class Name",
-            "type": "string"
-          },
-          "grade_level": {
-            "title": "Grade Level",
-            "type": "integer"
-          },
-          "school_id": {
-            "format": "uuid",
-            "title": "School Id",
             "type": "string"
           },
           "school_subject_id": {
@@ -143,27 +198,32 @@
             "title": "School Subject Id",
             "type": "string"
           },
-          "subject_name": {
-            "title": "Subject Name",
-            "type": "string"
+          "teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
           }
         },
         "required": [
-          "school_id",
           "class_id",
-          "class_name",
-          "grade_level",
           "school_subject_id",
-          "subject_name"
+          "teacher_id"
         ],
-        "title": "AssignmentOut",
+        "title": "AssignmentIn",
         "type": "object"
       },
       "AssignmentsOut": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/AssignmentOut"
+              "$ref": "#/components/schemas/nalar__presentation__api__schemas__teacher__AssignmentOut"
             },
             "title": "Items",
             "type": "array"
@@ -509,6 +569,44 @@
         "title": "ChangedMisconceptionOut",
         "type": "object"
       },
+      "ClassIn": {
+        "additionalProperties": false,
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "grade_level": {
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Grade Level",
+            "type": "integer"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Name"
+          }
+        },
+        "required": [
+          "name",
+          "grade_level",
+          "academic_year_id"
+        ],
+        "title": "ClassIn",
+        "type": "object"
+      },
       "ClassMapOut": {
         "properties": {
           "concepts": {
@@ -543,6 +641,121 @@
           "concepts"
         ],
         "title": "ClassMapOut",
+        "type": "object"
+      },
+      "ClassOut": {
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "grade_level": {
+            "title": "Grade Level",
+            "type": "integer"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "student_count": {
+            "title": "Student Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "class_id",
+          "name",
+          "grade_level",
+          "academic_year_id",
+          "homeroom_teacher_id",
+          "student_count",
+          "archived_at"
+        ],
+        "title": "ClassOut",
+        "type": "object"
+      },
+      "ClassPatchIn": {
+        "additionalProperties": false,
+        "properties": {
+          "academic_year_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Year Id"
+          },
+          "grade_level": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Level"
+          },
+          "homeroom_teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homeroom Teacher Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "ClassPatchIn",
         "type": "object"
       },
       "ClassStudentOut": {
@@ -875,6 +1088,280 @@
           "evaluated"
         ],
         "title": "CountsOut",
+        "type": "object"
+      },
+      "CurriculumCreatedOut": {
+        "properties": {
+          "curriculum_version_id": {
+            "format": "uuid",
+            "title": "Curriculum Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "curriculum_version_id"
+        ],
+        "title": "CurriculumCreatedOut",
+        "type": "object"
+      },
+      "CurriculumDetailOut": {
+        "properties": {
+          "decree_code": {
+            "title": "Decree Code",
+            "type": "string"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "school_count": {
+            "title": "School Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "superseded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumSubjectOut"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "decree_code",
+          "effective_on",
+          "published_at",
+          "school_count",
+          "is_current",
+          "status",
+          "subjects"
+        ],
+        "title": "CurriculumDetailOut",
+        "type": "object"
+      },
+      "CurriculumIn": {
+        "additionalProperties": false,
+        "properties": {
+          "decree_code": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "is_current": {
+            "default": true,
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumSubjectIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "decree_code",
+          "effective_on",
+          "subjects"
+        ],
+        "title": "CurriculumIn",
+        "type": "object"
+      },
+      "CurriculumMappingIn": {
+        "additionalProperties": false,
+        "properties": {
+          "cp_subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cp Subject Id"
+          },
+          "cp_version_id": {
+            "format": "uuid",
+            "title": "Cp Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cp_version_id"
+        ],
+        "title": "CurriculumMappingIn",
+        "type": "object"
+      },
+      "CurriculumSubjectIn": {
+        "additionalProperties": false,
+        "properties": {
+          "learning_outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/LearningOutcomeIn"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Learning Outcomes",
+            "type": "array"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "phase": {
+            "pattern": "^[A-F]$",
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phase",
+          "learning_outcomes"
+        ],
+        "title": "CurriculumSubjectIn",
+        "type": "object"
+      },
+      "CurriculumSubjectOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "learning_outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/LearningOutcomeOut"
+            },
+            "title": "Learning Outcomes",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phase",
+          "learning_outcomes"
+        ],
+        "title": "CurriculumSubjectOut",
+        "type": "object"
+      },
+      "CurriculumVersionOut": {
+        "properties": {
+          "decree_code": {
+            "title": "Decree Code",
+            "type": "string"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "school_count": {
+            "title": "School Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "published",
+              "superseded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "decree_code",
+          "effective_on",
+          "published_at",
+          "school_count",
+          "is_current",
+          "status"
+        ],
+        "title": "CurriculumVersionOut",
         "type": "object"
       },
       "DashboardTrendOut": {
@@ -1622,6 +2109,21 @@
         "title": "KbDetailOut",
         "type": "object"
       },
+      "KbOwnerIn": {
+        "additionalProperties": false,
+        "properties": {
+          "teacher_id": {
+            "format": "uuid",
+            "title": "Teacher Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "teacher_id"
+        ],
+        "title": "KbOwnerIn",
+        "type": "object"
+      },
       "KbPageOut": {
         "properties": {
           "items": {
@@ -1768,6 +2270,93 @@
           "can_edit"
         ],
         "title": "KbSummaryOut",
+        "type": "object"
+      },
+      "LearningOutcomeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "element": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ordinal": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Ordinal",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "LearningOutcomeIn",
+        "type": "object"
+      },
+      "LearningOutcomeOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "element": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Element"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "element",
+          "ordinal"
+        ],
+        "title": "LearningOutcomeOut",
+        "type": "object"
+      },
+      "LinkedPersonOut": {
+        "properties": {
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "full_name"
+        ],
+        "title": "LinkedPersonOut",
         "type": "object"
       },
       "LiveWarmupIn": {
@@ -2610,6 +3199,11 @@
         "title": "MonitorStudentOut",
         "type": "object"
       },
+      "Name": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
       "OpeningGuessOut": {
         "properties": {
           "choice_id": {
@@ -3033,6 +3627,162 @@
           "value"
         ],
         "title": "PasteEvent",
+        "type": "object"
+      },
+      "PeoplePageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PersonOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "total"
+        ],
+        "title": "PeoplePageOut",
+        "type": "object"
+      },
+      "PersonEditIn": {
+        "additionalProperties": false,
+        "properties": {
+          "class_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Id"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Name"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PersonEditIn",
+        "type": "object"
+      },
+      "PersonOut": {
+        "properties": {
+          "account_state": {
+            "enum": [
+              "active",
+              "inactive",
+              "pending_activation"
+            ],
+            "title": "Account State",
+            "type": "string"
+          },
+          "class_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "linked_children": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedPersonOut"
+            },
+            "title": "Linked Children",
+            "type": "array"
+          },
+          "linked_parents": {
+            "items": {
+              "$ref": "#/components/schemas/LinkedPersonOut"
+            },
+            "title": "Linked Parents",
+            "type": "array"
+          },
+          "nisn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nisn"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "full_name",
+          "role",
+          "roles",
+          "nisn",
+          "email",
+          "class_name",
+          "account_state",
+          "linked_parents",
+          "linked_children"
+        ],
+        "title": "PersonOut",
         "type": "object"
       },
       "PrerequisiteOut": {
@@ -3949,6 +4699,15 @@
         "title": "ReviewQueueOut",
         "type": "object"
       },
+      "Role": {
+        "enum": [
+          "school_admin",
+          "teacher",
+          "student",
+          "parent"
+        ],
+        "type": "string"
+      },
       "RoleOut": {
         "properties": {
           "role": {
@@ -4357,6 +5116,201 @@
         "title": "SafetyAttentionOut",
         "type": "object"
       },
+      "SchoolAdminOut": {
+        "properties": {
+          "pending_activation": {
+            "title": "Pending Activation",
+            "type": "boolean"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "pending_activation"
+        ],
+        "title": "SchoolAdminOut",
+        "type": "object"
+      },
+      "SchoolCreatedOut": {
+        "properties": {
+          "pending_activation": {
+            "title": "Pending Activation",
+            "type": "boolean"
+          },
+          "school_id": {
+            "format": "uuid",
+            "title": "School Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_id",
+          "pending_activation"
+        ],
+        "title": "SchoolCreatedOut",
+        "type": "object"
+      },
+      "SchoolIn": {
+        "additionalProperties": false,
+        "properties": {
+          "admin_email": {
+            "title": "Admin Email",
+            "type": "string"
+          },
+          "city": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "npsn": {
+            "pattern": "^\\d{8}$",
+            "title": "Npsn",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "npsn",
+          "city",
+          "admin_email"
+        ],
+        "title": "SchoolIn",
+        "type": "object"
+      },
+      "SchoolOut": {
+        "properties": {
+          "admin_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Name"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "npsn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Npsn"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "user_count": {
+            "title": "User Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "npsn",
+          "city",
+          "status",
+          "admin_name",
+          "user_count"
+        ],
+        "title": "SchoolOut",
+        "type": "object"
+      },
+      "SchoolStatusIn": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "SchoolStatusIn",
+        "type": "object"
+      },
+      "SchoolsPageOut": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SchoolOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "total",
+          "counts"
+        ],
+        "title": "SchoolsPageOut",
+        "type": "object"
+      },
       "SectionItemOut": {
         "properties": {
           "build_status": {
@@ -4757,6 +5711,63 @@
           "next_cursor"
         ],
         "title": "StudentReflectionsOut",
+        "type": "object"
+      },
+      "SubjectOut": {
+        "properties": {
+          "cp_subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cp Subject Id"
+          },
+          "cp_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cp Version Id"
+          },
+          "kb_owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kb Owner Name"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_subject_id",
+          "name",
+          "cp_version_id",
+          "cp_subject_id",
+          "kb_owner_name"
+        ],
+        "title": "SubjectOut",
         "type": "object"
       },
       "SummaryPreviewOut": {
@@ -5481,6 +6492,61 @@
         "title": "WindowStartIn",
         "type": "object"
       },
+      "nalar__presentation__api__schemas__administration__AssignmentOut": {
+        "additionalProperties": false,
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          },
+          "teacher_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Teacher Id"
+          },
+          "teacher_name": {
+            "title": "Teacher Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "class_id",
+          "school_subject_id",
+          "teacher_id",
+          "academic_year_id",
+          "class_name",
+          "subject_name",
+          "teacher_name"
+        ],
+        "title": "AssignmentOut",
+        "type": "object"
+      },
       "nalar__presentation__api__schemas__missions__WarmupChoiceIn": {
         "additionalProperties": false,
         "properties": {
@@ -5518,6 +6584,47 @@
           "choice_id"
         ],
         "title": "WarmupChoiceIn",
+        "type": "object"
+      },
+      "nalar__presentation__api__schemas__teacher__AssignmentOut": {
+        "properties": {
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "grade_level": {
+            "title": "Grade Level",
+            "type": "integer"
+          },
+          "school_id": {
+            "format": "uuid",
+            "title": "School Id",
+            "type": "string"
+          },
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_id",
+          "class_id",
+          "class_name",
+          "grade_level",
+          "school_subject_id",
+          "subject_name"
+        ],
+        "title": "AssignmentOut",
         "type": "object"
       }
     },
@@ -6108,6 +7215,57 @@
         "summary": "Add Material",
         "tags": [
           "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/owner": {
+      "post": {
+        "operationId": "transfer_kb_api_v1_knowledge_bases__kb_id__owner_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KbOwnerIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Transfer Kb",
+        "tags": [
+          "administration"
         ]
       }
     },
@@ -6983,6 +8141,393 @@
         ]
       }
     },
+    "/api/v1/platform/curriculum-versions": {
+      "get": {
+        "operationId": "curriculum_versions_api_v1_platform_curriculum_versions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CurriculumVersionOut"
+                  },
+                  "title": "Response Curriculum Versions Api V1 Platform Curriculum Versions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Curriculum Versions",
+        "tags": [
+          "administration"
+        ]
+      },
+      "post": {
+        "operationId": "publish_curriculum_api_v1_platform_curriculum_versions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurriculumIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Publish Curriculum",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/platform/curriculum-versions/{version_id}": {
+      "get": {
+        "operationId": "curriculum_version_api_v1_platform_curriculum_versions__version_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Curriculum Version",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/platform/schools": {
+      "get": {
+        "operationId": "schools_api_v1_platform_schools_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolsPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Schools",
+        "tags": [
+          "administration"
+        ]
+      },
+      "post": {
+        "operationId": "create_school_api_v1_platform_schools_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create School",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/platform/schools/{school_id}/admin": {
+      "post": {
+        "operationId": "school_admin_api_v1_platform_schools__school_id__admin_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminEmailIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolAdminOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Admin",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/platform/schools/{school_id}/status": {
+      "patch": {
+        "operationId": "school_status_api_v1_platform_schools__school_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolStatusIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Status",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/publications": {
       "post": {
         "operationId": "publish_api_v1_publications_post",
@@ -7541,6 +9086,72 @@
         "tags": [
           "admin"
         ]
+      },
+      "post": {
+        "operationId": "create_year_api_v1_schools__school_id__academic_years_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademicYearIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicYearCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Year",
+        "tags": [
+          "administration"
+        ]
       }
     },
     "/api/v1/schools/{school_id}/account-invitations": {
@@ -7700,6 +9311,317 @@
         "summary": "Request Invitations",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/assignments": {
+      "get": {
+        "operationId": "assignments_api_v1_schools__school_id__assignments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "academic_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Academic Year Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/nalar__presentation__api__schemas__administration__AssignmentOut"
+                  },
+                  "title": "Response Assignments Api V1 Schools  School Id  Assignments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Assignments",
+        "tags": [
+          "administration"
+        ]
+      },
+      "put": {
+        "operationId": "assign_teacher_api_v1_schools__school_id__assignments_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Assign Teacher",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/classes": {
+      "get": {
+        "operationId": "classes_api_v1_schools__school_id__classes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "academic_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Academic Year Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClassOut"
+                  },
+                  "title": "Response Classes Api V1 Schools  School Id  Classes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Classes",
+        "tags": [
+          "administration"
+        ]
+      },
+      "post": {
+        "operationId": "create_class_api_v1_schools__school_id__classes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Class",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/classes/{class_id}": {
+      "patch": {
+        "operationId": "edit_class_api_v1_schools__school_id__classes__class_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "class_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Class Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassPatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Edit Class",
+        "tags": [
+          "administration"
         ]
       }
     },
@@ -7945,6 +9867,222 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/people": {
+      "get": {
+        "operationId": "people_api_v1_schools__school_id__people_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Role"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeoplePageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "People",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/people/{user_id}": {
+      "patch": {
+        "operationId": "edit_person_api_v1_schools__school_id__people__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonEditIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Edit Person",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/people/{user_id}/deactivate": {
+      "post": {
+        "operationId": "deactivate_person_api_v1_schools__school_id__people__user_id__deactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Deactivate Person",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/roster-imports": {
       "post": {
         "operationId": "upload_roster_api_v1_schools__school_id__roster_imports_post",
@@ -8000,6 +10138,119 @@
         "summary": "Upload Roster",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/subjects": {
+      "get": {
+        "operationId": "subjects_api_v1_schools__school_id__subjects_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectOut"
+                  },
+                  "title": "Response Subjects Api V1 Schools  School Id  Subjects Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Subjects",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/subjects/{subject_id}/curriculum": {
+      "put": {
+        "operationId": "set_curriculum_api_v1_schools__school_id__subjects__subject_id__curriculum_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurriculumMappingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Set Curriculum",
+        "tags": [
+          "administration"
         ]
       }
     },

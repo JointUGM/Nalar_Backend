@@ -7,7 +7,8 @@ from nalar.infrastructure.db.pool import DbConnection
 _ACTIVE_TEACHER = """
     exists (select 1 from school_memberships m
              where m.school_id = {school} and m.user_id = $1
-               and m.role = 'teacher' and m.status = 'active')
+               and m.role = 'teacher' and m.status = 'active'
+               and exists(select 1 from schools sc where sc.id = m.school_id and sc.is_active))
 """
 
 _TEACHES_PUBLICATION = f"""
@@ -26,12 +27,29 @@ _TEACHES_PUBLICATION = f"""
 
 
 class PgAuthz:
+    async def is_platform_admin(self, user_id: UUID) -> bool:
+        return await self._check(
+            "select exists(select 1 from profiles where id = $1 and is_platform_admin)", user_id
+        )
+
+    async def manages_kb(self, user_id: UUID, kb_id: UUID) -> bool:
+        return await self._check(
+            "select exists(select 1 from knowledge_bases kb join schools sc on sc.id = kb.school_id"
+            " join school_memberships m on m.school_id = sc.id"
+            " where kb.id = $2 and sc.is_active and m.user_id = $1"
+            " and m.role = 'school_admin' and m.status = 'active'"
+            " and exists(select 1 from schools sc where sc.id = m.school_id and sc.is_active))",
+            user_id,
+            kb_id,
+        )
+
     async def can_manage_roster(self, user_id: UUID, import_id: UUID) -> bool:
         return bool(
             await self._conn.fetchval(
                 "select exists(select 1 from roster_imports r join school_memberships m"
                 " on m.school_id = r.school_id where r.id = $2 and m.user_id = $1"
-                " and m.role = 'school_admin' and m.status = 'active')",
+                " and m.role = 'school_admin' and m.status = 'active'"
+                " and exists(select 1 from schools sc where sc.id = m.school_id and sc.is_active))",
                 user_id,
                 import_id,
             )
@@ -146,6 +164,8 @@ class PgAuthz:
                    join school_memberships m
                      on m.school_id = ce.school_id and m.user_id = ce.student_id
                     and m.role = 'student' and m.status = 'active'
+                    and exists(select 1 from schools sc
+                                where sc.id = m.school_id and sc.is_active)
                   where ce.student_id = $1 and ce.class_id = $2 and ce.status = 'active')""",
             user_id,
             class_id,
@@ -158,6 +178,7 @@ class PgAuthz:
                    join school_memberships m
                      on m.school_id = s.school_id and m.user_id = s.student_id
                     and m.role = 'student' and m.status = 'active'
+                    and exists(select 1 from schools sc where sc.id = m.school_id and sc.is_active)
                   where s.id = $2 and s.student_id = $1)""",
             user_id,
             session_id,
@@ -165,8 +186,11 @@ class PgAuthz:
 
     async def is_linked_parent(self, user_id: UUID, student_id: UUID) -> bool:
         return await self._check(
-            "select exists (select 1 from parent_student_links"
-            " where parent_id = $1 and student_id = $2)",
+            "select exists(select 1 from parent_student_links l"
+            " join schools sc on sc.id = l.school_id"
+            " join school_memberships m on m.school_id = l.school_id and m.user_id = l.student_id"
+            " where l.parent_id = $1 and l.student_id = $2 and l.deactivated_at is null"
+            " and sc.is_active and m.role = 'student' and m.status = 'active')",
             user_id,
             student_id,
         )
@@ -174,6 +198,7 @@ class PgAuthz:
     async def is_school_admin(self, user_id: UUID, school_id: UUID) -> bool:
         return await self._check(
             "select exists (select 1 from school_memberships where school_id = $2"
+            " and exists(select 1 from schools sc where sc.id = $2 and sc.is_active)"
             " and user_id = $1 and role = 'school_admin' and status = 'active')",
             user_id,
             school_id,
@@ -182,6 +207,7 @@ class PgAuthz:
     async def is_school_teacher(self, user_id: UUID, school_id: UUID) -> bool:
         return await self._check(
             "select exists (select 1 from school_memberships where school_id = $2"
+            " and exists(select 1 from schools sc where sc.id = $2 and sc.is_active)"
             " and user_id = $1 and role = 'teacher' and status = 'active')",
             user_id,
             school_id,
@@ -190,6 +216,7 @@ class PgAuthz:
     async def is_school_student(self, user_id: UUID, school_id: UUID) -> bool:
         return await self._check(
             "select exists (select 1 from school_memberships where school_id = $2"
+            " and exists(select 1 from schools sc where sc.id = $2 and sc.is_active)"
             " and user_id = $1 and role = 'student' and status = 'active')",
             user_id,
             school_id,
