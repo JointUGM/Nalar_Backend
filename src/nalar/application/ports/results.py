@@ -36,6 +36,13 @@ class Monitor:
 
 
 @dataclass(frozen=True)
+class ReportActivity:
+    paste_chars: int
+    away_seconds: float
+    typing_ms: int
+
+
+@dataclass(frozen=True)
 class ReportTurn:
     turn_id: UUID
     turn_index: int
@@ -49,6 +56,7 @@ class ReportTurn:
     guard_result: str | None
     answer_state: str | None
     safety_paused: bool
+    activity: ReportActivity
 
 
 @dataclass(frozen=True)
@@ -87,6 +95,13 @@ class ReportFlag:
 
 
 @dataclass(frozen=True)
+class ReportMission:
+    mission_id: UUID
+    title: str
+    version_number: int
+
+
+@dataclass(frozen=True)
 class SessionReport:
     student_id: UUID
     student_name: str
@@ -101,6 +116,15 @@ class SessionReport:
     scores: tuple[ReportScore, ...]
     concept_results: tuple[ReportConceptResult, ...]
     flags: tuple[ReportFlag, ...]
+    mission: ReportMission
+    rubric: dict[str, list[str]]
+
+
+@dataclass(frozen=True)
+class ClassMapStudent:
+    student_id: UUID
+    name: str
+    session_id: UUID
 
 
 @dataclass(frozen=True)
@@ -108,6 +132,26 @@ class ClassMapInput:
     concepts: tuple[tuple[UUID, str], ...]
     misconceptions: tuple[tuple[UUID, UUID, str], ...]
     attempts: tuple[StudentAttempt, ...]
+    students: tuple[ClassMapStudent, ...]
+
+
+@dataclass(frozen=True)
+class StudentConceptCounts:
+    mastered: int
+    developing: int
+    misconception: int
+
+
+@dataclass(frozen=True)
+class ClassStudent:
+    student_id: UUID
+    full_name: str
+    session_id: UUID | None
+    status: str | None
+    completed_at: datetime | None
+    concept_counts: StudentConceptCounts
+    open_flag_count: int
+    evaluation_status: str | None
 
 
 @dataclass(frozen=True)
@@ -168,6 +212,12 @@ class AttentionCounts:
 
 
 class ResultsRepo(Protocol):
+    async def class_students(
+        self, class_id: UUID, publication_id: UUID | None
+    ) -> list[ClassStudent] | None:
+        """Active enrollments with latest publication attempts, or None for a mismatched class."""
+        ...
+
     async def teacher_attention(
         self, actor_id: UUID, school_id: UUID, limit: int, after: AttentionCursor | None
     ) -> tuple[list[AttentionItem], AttentionCounts]:

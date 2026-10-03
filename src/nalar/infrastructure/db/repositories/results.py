@@ -8,21 +8,27 @@ from nalar.application.ports.results import (
     AttentionCursor,
     AttentionItem,
     ClassMapInput,
+    ClassMapStudent,
+    ClassStudent,
     FlagAttention,
     KbReviewAttention,
     Monitor,
     MonitorRun,
     MonitorStudent,
     ReleaseReadyAttention,
+    ReportActivity,
     ReportConceptResult,
     ReportFlag,
+    ReportMission,
     ReportOverride,
     ReportScore,
     ReportTurn,
     SafetyAttention,
     SessionReport,
+    StudentConceptCounts,
 )
 from nalar.domain.class_map import ConceptResult, StudentAttempt
+from nalar.domain.telemetry import TurnMetrics, metrics_by_turn
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.release import ELIGIBLE_SQL
 
@@ -164,9 +170,13 @@ _REPORT_SESSION = """
     select s.student_id, pr.full_name as student_name, s.status::text as status,
            s.end_reason::text as end_reason, s.started_at, s.ended_at, s.attempt_number,
            e.id as evaluation_id, e.status::text as evaluation_status,
-           e.summary as evaluation_summary
+           e.summary as evaluation_summary,
+           mi.id as mission_id, mi.title as mission_title, mv.version_number, mv.rubric
       from sessions s
       join profiles pr on pr.id = s.student_id
+      join publications p on p.id = s.publication_id
+      join mission_versions mv on mv.id = p.mission_version_id
+      join missions mi on mi.id = mv.mission_id
       left join session_evaluations e on e.session_id = s.id
      where s.id = $1
 """
@@ -215,10 +225,11 @@ _VERSION_MISCONCEPTIONS = """
 # TC-9: only each student's latest attempt counts; an older attempt is never reused.
 _LATEST_ATTEMPTS = """
     select distinct on (s.student_id) s.id, s.student_id, s.status::text as status,
-           e.status::text as evaluation_status
+           e.status::text as evaluation_status, pr.full_name as student_name
       from sessions s left join session_evaluations e on e.session_id = s.id
+      join profiles pr on pr.id = s.student_id
      where s.publication_id = $1
-     order by s.student_id, s.attempt_number desc
+     order by s.student_id, s.attempt_number desc, s.id desc
 """
 
 _CONCEPT_RESULTS = """
@@ -227,8 +238,64 @@ _CONCEPT_RESULTS = """
       from session_concept_results where session_id = any($1::uuid[])
 """
 
+_CLASS_STUDENTS = """
+    select ce.student_id, pr.full_name, s.id as session_id,
+           case when $2::uuid is null then null
+                else coalesce(s.status::text, 'not_started') end as status,
+           case when s.status = 'completed' then s.ended_at end as completed_at,
+           case when e.status is not null then e.status::text
+                when s.status in ('completed', 'timed_out', 'ended_safety')
+                then 'pending' end as evaluation_status,
+           cc.mastered, cc.developing, cc.misconception, fc.open_flag_count
+      from class_enrollments ce
+      join profiles pr on pr.id = ce.student_id
+      left join lateral (
+          select x.* from sessions x
+           where x.publication_id = $2 and x.student_id = ce.student_id
+           order by x.attempt_number desc, x.id desc limit 1
+      ) s on true
+      left join session_evaluations e on e.session_id = s.id
+      cross join lateral (
+          select count(*) filter (where r.outcome = 'mastered')::int as mastered,
+                 count(*) filter (where r.outcome = 'developing')::int as developing,
+                 count(*) filter (where r.outcome = 'misconception')::int as misconception
+            from session_concept_results r
+           where r.session_id = s.id and s.status = 'completed' and e.status = 'completed'
+      ) cc
+      cross join lateral (
+          select count(*)::int as open_flag_count from authenticity_flags f
+           where f.session_id = s.id and f.status = 'open'
+      ) fc
+     where ce.class_id = $1 and ce.status = 'active'
+     order by pr.full_name, ce.student_id
+"""
+
 
 class PgResultsRepo:
+    async def class_students(
+        self, class_id: UUID, publication_id: UUID | None
+    ) -> list[ClassStudent] | None:
+        if publication_id is not None and class_id != await self._conn.fetchval(
+            "select class_id from publications where id = $1", publication_id
+        ):
+            return None
+        rows = await self._conn.fetch(_CLASS_STUDENTS, class_id, publication_id)
+        return [
+            ClassStudent(
+                student_id=r["student_id"],
+                full_name=r["full_name"],
+                session_id=r["session_id"],
+                status=r["status"],
+                completed_at=r["completed_at"],
+                concept_counts=StudentConceptCounts(
+                    r["mastered"], r["developing"], r["misconception"]
+                ),
+                open_flag_count=r["open_flag_count"],
+                evaluation_status=r["evaluation_status"],
+            )
+            for r in rows
+        ]
+
     async def teacher_attention(
         self, actor_id: UUID, school_id: UUID, limit: int, after: AttentionCursor | None
     ) -> tuple[list[AttentionItem], AttentionCounts]:
@@ -327,6 +394,12 @@ class PgResultsRepo:
         if head is None:
             return None
         turns = await self._conn.fetch(_REPORT_TURNS, session_id)
+        batches = await self._conn.fetch(
+            "select turn_id, events from telemetry_batches"
+            " where session_id = $1 order by client_seq",
+            session_id,
+        )
+        metrics = metrics_by_turn((b["turn_id"], json.loads(b["events"])) for b in batches)
         scores: tuple[ReportScore, ...] = ()
         evaluation_id = head["evaluation_id"]
         if evaluation_id is not None:
@@ -361,9 +434,28 @@ class PgResultsRepo:
         )
         data = dict(head)
         data.pop("evaluation_id")
+        mission = ReportMission(
+            data.pop("mission_id"), data.pop("mission_title"), data.pop("version_number")
+        )
+        rubric = json.loads(data.pop("rubric"))
+        report_turns = []
+        for turn in turns:
+            activity = metrics.get(turn["turn_id"], TurnMetrics())
+            report_turns.append(
+                ReportTurn(
+                    **dict(turn),
+                    activity=ReportActivity(
+                        activity.chars_pasted,
+                        activity.tab_hidden_ms / 1000,
+                        activity.typing_duration_ms,
+                    ),
+                )
+            )
         return SessionReport(
             **data,
-            turns=tuple(ReportTurn(**dict(t)) for t in turns),
+            mission=mission,
+            rubric=rubric,
+            turns=tuple(report_turns),
             scores=scores,
             concept_results=tuple(ReportConceptResult(**dict(r)) for r in results),
             flags=tuple(ReportFlag(**dict(f)) for f in flags),
@@ -399,5 +491,10 @@ class PgResultsRepo:
                     a["student_id"], a["status"], a["evaluation_status"], tuple(by_session[a["id"]])
                 )
                 for a in latest
+            ),
+            students=tuple(
+                ClassMapStudent(a["student_id"], a["student_name"], a["id"])
+                for a in latest
+                if a["status"] == "completed" and a["evaluation_status"] == "completed"
             ),
         )

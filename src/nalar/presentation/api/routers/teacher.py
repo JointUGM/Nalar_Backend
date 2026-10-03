@@ -12,6 +12,10 @@ from nalar.application.features.publications.queries.teacher_publications import
     TeacherPublications,
     TeacherPublicationsQuery,
 )
+from nalar.application.features.results.queries.class_students import (
+    ClassStudents,
+    ClassStudentsQuery,
+)
 from nalar.application.features.results.queries.teacher_attention import (
     TeacherAttention,
     TeacherAttentionQuery,
@@ -23,6 +27,7 @@ from nalar.presentation.api.schemas.teacher import (
     AssignmentOut,
     AssignmentsOut,
     AttentionPageOut,
+    ClassStudentsOut,
     CountsOut,
     PublicationOut,
     PublicationsPageOut,
@@ -32,6 +37,22 @@ from nalar.presentation.api.schemas.teacher import (
 )
 
 router = APIRouter(tags=["teacher"], route_class=DishkaRoute)
+
+
+@router.get("/teacher/classes/{class_id}/students", response_model=ClassStudentsOut)
+async def class_students(
+    class_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[ClassStudentsQuery],
+    publication_id: UUID | None = None,
+) -> ClassStudentsOut:
+    rows = await query.execute(ClassStudents(user.id, class_id, publication_id))
+    return ClassStudentsOut.model_validate(
+        {
+            "items": [asdict(row) for row in rows],
+            "publication_id": publication_id,
+        }
+    )
 
 
 @router.get("/teacher/attention", response_model=AttentionPageOut)

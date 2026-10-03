@@ -105,6 +105,7 @@ from nalar.application.features.release.queries.preview import ReleasePreviewQue
 from nalar.application.features.results.commands.override_score import OverrideScoreHandler
 from nalar.application.features.results.commands.review_flag import ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
+from nalar.application.features.results.queries.class_students import ClassStudentsQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.results.queries.teacher_attention import TeacherAttentionQuery
@@ -505,6 +506,7 @@ class ApplicationProvider(Provider):
         MonitorQuery,
         SessionReportQuery,
         ClassMapQuery,
+        ClassStudentsQuery,
         TeacherAttentionQuery,
         SafetyActionHandler,
         OverrideScoreHandler,

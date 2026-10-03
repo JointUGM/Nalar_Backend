@@ -10,6 +10,7 @@ from tests.integration.support.factories import (
     World,
     add_flag,
     add_membership,
+    assign_teacher,
     build_world,
     create_class,
     create_concept,
@@ -17,10 +18,114 @@ from tests.integration.support.factories import (
     create_mission_version,
     create_run,
     create_session,
+    create_student,
     create_teacher,
     publish,
 )
 from tests.integration.test_release import settled, student_session, summarize
+
+
+async def test_roster_counts_latest_attempt_without_child_join_fanout(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    never = await create_student(conn, world.school_id, world.class_id, world.year_id)
+    await settled(conn, world)
+    await conn.execute(
+        "insert into session_concept_results (school_id, session_id, concept_id, outcome)"
+        " values ($1, $2, $3, 'developing')",
+        world.school_id,
+        world.session_id,
+        world.concept_ids[1],
+    )
+    await add_flag(conn, world, world.session_id)
+    await add_flag(conn, world, world.session_id)
+    headers = as_user(world.teacher_id)
+    url = f"/teacher/classes/{world.class_id}/students"
+    async with api_client(conn) as api:
+        plain = await api.get(url, headers=headers)
+        assert plain.status_code == 200, plain.text
+        assert plain.json()["publication_id"] is None
+        assert all(i["session_id"] is None and i["status"] is None for i in plain.json()["items"])
+        selected = await api.get(
+            url, params={"publication_id": str(world.publication_id)}, headers=headers
+        )
+        assert selected.status_code == 200, selected.text
+        by_student = {i["student_id"]: i for i in selected.json()["items"]}
+        assert by_student[str(never)]["status"] == "not_started"
+        mine = by_student[str(world.student_id)]
+        assert mine["concept_counts"] == {"mastered": 1, "developing": 1, "misconception": 0}
+        assert mine["open_flag_count"] == 2
+        assert mine["completed_at"] is not None
+        latest = await create_session(
+            conn, world.school_id, world.publication_id, world.run_id, world.student_id, 2
+        )
+        await PgSessionsRepo(conn).pause_for_safety(latest)
+        current = await api.get(
+            url, params={"publication_id": str(world.publication_id)}, headers=headers
+        )
+        mine = next(i for i in current.json()["items"] if i["student_id"] == str(world.student_id))
+        assert (mine["session_id"], mine["status"], mine["completed_at"]) == (
+            str(latest),
+            "paused_safety",
+            None,
+        )
+        assert mine["concept_counts"] == {"mastered": 0, "developing": 0, "misconception": 0}
+        assert mine["open_flag_count"] == 0
+        await conn.execute(
+            "update sessions set status = 'completed', ended_at = now(),"
+            " end_reason = 'student_completed' where id = $1",
+            latest,
+        )
+        await conn.execute(
+            "insert into session_concept_results (school_id, session_id, concept_id, outcome)"
+            " values ($1, $2, $3, 'mastered')",
+            world.school_id,
+            latest,
+            world.concept_ids[0],
+        )
+        pending = await api.get(
+            url, params={"publication_id": str(world.publication_id)}, headers=headers
+        )
+        mine = next(i for i in pending.json()["items"] if i["student_id"] == str(world.student_id))
+        assert mine["evaluation_status"] == "pending"
+        assert mine["concept_counts"]["mastered"] == 0
+        await conn.execute(
+            "insert into session_evaluations (school_id, session_id, status)"
+            " values ($1, $2, 'failed')",
+            world.school_id,
+            latest,
+        )
+        failed = await api.get(
+            url, params={"publication_id": str(world.publication_id)}, headers=headers
+        )
+        mine = next(i for i in failed.json()["items"] if i["student_id"] == str(world.student_id))
+        assert mine["evaluation_status"] == "failed"
+        assert mine["concept_counts"]["mastered"] == 0
+
+
+async def test_roster_rejects_unassigned_class_and_mismatched_publication(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    other_class = await create_class(conn, world.school_id, world.year_id, "8B")
+    await assign_teacher(conn, world.school_id, other_class, world.subject_id, world.teacher_id)
+    other = await build_world(conn)
+    url = f"/teacher/classes/{world.class_id}/students"
+    async with api_client(conn) as api:
+        mismatch = await api.get(
+            f"/teacher/classes/{other_class}/students",
+            params={"publication_id": str(world.publication_id)},
+            headers=as_user(world.teacher_id),
+        )
+        assert mismatch.status_code == 404
+        for actor in (world.student_id, other.teacher_id):
+            response = await api.get(url, headers=as_user(actor))
+            assert response.status_code == 404
+        foreign = await api.get(
+            url,
+            params={"publication_id": str(other.publication_id)},
+            headers=as_user(world.teacher_id),
+        )
+        assert foreign.status_code == 404
 
 
 async def test_assignments_list_the_callers_active_assignments(

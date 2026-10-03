@@ -34,12 +34,19 @@ class MonitorOut(BaseModel):
     server_now: datetime
 
 
+class MisconceptionStudentOut(BaseModel):
+    student_id: UUID
+    name: str
+    session_id: UUID
+
+
 class MisconceptionCountOut(BaseModel):
     misconception_id: UUID
     statement: str
     count: int
     resolved_count: int
-    student_ids: list[UUID]
+    student_ids: list[UUID] = Field(deprecated=True)
+    students: list[MisconceptionStudentOut]
 
 
 class ConceptCountOut(BaseModel):
@@ -81,6 +88,12 @@ class ReportEvaluationOut(BaseModel):
     summary: str | None
 
 
+class ReportActivityOut(BaseModel):
+    paste_chars: int
+    away_seconds: float
+    typing_ms: int
+
+
 class ReportTurnOut(BaseModel):
     turn_id: UUID
     turn_index: int
@@ -94,6 +107,7 @@ class ReportTurnOut(BaseModel):
     guard_result: str | None
     answer_state: str | None
     safety_paused: bool
+    activity: ReportActivityOut
 
 
 class EvidenceOut(BaseModel):
@@ -132,7 +146,22 @@ class ReportFlagOut(BaseModel):
     status: str
 
 
+class ReportMissionOut(BaseModel):
+    mission_id: UUID
+    title: str
+    version_number: int
+
+
+class ReportRubricOut(BaseModel):
+    claim: list[str] = Field(min_length=5, max_length=5)
+    evidence: list[str] = Field(min_length=5, max_length=5)
+    mechanism: list[str] = Field(min_length=5, max_length=5)
+    transfer: list[str] = Field(min_length=5, max_length=5)
+
+
 class ReportOut(BaseModel):
+    mission: ReportMissionOut
+    rubric: ReportRubricOut
     student: ReportStudentOut
     session: ReportSessionOut
     evaluation: ReportEvaluationOut | None
