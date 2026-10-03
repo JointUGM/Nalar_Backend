@@ -15,6 +15,18 @@ from dishka import (
     provide_all,
 )
 
+from nalar.application.features.auth.commands.change_password import (
+    ChangePasswordHandler,
+    PasswordMutationHandler,
+)
+from nalar.application.features.auth.commands.confirm_password_reset import (
+    ConfirmPasswordResetHandler,
+)
+from nalar.application.features.auth.commands.request_password_reset import (
+    PasswordResetPolicy,
+    RequestPasswordResetHandler,
+)
+from nalar.application.features.auth.commands.send_password_reset import SendPasswordResetHandler
 from nalar.application.features.evaluation.commands.evaluate_session import (
     EvaluateSessionHandler,
 )
@@ -139,6 +151,7 @@ from nalar.application.ports.auth_admin import AuthAdmin
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.mailer import Mailer
+from nalar.application.ports.password_resets import CredentialState
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.readiness import ReadinessProbe
 from nalar.application.ports.storage import ObjectStorage
@@ -149,6 +162,7 @@ from nalar.domain.integrity import IntegrityConfig
 from nalar.domain.placeholders import NarrativeLexicon
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.admin import SupabaseAuthAdmin
+from nalar.infrastructure.auth.credential_state import PgCredentialState
 from nalar.infrastructure.auth.gotrue import SupabaseIdentityProvider
 from nalar.infrastructure.auth.jwt import SupabaseJwtVerifier
 from nalar.infrastructure.auth.redis_sessions import RedisBrowserSessions
@@ -271,6 +285,20 @@ class InfrastructureProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
+    def password_reset_policy(self) -> PasswordResetPolicy:
+        s = self._settings
+        return PasswordResetPolicy(
+            s.password_reset_enabled,
+            s.password_reset_url,
+            timedelta(seconds=s.account_email_queue_ttl_s),
+            timedelta(seconds=s.account_email_resend_cooldown_s),
+        )
+
+    @provide(scope=Scope.APP)
+    def credential_state(self, pool: asyncpg.Pool) -> CredentialState:
+        return PgCredentialState(pool.acquire)
+
+    @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
         return UploadLimits(self._settings.kb_max_upload_bytes)
 
@@ -367,7 +395,9 @@ class InfrastructureProvider(Provider):
     login_attempts = alias(source=RedisAuthState, provides=LoginAttempts)
 
     @provide(scope=Scope.APP)
-    async def browser_sessions(self, identity: IdentityProvider) -> AsyncIterator[BrowserSessions]:
+    async def browser_sessions(
+        self, identity: IdentityProvider, credentials: CredentialState
+    ) -> AsyncIterator[BrowserSessions]:
         s = self._settings
         client = aioredis.from_url(
             s.redis_url.get_secret_value(),
@@ -381,6 +411,7 @@ class InfrastructureProvider(Provider):
                 s.session_lifetime_s,
                 s.session_refresh_margin_s,
                 s.session_refresh_lock_s,
+                credentials=credentials,
             )
         finally:
             await client.aclose()
@@ -463,6 +494,11 @@ class ApplicationProvider(Provider):
         ListInvitationsQuery,
         ActivateAccountHandler,
         ReconcileOnboardingHandler,
+        RequestPasswordResetHandler,
+        SendPasswordResetHandler,
+        ConfirmPasswordResetHandler,
+        ChangePasswordHandler,
+        PasswordMutationHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
         MonitorQuery,

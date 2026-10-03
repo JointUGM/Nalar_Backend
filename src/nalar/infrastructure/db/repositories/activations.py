@@ -1,4 +1,3 @@
-import hashlib
 import json
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -15,6 +14,7 @@ from nalar.application.ports.activations import (
 )
 from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.infrastructure.db.pool import DbConnection
+from nalar.infrastructure.db.repositories.auth_delivery import sender_lock, sender_retry_at
 from nalar.infrastructure.queue.pgmq import PgmqSender
 
 _INVITATION = """
@@ -546,8 +546,7 @@ class PgActivationsRepo:
         return [row["id"] for row in rows]
 
     async def _sender_lock(self, sender_key: str) -> None:
-        key = int.from_bytes(hashlib.sha256(sender_key.encode()).digest()[:8], signed=True)
-        await self._conn.execute("select pg_advisory_xact_lock($1)", key)
+        await sender_lock(self._conn, sender_key)
 
     async def _sender_retry_at(
         self,
@@ -558,35 +557,16 @@ class PgActivationsRepo:
         daily_limit: int,
         sender_spacing: timedelta,
     ) -> datetime | None:
-        rows = await self._conn.fetch(
-            "select id, status::text, payload from notifications"
-            " where type = 'account_invitation' and payload->>'sender_key' = $1",
+        return await sender_retry_at(
+            self._conn,
             sender_key,
+            now,
+            invitation.id,
+            invitation.queue_expires_at,
+            hourly_limit,
+            daily_limit,
+            sender_spacing,
         )
-        events: list[datetime] = []
-        retry_at = now
-        for row in rows:
-            payload = json.loads(row["payload"])
-            if payload.get("sender_suspended"):
-                return invitation.queue_expires_at
-            if hold := payload.get("sender_hold_until"):
-                retry_at = max(retry_at, datetime.fromisoformat(hold))
-            if (
-                row["id"] != invitation.id
-                and row["status"] == "pending"
-                and payload.get("lease_until")
-            ):
-                retry_at = max(retry_at, datetime.fromisoformat(payload["lease_until"]))
-            events.extend(datetime.fromisoformat(t) for t in payload.get("submission_times", []))
-        events = sorted(t for t in events if t > now - timedelta(days=1))
-        hourly = [t for t in events if t > now - timedelta(hours=1)]
-        if len(hourly) >= hourly_limit:
-            retry_at = max(retry_at, hourly[-hourly_limit] + timedelta(hours=1))
-        if len(events) >= daily_limit:
-            retry_at = max(retry_at, events[-daily_limit] + timedelta(days=1))
-        if events:
-            retry_at = max(retry_at, events[-1] + sender_spacing)
-        return retry_at if retry_at > now else None
 
     async def claim(
         self,

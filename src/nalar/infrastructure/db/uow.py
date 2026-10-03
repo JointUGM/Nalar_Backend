@@ -19,6 +19,7 @@ from nalar.application.ports.missions import MissionsRepo
 from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
+from nalar.application.ports.password_resets import PasswordResetsRepo
 from nalar.application.ports.publications import PublicationsRepo
 from nalar.application.ports.queue import QueueSender
 from nalar.application.ports.release import ReleaseRepo
@@ -44,6 +45,7 @@ from nalar.infrastructure.db.repositories.missions import PgMissionsRepo
 from nalar.infrastructure.db.repositories.notifications import PgNotificationsRepo
 from nalar.infrastructure.db.repositories.parents import PgParentsRepo
 from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
+from nalar.infrastructure.db.repositories.password_resets import PgPasswordResetsRepo
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
 from nalar.infrastructure.db.repositories.release import PgReleaseRepo
 from nalar.infrastructure.db.repositories.results import PgResultsRepo
@@ -83,6 +85,7 @@ class PgUnitOfWork:
     knowledge: KnowledgeRepo
     roster: RosterRepo
     activations: ActivationsRepo
+    password_resets: PasswordResetsRepo
 
     def __init__(self, acquire: AcquireConnection) -> None:
         self._acquire = acquire
@@ -125,6 +128,7 @@ class PgUnitOfWork:
         self.knowledge = PgKnowledgeRepo(conn)
         self.roster = PgRosterRepo(conn)
         self.activations = PgActivationsRepo(conn)
+        self.password_resets = PgPasswordResetsRepo(conn)
         return self
 
     async def __aexit__(

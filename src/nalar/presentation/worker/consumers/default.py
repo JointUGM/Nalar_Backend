@@ -4,6 +4,7 @@ from uuid import UUID
 
 from dishka import AsyncContainer
 
+from nalar.application.features.auth.commands.send_password_reset import SendPasswordResetHandler
 from nalar.application.features.integrity.commands.compute_session_flags import (
     ComputeSessionFlagsHandler,
 )
@@ -28,6 +29,11 @@ from nalar.presentation.worker.runner import Handler
 
 
 def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
+    async def send_password_reset(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(SendPasswordResetHandler)
+            await handler.execute(UUID(str(message["reset_id"])))
+
     async def send_invitation(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(SendAccountInvitationHandler)
@@ -61,6 +67,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             await handler.execute(UUID(str(message["import_id"])), UUID(str(message["job_id"])))
 
     return {
+        "send_password_reset": send_password_reset,
         ACCOUNT_INVITATION_KIND: send_invitation,
         DIGEST_DELIVERY_KIND: deliver_digest,
         GENERATION_KIND: generate_mission,

@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     student_login_domain: str = "siswa.nalar.id"
     account_email_queue_ttl_s: float = Field(default=172800, gt=0, allow_inf_nan=False)
     account_email_enabled: bool = False
+    password_reset_enabled: bool = False
+    password_reset_url: str | None = None
     account_email_activation_url: str | None = None
     account_email_request_timeout_s: float = Field(default=10, gt=0, allow_inf_nan=False)
     account_email_total_timeout_s: float = Field(default=15, gt=0, allow_inf_nan=False)
@@ -94,7 +96,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def account_delivery_limits(self) -> Self:
-        if not self.account_email_enabled:
+        if not self.account_email_enabled and not self.password_reset_enabled:
             return self
         if not (
             self.account_email_request_timeout_s
@@ -108,11 +110,20 @@ class Settings(BaseSettings):
             delay <= 0 for delay in self.account_email_retry_delays_s
         ):
             raise ValueError("invalid account-email retry delays")
-        url = urlsplit(self.account_email_activation_url or "")
+        for enabled, target, path in (
+            (self.account_email_enabled, self.account_email_activation_url, "/activate"),
+            (self.password_reset_enabled, self.password_reset_url, "/reset-password"),
+        ):
+            if enabled:
+                self._validate_auth_redirect(target, path)
+        return self
+
+    def _validate_auth_redirect(self, target: str | None, path: str) -> None:
+        url = urlsplit(target or "")
         origin = f"{url.scheme}://{url.netloc}"
         if (
-            url.path != "/activate"
-            or self.account_email_activation_url != origin + "/activate"
+            url.path != path
+            or target != origin + path
             or url.query
             or url.fragment
             or url.username is not None
@@ -127,7 +138,6 @@ class Settings(BaseSettings):
             and url.hostname in ("localhost", "127.0.0.1", "::1")
         ):
             raise ValueError("account activation URL requires HTTPS")
-        return self
 
     @model_validator(mode="after")
     def session_limits(self) -> Self:

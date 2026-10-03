@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from uuid import UUID
 
 import asyncpg
@@ -17,11 +17,13 @@ from nalar.application.ports.auth import (
 )
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
+from nalar.application.ports.password_resets import CredentialState
 from nalar.application.ports.storage import ObjectStorage
 from nalar.application.ports.uow import UnitOfWork
 from nalar.bootstrap.app import create_app
 from nalar.bootstrap.container import build_container
 from nalar.bootstrap.settings import Settings
+from nalar.infrastructure.auth.credential_state import PgCredentialState
 from nalar.infrastructure.auth.redis_sessions import RedisBrowserSessions
 from nalar.infrastructure.auth.redis_state import RedisAuthState
 from tests.integration.support.uow import uow_on
@@ -76,7 +78,13 @@ class HarnessAdapters(Provider):
 
     @provide(scope=Scope.APP)
     def sessions(self) -> BrowserSessions:
-        return RedisBrowserSessions(self._redis, self._identity, 43200, 60, 15)
+        return RedisBrowserSessions(
+            self._redis, self._identity, 43200, 60, 15, credentials=self.credentials()
+        )
+
+    @provide(scope=Scope.APP)
+    def credentials(self) -> CredentialState:
+        return PgCredentialState(lambda: nullcontext(self._conn))
 
     @provide(scope=Scope.APP)
     def clock(self) -> Clock:
