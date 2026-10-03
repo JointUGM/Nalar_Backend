@@ -40,6 +40,20 @@ def timeout(request: httpx.Request) -> httpx.Response:
     raise httpx.ConnectTimeout("slow", request=request)
 
 
+async def test_global_logout_uses_global_scope_and_cannot_silently_accept_rejected_token() -> None:
+    seen: list[httpx.Request] = []
+
+    def accepted(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(204)
+
+    await provider(accepted).sign_out_all("temporary-access")
+    assert seen[0].url.params["scope"] == "global"
+    assert seen[0].headers["Authorization"] == "Bearer temporary-access"
+    with pytest.raises(DependencyUnavailable):
+        await provider(lambda _: httpx.Response(401)).sign_out_all("rejected-access")
+
+
 async def test_sign_in_sends_the_password_grant_and_returns_only_tokens() -> None:
     seen: list[httpx.Request] = []
 

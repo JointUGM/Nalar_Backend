@@ -49,6 +49,10 @@ class IdentityProvider(Protocol):
         """Revoke the token's session in the auth server; an invalid token is not an error."""
         ...
 
+    async def sign_out_all(self, access_token: str) -> None:
+        """Revoke all provider sessions for the authenticated user."""
+        ...
+
 
 class SessionRevocations(Protocol):
     async def revoke(self, session_id: UUID) -> None:
@@ -67,8 +71,12 @@ class LoginAttempts(Protocol):
 
 
 class BrowserSessions(Protocol):
-    async def create(self, tokens: AuthTokens) -> str:
+    async def create(self, tokens: AuthTokens, *, expected_revision: int = 0) -> str:
         """Persist tokens and return a fresh opaque session identifier."""
+        ...
+
+    async def revoke_user(self, user_id: UUID) -> None:
+        """Invalidate every browser session and fence concurrent refreshes for the user."""
         ...
 
     async def resolve(self, session_id: str) -> AuthTokens:

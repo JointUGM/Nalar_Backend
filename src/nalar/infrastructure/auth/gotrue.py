@@ -81,12 +81,18 @@ class SupabaseIdentityProvider:
         return self._tokens(response)
 
     async def sign_out(self, access_token: str) -> None:
+        await self._logout(access_token, "local")
+
+    async def sign_out_all(self, access_token: str) -> None:
+        await self._logout(access_token, "global")
+
+    async def _logout(self, access_token: str, scope: str) -> None:
         response = await self._post(
             "/auth/v1/logout",
-            params={"scope": "local"},
+            params={"scope": scope},
             headers={"Authorization": f"Bearer {access_token}"},
         )
-        if response.status_code not in (401, 403, 404):
+        if scope == "global" or response.status_code not in (401, 403, 404):
             _raise_for_status(response)
 
     async def _post(self, path: str, **kwargs: Any) -> httpx.Response:

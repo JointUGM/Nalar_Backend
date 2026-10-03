@@ -43,7 +43,10 @@ class FakeCookieSessions:
             raise Unauthenticated()
         return AuthTokens(UUID(int=1), "access", "refresh", 1900000000)
 
-    async def create(self, tokens: AuthTokens) -> str:
+    async def create(self, tokens: AuthTokens, *, expected_revision: int = 0) -> str:
+        raise NotImplementedError
+
+    async def revoke_user(self, user_id: UUID) -> None:
         raise NotImplementedError
 
     async def delete(self, session_id: str) -> AuthTokens | None:

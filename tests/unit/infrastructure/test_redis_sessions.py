@@ -73,6 +73,32 @@ async def test_logout_during_refresh_cannot_restore_the_session() -> None:
         await sessions.resolve(session_id)
 
 
+async def test_user_revocation_fences_inflight_refresh_and_all_other_sessions() -> None:
+    started, resume = asyncio.Event(), asyncio.Event()
+
+    class PausedIdentity(FakeIdentityProvider):
+        async def refresh(self, refresh_token: str) -> AuthTokens:
+            started.set()
+            await resume.wait()
+            return await super().refresh(refresh_token)
+
+    identity = PausedIdentity()
+    sessions, _ = store(identity)
+    tokens = await identity.sign_in("a@b.id", identity.password)
+    first = await sessions.create(AuthTokens(tokens.user_id, "access", tokens.refresh_token, 900))
+    second = await sessions.create(AuthTokens(tokens.user_id, "access", "other", 2000))
+    refreshing = asyncio.create_task(sessions.resolve(first))
+    await started.wait()
+    try:
+        await sessions.revoke_user(tokens.user_id)
+    finally:
+        resume.set()
+    with pytest.raises(Unauthenticated):
+        await refreshing
+    with pytest.raises(Unauthenticated):
+        await sessions.resolve(second)
+
+
 async def test_expired_redis_session_is_rejected_even_with_a_fresh_access_token() -> None:
     sessions, redis = store()
     session_id = await sessions.create(AuthTokens(uuid4(), "access", "refresh", 2000))
@@ -87,6 +113,9 @@ async def test_redis_outage_never_authenticates_or_creates_a_session() -> None:
             raise RedisConnectionError("down")
 
         async def set(self, *args: object, **kwargs: object) -> None:
+            raise RedisConnectionError("down")
+
+        def pipeline(self, *args: object, **kwargs: object) -> object:
             raise RedisConnectionError("down")
 
     sessions = RedisBrowserSessions(Down(), FakeIdentityProvider(), 43200, 60, 15)  # type: ignore[arg-type]

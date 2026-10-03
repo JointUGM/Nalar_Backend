@@ -13,6 +13,7 @@ from redis.exceptions import RedisError, WatchError
 
 from nalar.application.errors import DependencyUnavailable, Unauthenticated
 from nalar.application.ports.auth import AuthTokens, IdentityProvider
+from nalar.application.ports.password_resets import CredentialState
 
 
 class RedisBrowserSessions:
@@ -24,6 +25,7 @@ class RedisBrowserSessions:
         refresh_margin_s: int,
         refresh_lock_s: int,
         clock: Callable[[], float] = time.time,
+        credentials: CredentialState | None = None,
     ) -> None:
         self._redis = redis
         self._identity = identity
@@ -31,14 +33,52 @@ class RedisBrowserSessions:
         self._margin_s = refresh_margin_s
         self._lock_s = refresh_lock_s
         self._clock = clock
+        self._credentials = credentials
 
-    async def create(self, tokens: AuthTokens) -> str:
+    async def create(self, tokens: AuthTokens, *, expected_revision: int = 0) -> str:
         session_id = secrets.token_urlsafe(32)
         try:
-            await self._redis.set(self._key(session_id), self._encode(tokens), ex=self._lifetime_s)
+            if self._credentials:
+                state = await self._credentials.snapshot(tokens.user_id)
+                if state.blocked or state.revision != expected_revision:
+                    raise Unauthenticated()
+            version_key = self._version_key(tokens.user_id)
+            async with self._redis.pipeline(transaction=True) as pipe:
+                await pipe.watch(version_key)
+                version = await pipe.get(version_key)
+                key = self._key(session_id)
+                pipe.multi()  # type: ignore[no-untyped-call]
+                pipe.set(key, self._encode(tokens, expected_revision, version), ex=self._lifetime_s)
+                pipe.sadd(self._index_key(tokens.user_id), key)
+                pipe.expire(self._index_key(tokens.user_id), self._lifetime_s)
+                await pipe.execute()
+            if self._credentials:
+                await self._validate(await self._redis.get(key))
+        except WatchError as exc:
+            raise Unauthenticated() from exc
         except (RedisError, OSError) as exc:
             raise DependencyUnavailable() from exc
         return session_id
+
+    async def revoke_user(self, user_id: UUID) -> None:
+        version_key, index_key = self._version_key(user_id), self._index_key(user_id)
+        try:
+            while True:
+                try:
+                    async with self._redis.pipeline(transaction=True) as pipe:
+                        await pipe.watch(version_key, index_key)
+                        keys = await pipe.smembers(index_key)
+                        pipe.multi()  # type: ignore[no-untyped-call]
+                        pipe.set(version_key, secrets.token_urlsafe(16))
+                        if keys:
+                            pipe.delete(*keys)
+                        pipe.delete(index_key)
+                        await pipe.execute()
+                    return
+                except WatchError:
+                    continue
+        except (RedisError, OSError) as exc:
+            raise DependencyUnavailable() from exc
 
     async def resolve(self, session_id: str) -> AuthTokens:
         key = self._key(session_id)
@@ -50,7 +90,7 @@ class RedisBrowserSessions:
                 raw = await self._redis.get(key)
                 if raw is None:
                     raise Unauthenticated()
-                tokens = self._decode(raw)
+                tokens = await self._validate(raw)
                 if tokens.expires_at > self._clock() + self._margin_s:
                     return tokens
                 if not await self._redis.set(lock_key, owner, nx=True, ex=self._lock_s):
@@ -61,7 +101,7 @@ class RedisBrowserSessions:
                     raw = await self._redis.get(key)
                     if raw is None:
                         raise Unauthenticated()
-                    tokens = self._decode(raw)
+                    tokens = await self._validate(raw)
                     if tokens.expires_at > self._clock() + self._margin_s:
                         return tokens
                     try:
@@ -72,15 +112,28 @@ class RedisBrowserSessions:
                     if refreshed.user_id != tokens.user_id:
                         await self._redis.delete(key)
                         raise Unauthenticated()
+                    await self._validate(raw)
+                    version_key = self._version_key(tokens.user_id)
                     async with self._redis.pipeline(transaction=True) as pipe:
-                        await pipe.watch(key, lock_key)
+                        await pipe.watch(key, lock_key, version_key)
                         if await pipe.get(key) != raw:
                             raise Unauthenticated()
                         if await pipe.get(lock_key) != owner.encode():
                             raise DependencyUnavailable()
+                        document = json.loads(raw)
+                        version = await pipe.get(version_key)
+                        if self._revision_value(version) != document.get("user_revision", ""):
+                            raise Unauthenticated()
                         pipe.multi()  # type: ignore[no-untyped-call]
-                        pipe.set(key, self._encode(refreshed), keepttl=True)
+                        pipe.set(
+                            key,
+                            self._encode(
+                                refreshed, document.get("credential_revision", 0), version
+                            ),
+                            keepttl=True,
+                        )
                         await pipe.execute()
+                    await self._validate(await self._redis.get(key))
                     return refreshed
                 finally:
                     await self._unlock(lock_key, owner)
@@ -111,8 +164,40 @@ class RedisBrowserSessions:
             raise Unauthenticated()
         return "session:" + hashlib.sha256(session_id.encode()).hexdigest()
 
-    def _encode(self, tokens: AuthTokens) -> str:
-        return json.dumps({**asdict(tokens), "user_id": str(tokens.user_id)})
+    def _index_key(self, user_id: UUID) -> str:
+        return f"session-user:{user_id}:keys"
+
+    def _version_key(self, user_id: UUID) -> str:
+        return f"session-user:{user_id}:revision"
+
+    async def _validate(self, raw: bytes | str | None) -> AuthTokens:
+        if raw is None:
+            raise Unauthenticated()
+        tokens = self._decode(raw)
+        document = json.loads(raw)
+        version = await self._redis.get(self._version_key(tokens.user_id))
+        if self._revision_value(version) != document.get("user_revision", ""):
+            raise Unauthenticated()
+        if self._credentials:
+            state = await self._credentials.snapshot(tokens.user_id)
+            if state.blocked or state.revision != document.get("credential_revision", 0):
+                raise Unauthenticated()
+        return tokens
+
+    def _encode(
+        self, tokens: AuthTokens, revision: int = 0, user_revision: bytes | str | None = None
+    ) -> str:
+        return json.dumps(
+            {
+                **asdict(tokens),
+                "user_id": str(tokens.user_id),
+                "credential_revision": revision,
+                "user_revision": self._revision_value(user_revision),
+            }
+        )
+
+    def _revision_value(self, value: bytes | str | None) -> str:
+        return value.decode() if isinstance(value, bytes) else value or ""
 
     def _decode(self, raw: bytes | str) -> AuthTokens:
         try:

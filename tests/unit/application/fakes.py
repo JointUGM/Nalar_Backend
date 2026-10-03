@@ -353,6 +353,10 @@ class FakeIdentityProvider:
     async def sign_out(self, access_token: str) -> None:
         self.revoked.append(access_token)
 
+    async def sign_out_all(self, access_token: str) -> None:
+        self.revoked.append(access_token)
+        self._live_refresh.clear()
+
     def _issue(self) -> AuthTokens:
         self._issued += 1
         refresh = f"refresh-{self._issued}"
