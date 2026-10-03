@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
 from nalar.domain.class_map import StudentAttempt
@@ -110,7 +110,70 @@ class ClassMapInput:
     attempts: tuple[StudentAttempt, ...]
 
 
+@dataclass(frozen=True)
+class AttentionEntry:
+    item_id: UUID
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class SafetyAttention(AttentionEntry):
+    session_id: UUID
+    publication_id: UUID
+    student_name: str
+    paused_at: datetime | None
+    kind: Literal["safety"] = "safety"
+
+
+@dataclass(frozen=True)
+class FlagAttention(AttentionEntry):
+    flag_id: UUID
+    flag_type: str
+    severity: str
+    session_id: UUID
+    publication_id: UUID
+    student_name: str
+    kind: Literal["flag"] = "flag"
+
+
+@dataclass(frozen=True)
+class KbReviewAttention(AttentionEntry):
+    knowledge_base_id: UUID
+    topic_title: str
+    pending_concepts: int
+    pending_misconceptions: int
+    kind: Literal["kb_review"] = "kb_review"
+
+
+@dataclass(frozen=True)
+class ReleaseReadyAttention(AttentionEntry):
+    publication_id: UUID
+    class_name: str
+    mission_title: str
+    eligible_count: int
+    kind: Literal["release_ready"] = "release_ready"
+
+
+AttentionItem = SafetyAttention | FlagAttention | KbReviewAttention | ReleaseReadyAttention
+AttentionCursor = tuple[datetime, str, UUID]
+
+
+@dataclass(frozen=True)
+class AttentionCounts:
+    safety: int
+    flag: int
+    kb_review: int
+    release_ready: int
+    total: int
+
+
 class ResultsRepo(Protocol):
+    async def teacher_attention(
+        self, actor_id: UUID, school_id: UUID, limit: int, after: AttentionCursor | None
+    ) -> tuple[list[AttentionItem], AttentionCounts]:
+        """Scoped queue and complete counts from one database snapshot."""
+        ...
+
     async def monitor(self, publication_id: UUID) -> Monitor | None:
         """Every actively enrolled student of the class, with their latest attempt."""
         ...

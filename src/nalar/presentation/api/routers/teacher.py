@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
@@ -11,12 +12,17 @@ from nalar.application.features.publications.queries.teacher_publications import
     TeacherPublications,
     TeacherPublicationsQuery,
 )
+from nalar.application.features.results.queries.teacher_attention import (
+    TeacherAttention,
+    TeacherAttentionQuery,
+)
 from nalar.application.ports.publications import NewRun
 from nalar.domain.labels import RunMode
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.teacher import (
     AssignmentOut,
     AssignmentsOut,
+    AttentionPageOut,
     CountsOut,
     PublicationOut,
     PublicationsPageOut,
@@ -26,6 +32,19 @@ from nalar.presentation.api.schemas.teacher import (
 )
 
 router = APIRouter(tags=["teacher"], route_class=DishkaRoute)
+
+
+@router.get("/teacher/attention", response_model=AttentionPageOut)
+async def attention(
+    user: CurrentUser,
+    query: FromDishka[TeacherAttentionQuery],
+    school_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    cursor: str | None = Query(None, max_length=512),
+) -> AttentionPageOut:
+    return AttentionPageOut.model_validate(
+        asdict(await query.execute(TeacherAttention(user.id, school_id, limit, cursor)))
+    )
 
 
 @router.post("/publications", status_code=201, response_model=PublishOut)

@@ -243,7 +243,8 @@ class PgSessionsRepo:
 
     async def pause_for_safety(self, session_id: UUID) -> bool:
         row = await self._conn.fetchrow(
-            "update sessions set status = 'paused_safety' where id = $1 and status = 'in_progress'"
+            "update sessions set status = 'paused_safety', safety_paused_at = statement_timestamp()"
+            " where id = $1 and status = 'in_progress'"
             " returning id",
             session_id,
         )
@@ -251,7 +252,8 @@ class PgSessionsRepo:
 
     async def resume(self, session_id: UUID, now: datetime) -> bool:
         row = await self._conn.fetchrow(
-            "update sessions set status = 'in_progress', last_activity_at = $2"
+            "update sessions set status = 'in_progress', last_activity_at = $2,"
+            " safety_paused_at = null"
             " where id = $1 and status = 'paused_safety' and deadline_at > $2 returning id",
             session_id,
             now,
