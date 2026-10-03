@@ -1,6 +1,42 @@
 {
   "components": {
     "schemas": {
+      "AcademicYearOut": {
+        "properties": {
+          "ends_on": {
+            "format": "date",
+            "title": "Ends On",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "starts_on": {
+            "format": "date",
+            "title": "Starts On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "starts_on",
+          "ends_on",
+          "is_current"
+        ],
+        "title": "AcademicYearOut",
+        "type": "object"
+      },
       "ActivateIn": {
         "additionalProperties": false,
         "properties": {
@@ -433,6 +469,13 @@
             },
             "title": "Source Chunk Ids",
             "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PageSourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
           }
         },
         "required": [
@@ -441,7 +484,8 @@
           "description",
           "review_status",
           "cp_learning_outcome_id",
-          "source_chunk_ids"
+          "source_chunk_ids",
+          "sources"
         ],
         "title": "ConceptOut",
         "type": "object"
@@ -799,6 +843,10 @@
             ],
             "title": "Expires At"
           },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
           "notification_id": {
             "anyOf": [
               {
@@ -821,6 +869,10 @@
               }
             ],
             "title": "Reason"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
           },
           "sent_at": {
             "anyOf": [
@@ -857,6 +909,8 @@
         },
         "required": [
           "user_id",
+          "full_name",
+          "role",
           "notification_id",
           "state",
           "reason",
@@ -1484,6 +1538,13 @@
             "title": "Source Chunk Ids",
             "type": "array"
           },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/PageSourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
           "statement": {
             "title": "Statement",
             "type": "string"
@@ -1497,7 +1558,8 @@
           "detection_cues",
           "counter_examples",
           "review_status",
-          "source_chunk_ids"
+          "source_chunk_ids",
+          "sources"
         ],
         "title": "MisconceptionOut",
         "type": "object"
@@ -1620,6 +1682,18 @@
             "title": "Run Status",
             "type": "string"
           },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
           "subject_name": {
             "title": "Subject Name",
             "type": "string"
@@ -1632,6 +1706,7 @@
         },
         "required": [
           "publication_id",
+          "session_id",
           "mission_title",
           "subject_name",
           "mode",
@@ -1930,6 +2005,18 @@
             "title": "Safety Paused",
             "type": "boolean"
           },
+          "session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -1942,6 +2029,7 @@
         },
         "required": [
           "student_id",
+          "session_id",
           "name",
           "status",
           "current_turn_index",
@@ -2050,6 +2138,24 @@
           "overridden_at"
         ],
         "title": "OverrideResultOut",
+        "type": "object"
+      },
+      "PageSourceOut": {
+        "properties": {
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page_start",
+          "page_end"
+        ],
+        "title": "PageSourceOut",
         "type": "object"
       },
       "ParentChildOut": {
@@ -3714,6 +3820,64 @@
           "completed"
         ],
         "title": "StudentMissionsOut",
+        "type": "object"
+      },
+      "StudentReflectionOut": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "mission_title",
+          "completed_at",
+          "content"
+        ],
+        "title": "StudentReflectionOut",
+        "type": "object"
+      },
+      "StudentReflectionsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudentReflectionOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "StudentReflectionsOut",
         "type": "object"
       },
       "SummaryPreviewOut": {
@@ -6099,6 +6263,58 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/academic-years": {
+      "get": {
+        "operationId": "academic_years_api_v1_schools__school_id__academic_years_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AcademicYearOut"
+                  },
+                  "title": "Response Academic Years Api V1 Schools  School Id  Academic Years Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Academic Years",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/account-invitations": {
       "get": {
         "operationId": "list_invitations_api_v1_schools__school_id__account_invitations_get",
@@ -6140,6 +6356,33 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "not_requested",
+                    "requires_assistance",
+                    "active",
+                    "pending",
+                    "sent",
+                    "failed",
+                    "expired",
+                    "activated",
+                    "superseded"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
             }
           }
         ],
@@ -6765,6 +7008,72 @@
           }
         ],
         "summary": "Window Session",
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/reflections": {
+      "get": {
+        "operationId": "reflections_api_v1_student_reflections_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentReflectionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Reflections",
         "tags": [
           "student"
         ]

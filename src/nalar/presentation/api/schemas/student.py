@@ -68,6 +68,7 @@ class WindowSessionOut(BaseModel):
 
 class MissionCardOut(BaseModel):
     publication_id: UUID
+    session_id: UUID | None
     mission_title: str
     subject_name: str
     mode: str
@@ -164,3 +165,15 @@ class ReflectionOut(BaseModel):
     completed_at: datetime | None
     content: str
     opening_guess: OpeningGuessOut | None
+
+
+class StudentReflectionOut(BaseModel):
+    session_id: UUID
+    mission_title: str
+    completed_at: datetime
+    content: str
+
+
+class StudentReflectionsOut(BaseModel):
+    items: list[StudentReflectionOut]
+    next_cursor: str | None

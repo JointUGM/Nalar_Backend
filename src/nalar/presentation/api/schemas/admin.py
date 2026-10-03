@@ -1,6 +1,15 @@
+from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel
+
+
+class AcademicYearOut(BaseModel):
+    id: UUID
+    name: str
+    starts_on: date
+    ends_on: date
+    is_current: bool
 
 
 class RosterQueuedOut(BaseModel):

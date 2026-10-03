@@ -390,8 +390,11 @@ async def test_expired_delivery_is_not_retried(conn: asyncpg.Connection, world: 
     await release(conn, world)
     clock, mailer = FakeClock(), RejectedOnceMailer()
     await dispatch(conn, clock, mailer)
+    notification_id = await conn.fetchval(
+        "select id from notifications where recipient_id = $1", world.parent_id
+    )
     clock.advance(hours=48)
-    await dispatch(conn, clock, mailer)
+    await DeliverDigestHandler(uow_on(conn), clock, mailer, TIMING).execute(notification_id)
     assert len(mailer.requests) == 1
 
 

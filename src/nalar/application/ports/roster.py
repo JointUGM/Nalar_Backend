@@ -1,10 +1,19 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
 from nalar.domain.roster import RowError
+
+
+@dataclass(frozen=True)
+class AcademicYear:
+    id: UUID
+    name: str
+    starts_on: date
+    ends_on: date
+    is_current: bool
 
 
 @dataclass(frozen=True)
@@ -27,6 +36,8 @@ class ImportView:
 
 
 class RosterRepo(Protocol):
+    async def academic_years(self, school_id: UUID) -> list[AcademicYear]: ...
+
     async def claim(
         self, import_id: UUID, job_id: UUID, now: datetime, stale_before: datetime
     ) -> int | None:

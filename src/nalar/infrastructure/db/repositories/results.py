@@ -28,7 +28,8 @@ _MONITOR_RUN = """
 """
 
 _MONITOR_STUDENTS = """
-    select ce.student_id, pr.full_name as name, s.status::text as session_status,
+    select ce.student_id, pr.full_name as name, s.id as session_id,
+           s.status::text as session_status,
            s.current_turn_index, s.deadline_at, rp.status::text as participant_status,
            (select count(*) from authenticity_flags f
              where f.session_id = s.id and f.status = 'open') as open_flag_count
@@ -36,7 +37,7 @@ _MONITOR_STUDENTS = """
       join class_enrollments ce on ce.class_id = p.class_id and ce.status = 'active'
       join profiles pr on pr.id = ce.student_id
       left join lateral (select * from sessions x
-                          where x.publication_id = p.id and x.student_id = ce.student_id
+                          where x.run_id = $2 and x.student_id = ce.student_id
                           order by x.attempt_number desc limit 1) s on true
       left join run_participants rp on rp.student_id = ce.student_id and rp.run_id = $2
      where p.id = $1
@@ -123,6 +124,7 @@ class PgResultsRepo:
         students = tuple(
             MonitorStudent(
                 student_id=r["student_id"],
+                session_id=r["session_id"],
                 name=r["name"],
                 status=r["session_status"] or r["participant_status"] or "not_joined",
                 current_turn_index=r["current_turn_index"],

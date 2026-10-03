@@ -21,6 +21,7 @@ class MissionCard:
     run_status: RunStatus
     attempt_status: str
     max_duration_minutes: int
+    session_id: UUID | None = None
 
     @property
     def bucket(self) -> Bucket:
@@ -43,6 +44,7 @@ class StudentMissionsQuery:
         return [
             MissionCard(
                 publication_id=r.publication_id,
+                session_id=r.session_id,
                 mission_title=r.mission_title,
                 subject_name=r.subject_name,
                 mode=r.mode,

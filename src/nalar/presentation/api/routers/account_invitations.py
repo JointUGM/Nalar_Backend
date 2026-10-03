@@ -9,6 +9,7 @@ from nalar.application.features.onboarding.commands.request_invitations import (
     RequestInvitationsHandler,
 )
 from nalar.application.features.onboarding.queries.list_invitations import ListInvitationsQuery
+from nalar.application.ports.activations import InvitationState
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.account_invitations import (
     InvitationAdmissionOut,
@@ -47,8 +48,9 @@ async def list_invitations(
     query: FromDishka[ListInvitationsQuery],
     cursor: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    state: InvitationState | None = None,
 ) -> InvitationPageOut:
-    page = await query.execute(user.id, school_id, cursor, limit)
+    page = await query.execute(user.id, school_id, cursor, limit, state)
     return InvitationPageOut(
         items=[InvitationStatusOut(**asdict(item)) for item in page.items],
         counts=page.counts,

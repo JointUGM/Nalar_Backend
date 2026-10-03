@@ -17,6 +17,7 @@ class MonitorRunOut(BaseModel):
 
 class MonitorStudentOut(BaseModel):
     student_id: UUID
+    session_id: UUID | None
     name: str
     status: str
     current_turn_index: int | None

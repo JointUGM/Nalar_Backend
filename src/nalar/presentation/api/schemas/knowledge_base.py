@@ -40,6 +40,11 @@ class MaterialOut(BaseModel):
     archived_at: datetime | None
 
 
+class PageSourceOut(BaseModel):
+    page_start: int
+    page_end: int
+
+
 class ConceptOut(BaseModel):
     id: UUID
     name: str
@@ -47,6 +52,7 @@ class ConceptOut(BaseModel):
     review_status: str
     cp_learning_outcome_id: UUID | None
     source_chunk_ids: list[UUID]
+    sources: list[PageSourceOut]
 
 
 class PrerequisiteOut(BaseModel):
@@ -63,6 +69,7 @@ class MisconceptionOut(BaseModel):
     counter_examples: list[str]
     review_status: str
     source_chunk_ids: list[UUID]
+    sources: list[PageSourceOut]
 
 
 class KbDetailOut(BaseModel):

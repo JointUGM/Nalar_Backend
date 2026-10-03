@@ -41,7 +41,13 @@ _RECIPIENT_SCOPE = """
 _STATUS = (
     """
     with recipients as (
-        select p.id as user_id, n.id as notification_id,
+        select p.id as user_id, p.full_name,
+               coalesce((select m.role::text from school_memberships m
+                          where m.school_id = $1 and m.user_id = p.id and m.status = 'active'
+                          order by case m.role when 'school_admin' then 0
+                                               when 'teacher' then 1 else 2 end limit 1),
+                        'parent') as role,
+               n.id as notification_id,
                case
                  when a.consumed_at is not null then 'activated'
                  when not p.has_real_email or nullif(btrim(p.contact_email), '') is null
@@ -396,7 +402,12 @@ class PgActivationsRepo:
         return InvitationAdmission(user_id, notification_id, True, "resend" if row else "initial")
 
     async def list_invitations(
-        self, school_id: UUID, now: datetime, cursor: UUID | None, limit: int
+        self,
+        school_id: UUID,
+        now: datetime,
+        cursor: UUID | None,
+        limit: int,
+        state: InvitationState | None = None,
     ) -> InvitationPage:
         counts_rows = await self._conn.fetch(
             _STATUS + "select state, count(*) as count from recipients group by state",
@@ -405,11 +416,13 @@ class PgActivationsRepo:
         )
         rows = await self._conn.fetch(
             _STATUS + "select * from recipients where ($3::uuid is null or user_id > $3)"
+            " and ($5::text is null or state = $5)"
             " order by user_id limit $4",
             school_id,
             now,
             cursor,
             limit + 1,
+            state,
         )
         items = [
             InvitationStatus(
@@ -420,12 +433,17 @@ class PgActivationsRepo:
                 row["created_at"],
                 row["sent_at"],
                 row["expires_at"],
+                row["full_name"],
+                row["role"],
             )
             for row in rows[:limit]
         ]
         counts = {cast(InvitationState, row["state"]): int(row["count"]) for row in counts_rows}
         return InvitationPage(
-            items, counts, sum(counts.values()), items[-1].user_id if len(rows) > limit else None
+            items,
+            counts,
+            counts.get(state, 0) if state else sum(counts.values()),
+            items[-1].user_id if len(rows) > limit else None,
         )
 
     def _invitation(self, row: Any) -> PendingInvitation:

@@ -1,8 +1,10 @@
 import json
+from dataclasses import asdict
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
 from nalar.application.errors import InvalidInput, TooManyRequests
@@ -27,6 +29,7 @@ from nalar.application.features.sessions.queries.lobby_state import LobbyStateQu
 from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
+from nalar.application.features.sessions.queries.student_reflections import StudentReflectionsQuery
 from nalar.application.ports.clock import Clock
 from nalar.domain.labels import ParticipantStatus
 from nalar.presentation.api.deps import CurrentUser
@@ -43,6 +46,8 @@ from nalar.presentation.api.schemas.student import (
     StateOut,
     StudentLobbyOut,
     StudentMissionsOut,
+    StudentReflectionOut,
+    StudentReflectionsOut,
     TelemetryAccepted,
     TelemetryIn,
     WarmupChoiceIn,
@@ -64,6 +69,7 @@ async def missions(
         buckets[card.bucket].append(
             MissionCardOut(
                 publication_id=card.publication_id,
+                session_id=card.session_id,
                 mission_title=card.mission_title,
                 subject_name=card.subject_name,
                 mode=card.mode,
@@ -75,6 +81,20 @@ async def missions(
             )
         )
     return StudentMissionsOut(**buckets)
+
+
+@router.get("/reflections", response_model=StudentReflectionsOut)
+async def reflections(
+    user: CurrentUser,
+    query: FromDishka[StudentReflectionsQuery],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    cursor: str | None = None,
+) -> StudentReflectionsOut:
+    page = await query.execute(user.id, limit, cursor)
+    return StudentReflectionsOut(
+        items=[StudentReflectionOut(**asdict(item)) for item in page.items],
+        next_cursor=page.next_cursor,
+    )
 
 
 @router.post("/runs/join", response_model=JoinOut)

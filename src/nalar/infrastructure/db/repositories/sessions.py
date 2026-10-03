@@ -9,6 +9,7 @@ from nalar.application.ports.sessions import (
     StateView,
     StoredTurn,
     StudentMissionRow,
+    StudentReflection,
     TurnContext,
 )
 from nalar.domain.labels import RunMode, RunStatus, SessionEndReason, SessionStatus
@@ -37,9 +38,7 @@ _STORED_TURNS = """
 _STUDENT_MISSIONS = """
     select p.id as publication_id, mi.title as mission_title, ss.name as subject_name,
            r.mode::text as mode, r.opens_at, r.closes_at, r.status::text as run_status,
-           (select s.status::text from sessions s
-             where s.publication_id = p.id and s.student_id = $1
-             order by s.attempt_number desc limit 1) as latest_status,
+           latest.status::text as latest_status, latest.id as session_id,
            mv.max_duration_minutes
       from class_enrollments ce
       join school_memberships m on m.school_id = ce.school_id and m.user_id = ce.student_id
@@ -50,6 +49,11 @@ _STUDENT_MISSIONS = """
       join missions mi on mi.id = mv.mission_id
       join knowledge_bases kb on kb.id = mi.knowledge_base_id
       join school_subjects ss on ss.id = kb.school_subject_id
+      left join lateral (
+          select s.id, s.status from sessions s
+           where s.publication_id = p.id and s.student_id = $1
+           order by s.attempt_number desc limit 1
+      ) latest on true
      where ce.student_id = $1 and ce.status = 'active'
      order by coalesce(r.opens_at, p.created_at) desc
 """
@@ -154,6 +158,30 @@ class PgSessionsRepo:
 
     async def student_mission_rows(self, student_id: UUID) -> list[StudentMissionRow]:
         return [_mission_row(r) for r in await self._conn.fetch(_STUDENT_MISSIONS, student_id)]
+
+    async def student_reflections(
+        self, student_id: UUID, limit: int, after: tuple[datetime, UUID] | None
+    ) -> list[StudentReflection]:
+        rows = await self._conn.fetch(
+            "select s.id as session_id, mi.title as mission_title, s.ended_at as completed_at,"
+            " sr.content from sessions s"
+            " join session_reflections sr on sr.session_id = s.id and sr.school_id = s.school_id"
+            " join session_evaluations e on e.session_id = s.id"
+            " join publications p on p.id = s.publication_id"
+            " join mission_versions mv on mv.id = p.mission_version_id"
+            " join missions mi on mi.id = mv.mission_id"
+            " where s.student_id = $1 and s.status in ('completed','timed_out','ended_safety')"
+            " and s.ended_at is not null"
+            " and exists (select 1 from school_memberships m where m.user_id = $1"
+            " and m.school_id = s.school_id and m.role = 'student' and m.status = 'active')"
+            " and ($3::timestamptz is null or (s.ended_at, s.id) < ($3, $4::uuid))"
+            " order by s.ended_at desc, s.id desc limit $2",
+            student_id,
+            limit,
+            after[0] if after else None,
+            after[1] if after else None,
+        )
+        return [StudentReflection(**dict(row)) for row in rows]
 
     async def touch(self, session_id: UUID, now: datetime) -> None:
         await self._conn.execute(

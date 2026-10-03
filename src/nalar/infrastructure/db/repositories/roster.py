@@ -2,12 +2,20 @@ from collections.abc import Sequence
 from datetime import datetime
 from uuid import UUID
 
-from nalar.application.ports.roster import ImportRef, ImportView
+from nalar.application.ports.roster import AcademicYear, ImportRef, ImportView
 from nalar.domain.roster import RowError
 from nalar.infrastructure.db.pool import DbConnection
 
 
 class PgRosterRepo:
+    async def academic_years(self, school_id: UUID) -> list[AcademicYear]:
+        rows = await self._conn.fetch(
+            "select id, label as name, starts_on, ends_on, is_current from academic_years"
+            " where school_id = $1 order by is_current desc, starts_on desc, id",
+            school_id,
+        )
+        return [AcademicYear(**dict(row)) for row in rows]
+
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 

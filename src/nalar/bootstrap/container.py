@@ -101,6 +101,7 @@ from nalar.application.features.roster.commands.upload_roster import (
     UploadRosterHandler,
 )
 from nalar.application.features.roster.queries.get_import import GetImportQuery
+from nalar.application.features.roster.queries.list_academic_years import ListAcademicYearsQuery
 from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
@@ -124,6 +125,7 @@ from nalar.application.features.sessions.queries.lobby_state import LobbyStateQu
 from nalar.application.features.sessions.queries.reflection import ReflectionQuery
 from nalar.application.features.sessions.queries.session_state import SessionStateQuery
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
+from nalar.application.features.sessions.queries.student_reflections import StudentReflectionsQuery
 from nalar.application.features.sessions.timing import TurnTiming
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import (
@@ -434,6 +436,7 @@ class ApplicationProvider(Provider):
         UploadRosterHandler,
         ImportRosterHandler,
         GetImportQuery,
+        ListAcademicYearsQuery,
         MeQuery,
         PublishHandler,
         TeacherAssignmentsQuery,
@@ -447,6 +450,7 @@ class ApplicationProvider(Provider):
         StartWindowSessionHandler,
         LobbyStateQuery,
         StudentMissionsQuery,
+        StudentReflectionsQuery,
         SubmitAnswerHandler,
         SessionStateQuery,
         RunTurnStepHandler,
