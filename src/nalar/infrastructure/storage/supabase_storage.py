@@ -28,3 +28,11 @@ class SupabaseStorage:
         response = await self._http.get(f"/storage/v1/object/{bucket}/{path}")
         response.raise_for_status()
         return response.content
+
+    async def signed_url(self, bucket: str, path: str, expires_in: int) -> str:
+        response = await self._http.post(
+            f"/storage/v1/object/sign/{bucket}/{path}", json={"expiresIn": expires_in}
+        )
+        response.raise_for_status()
+        value = str(response.json()["signedURL"])
+        return str(self._http.base_url).rstrip("/") + "/storage/v1" + value

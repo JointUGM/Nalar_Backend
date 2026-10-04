@@ -263,6 +263,8 @@ class KnowledgeRepo(Protocol):
         school_subject_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
     ) -> list[KbSummary]:
         """KBs the actor owns or whose subject they teach."""
         ...
@@ -360,3 +362,15 @@ class KnowledgeRepo(Protocol):
     async def misconception_view(self, misconception_id: UUID) -> MisconceptionView | None: ...
 
     async def review_queue(self, kb_id: UUID) -> tuple[int, int]: ...
+
+    async def require_active(self, kb_id: UUID) -> None: ...
+
+    async def archive(
+        self,
+        kb_id: UUID,
+        kind: Literal["kb", "material", "concept"],
+        item_id: UUID | None,
+        now: datetime,
+    ) -> UUID: ...
+
+    async def material_file(self, kb_id: UUID, material_id: UUID) -> tuple[str, str] | None: ...

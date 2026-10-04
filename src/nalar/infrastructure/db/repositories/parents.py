@@ -110,10 +110,19 @@ class PgParentsRepo:
 
     async def children(self, parent_id: UUID, limit: int, after: UUID | None) -> list[Child]:
         rows = await self._conn.fetch(
-            "select l.student_id, pr.full_name as name, sc.name as school_name"
+            "select l.student_id, pr.full_name as name, sc.name as school_name, sc.id as school_id,"
+            " current_class.name as class_name, seen.last_seen_at"
             "  from parent_student_links l"
             "  join profiles pr on pr.id = l.student_id"
             "  join schools sc on sc.id = l.school_id"
+            " left join parent_child_seen seen on seen.parent_id = l.parent_id"
+            " and seen.student_id = l.student_id"
+            " left join lateral(select c.name from class_enrollments ce"
+            " join classes c on c.id = ce.class_id join academic_years y on y.id = "
+            "c.academic_year_id"
+            " where ce.student_id = l.student_id and ce.school_id = l.school_id"
+            " and ce.status = 'active' and c.archived_at is null and y.is_current"
+            " order by c.id limit 1) current_class on true"
             " where l.parent_id = $1 and l.deactivated_at is null and sc.is_active"
             " and exists(select 1 from school_memberships m where m.user_id = l.student_id"
             " and m.school_id = l.school_id and m.role = 'student' and m.status = 'active')"
@@ -152,8 +161,14 @@ class PgParentsRepo:
         rows = await self._conn.fetch(
             f"""
             with visible as ({VISIBLE_SQL})
-            select v.session_id, v.mission_title, v.completed_at, sr.content
+            select v.session_id, v.mission_title, v.completed_at, sr.content,
+                   ss.name as subject_name
               from visible v join session_reflections sr on sr.session_id = v.session_id
+              join publications p on p.id = v.publication_id
+              join mission_versions mv on mv.id = p.mission_version_id
+              join missions mi on mi.id = mv.mission_id
+              join knowledge_bases kb on kb.id = mi.knowledge_base_id
+              join school_subjects ss on ss.id = kb.school_subject_id
              where ($3::timestamptz is null or (v.completed_at, v.session_id) < ($3, $4))
              order by v.completed_at desc, v.session_id desc
              limit $2
@@ -175,4 +190,14 @@ class PgParentsRepo:
     async def set_digest(self, user_id: UUID, enabled: bool) -> None:
         await self._conn.execute(
             "update profiles set weekly_digest_enabled = $2 where id = $1", user_id, enabled
+        )
+
+    async def mark_seen(self, parent_id: UUID, student_id: UUID, now: datetime) -> None:
+        await self._conn.execute(
+            "insert into parent_child_seen(parent_id, student_id, last_seen_at) values($1,$2,$3)"
+            " on conflict(parent_id,student_id) do update"
+            " set last_seen_at = greatest(parent_child_seen.last_seen_at, excluded.last_seen_at)",
+            parent_id,
+            student_id,
+            now,
         )

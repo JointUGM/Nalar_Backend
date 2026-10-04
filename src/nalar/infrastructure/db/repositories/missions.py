@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
+from nalar.application.errors import Conflict, NotFound
 from nalar.application.ports.ai_contract import (
     ApprovedConceptIn,
     ApprovedMisconceptionIn,
@@ -34,13 +35,19 @@ _MISSION_PAGE = """
               from mission_versions mv
              where mv.mission_id = mi.id and (mi.created_by = $1 or mv.reviewed_at is not null)
              order by mv.version_number desc limit 1) v on true
-     where mi.school_id = $2 and mi.archived_at is null
+     where mi.school_id = $2 and kb.archived_at is null
+       and (($8 = 'archived' and mi.archived_at is not null)
+            or ($8 is distinct from 'archived' and mi.archived_at is null))
        and ($3::uuid is null or kb.school_subject_id = $3)
        and (mi.created_by = $1 or (v.id is not null and exists (
              select 1 from teaching_assignments ta
               where ta.school_id = mi.school_id and ta.teacher_id = $1
                 and ta.school_subject_id = kb.school_subject_id)))
        and ($5::timestamptz is null or (mi.created_at, mi.id) < ($5, $6))
+       and ($7 = '' or position(lower($7) in lower(mi.title)) > 0)
+       and ($8::text is null or $8 = 'archived' or $8 = case
+              when v.locked_at is not null then 'locked'
+              when v.reviewed_at is not null then 'reviewed' else 'draft' end)
      order by mi.created_at desc, mi.id desc
      limit $4
 """
@@ -184,7 +191,8 @@ class PgMissionsRepo:
         row = await self._conn.fetchrow(
             "select mi.id, mi.school_id, mi.knowledge_base_id, kb.school_subject_id, mi.created_by"
             "  from missions mi join knowledge_bases kb on kb.id = mi.knowledge_base_id"
-            " where mi.id = $1 and mi.archived_at is null",
+            " where mi.id = $1 and mi.archived_at is null and kb.archived_at is null"
+            " for no key update of kb, mi",
             mission_id,
         )
         return MissionRef(**dict(row)) if row else None
@@ -373,6 +381,8 @@ class PgMissionsRepo:
         school_subject_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
     ) -> list[MissionSummary]:
         rows = await self._conn.fetch(
             _MISSION_PAGE,
@@ -382,6 +392,8 @@ class PgMissionsRepo:
             limit,
             after[0] if after else None,
             after[1] if after else None,
+            search.strip(),
+            status,
         )
         return [
             MissionSummary(
@@ -401,3 +413,22 @@ class PgMissionsRepo:
             )
             for r in rows
         ]
+
+    async def archive(self, mission_id: UUID, now: datetime) -> UUID:
+        row = await self._conn.fetchrow(
+            "select school_id from missions where id = $1 for update", mission_id
+        )
+        if row is None:
+            raise NotFound()
+        if await self._conn.fetchval(
+            "select exists(select 1 from jobs where entity_type = 'missions' and entity_id = $1"
+            " and status in ('queued','running'))",
+            mission_id,
+        ):
+            raise Conflict("MISSION_BUSY")
+        await self._conn.execute(
+            "update missions set archived_at = coalesce(archived_at, $2) where id = $1",
+            mission_id,
+            now,
+        )
+        return UUID(str(row["school_id"]))

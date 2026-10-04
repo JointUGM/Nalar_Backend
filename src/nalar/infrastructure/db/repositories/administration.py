@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+from typing import cast
 from uuid import UUID
 
 import asyncpg
@@ -664,6 +666,21 @@ class PgAdministrationRepo:
             raise Conflict("IDEMPOTENCY_CONFLICT")
         return row["id"], row["result_id"]
 
+    async def request_receipt(self, request_id: UUID) -> AdminRow | None:
+        value = await self._conn.fetchval(
+            "select response_payload from admin_requests where id = $1", request_id
+        )
+        return cast(AdminRow, json.loads(value)) if value else None
+
+    async def finish_receipt(self, request_id: UUID, result_id: UUID, receipt: AdminRow) -> None:
+        await self._conn.execute(
+            "update admin_requests set result_id = $2, response_payload = $3::jsonb"
+            " where id = $1 and response_payload is null",
+            request_id,
+            result_id,
+            json.dumps(receipt, default=str),
+        )
+
     async def finish_request(self, request_id: UUID, result_id: UUID) -> None:
         await self._conn.execute(
             "update admin_requests set result_id = $2 where id = $1 and result_id is null",
@@ -865,3 +882,62 @@ class PgAdministrationRepo:
         except asyncpg.UniqueViolationError as exc:
             raise Conflict("CURRICULUM_EXISTS") from exc
         return result
+
+    async def school_detail(self, school_id: UUID) -> AdminRow | None:
+        row = await self._conn.fetchrow(
+            "select s.id,s.name,s.npsn,s.city,case when s.is_active then 'active' else "
+            "'suspended' end as status,"
+            " (select p.full_name from school_memberships m join profiles p on p.id = m.user_id"
+            " where m.school_id = s.id and m.role = 'school_admin' and m.status = 'active'"
+            " order by m.joined_at,m.id limit 1) as admin_name,"
+            " (select count(distinct user_id)::int from (select user_id from school_memberships"
+            " where school_id = s.id and status = 'active' union select parent_id from "
+            "parent_student_links"
+            " where school_id = s.id and deactivated_at is null) users) as user_count "
+            "from schools s where s.id = $1",
+            school_id,
+        )
+        return dict(row) if row else None
+
+    async def edit_school(self, school_id: UUID, fields: AdminRow) -> None:
+        try:
+            row = await self._conn.fetchval(
+                "update schools set name = coalesce($2,name), npsn = coalesce($3,npsn),"
+                " city = coalesce($4,city) where id = $1 returning id",
+                school_id,
+                fields.get("name"),
+                fields.get("npsn"),
+                fields.get("city"),
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise Conflict("NPSN_EXISTS") from exc
+        if row is None:
+            raise NotFound()
+
+    async def ai_usage(self, start: datetime, end: datetime) -> list[AdminRow]:
+        rows = await self._conn.fetch(
+            "select (created_at at time zone 'UTC')::date as day, school_id, purpose::text, model,"
+            " count(*)::int as calls, count(*) filter(where status = 'failed')::int as "
+            "failed_calls,"
+            " coalesce(sum(input_tokens),0)::bigint as input_tokens,"
+            " coalesce(sum(output_tokens),0)::bigint as output_tokens,"
+            " coalesce(sum(cost_usd),0)::double precision as cost_usd from ai_invocations"
+            " where created_at >= $1 and created_at < $2 group by day,school_id,purpose,model"
+            " order by day desc,school_id,purpose,model",
+            start,
+            end,
+        )
+        return [dict(row) for row in rows]
+
+    async def audit_page(
+        self, school_id: UUID | None, limit: int, before: int | None
+    ) -> list[AdminRow]:
+        rows = await self._conn.fetch(
+            "select id,school_id,actor_id,action,entity_table,entity_id,created_at from audit_logs"
+            " where ($1::uuid is null or school_id = $1) and ($3::bigint is null or id < $3)"
+            " order by id desc limit $2",
+            school_id,
+            limit,
+            before,
+        )
+        return [dict(row) for row in rows]

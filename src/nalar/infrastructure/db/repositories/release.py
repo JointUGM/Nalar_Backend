@@ -184,14 +184,20 @@ class PgReleaseRepo:
 
     async def latest_insight(self, publication_id: UUID) -> StoredInsight | None:
         row = await self._conn.fetchrow(
-            "select narrative, counts_snapshot, generated_at from class_map_insights"
+            "select i.narrative, i.counts_snapshot, i.generated_at,"
+            " array(select content from follow_up_suggestions"
+            " where insight_id = i.id order by rank)"
+            " as suggestions from class_map_insights i"
             " where publication_id = $1 order by generated_at desc limit 1",
             publication_id,
         )
         if row is None:
             return None
         return StoredInsight(
-            row["narrative"], json.loads(row["counts_snapshot"]), row["generated_at"]
+            row["narrative"],
+            json.loads(row["counts_snapshot"]),
+            row["generated_at"],
+            tuple(row["suggestions"]),
         )
 
     async def finalize_runs(self, publication_id: UUID) -> int:

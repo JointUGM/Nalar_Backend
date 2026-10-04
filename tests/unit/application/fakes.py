@@ -104,6 +104,9 @@ class FakeStorage:
     async def download(self, bucket: str, path: str) -> bytes:
         return self.objects[(bucket, path)]
 
+    async def signed_url(self, bucket: str, path: str, expires_in: int) -> str:
+        return f"https://storage.test/{bucket}/{path}?expires={expires_in}"
+
 
 class RawBody(BaseModel):
     data: bytes

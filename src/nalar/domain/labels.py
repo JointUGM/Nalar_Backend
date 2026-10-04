@@ -24,6 +24,7 @@ class SessionStatus(StrEnum):
 
 
 class SessionEndReason(StrEnum):
+    teacher_ended = "teacher_ended"
     student_completed = "student_completed"
     max_turns_reached = "max_turns_reached"
     max_duration_reached = "max_duration_reached"

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
 
+from nalar.application.ports.administration import AdminRow
 from nalar.domain.class_map import StudentAttempt
 
 
@@ -260,3 +261,9 @@ class ResultsRepo(Protocol):
         """Targets as (id, name), misconceptions as (id, concept_id, statement), and each
         student's latest attempt only."""
         ...
+
+    async def student_history(
+        self, teacher_id: UUID, student_id: UUID, limit: int, after: tuple[datetime, UUID] | None
+    ) -> list[AdminRow]: ...
+
+    async def publication_scores(self, publication_id: UUID) -> list[AdminRow]: ...

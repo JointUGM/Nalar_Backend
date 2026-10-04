@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import UUID
 
+from nalar.application.ports.administration import AdminRow
 from nalar.application.ports.results import (
     AttentionCounts,
     AttentionCursor,
@@ -608,3 +609,60 @@ class PgResultsRepo:
                 if a["status"] == "completed" and a["evaluation_status"] == "completed"
             ),
         )
+
+    async def student_history(
+        self, teacher_id: UUID, student_id: UUID, limit: int, after: tuple[datetime, UUID] | None
+    ) -> list[AdminRow]:
+        rows = await self._conn.fetch(
+            "select s.id as session_id,s.publication_id,s.started_at,s.ended_at,s.status::text,"
+            " s.attempt_number,mi.title as mission_title,ss.name as subject_name,c.name "
+            "as class_name,"
+            " y.id as academic_year_id,y.label as academic_year_name,e.status::text as "
+            "evaluation_status,"
+            " coalesce((select "
+            "jsonb_agg(jsonb_build_object('dimension',score.dimension::text,'final_level',score.final_level)"
+            " order by score.dimension)"
+            " from evaluation_scores score where score.evaluation_id = e.id),'[]'::jsonb) as scores"
+            " from sessions s join publications p on p.id = s.publication_id"
+            " join classes c on c.id = p.class_id join academic_years y on y.id = "
+            "c.academic_year_id"
+            " join mission_versions mv on mv.id = p.mission_version_id join missions mi "
+            "on mi.id = mv.mission_id"
+            " join knowledge_bases kb on kb.id = mi.knowledge_base_id join "
+            "school_subjects ss on ss.id = kb.school_subject_id"
+            " left join session_evaluations e on e.session_id = s.id where s.student_id = $2"
+            " and exists(select 1 from teaching_assignments ta join school_memberships m"
+            " on m.user_id = ta.teacher_id and m.school_id = ta.school_id and m.role = "
+            "'teacher' and m.status = 'active'"
+            " join schools sc on sc.id = ta.school_id and sc.is_active"
+            " where ta.teacher_id = $1 and ta.school_id = s.school_id and "
+            "ta.school_subject_id = kb.school_subject_id"
+            " and exists(select 1 from class_enrollments ce where ce.class_id = "
+            "ta.class_id and ce.student_id = s.student_id))"
+            " and ($4::timestamptz is null or (s.started_at,s.id) < ($4,$5::uuid))"
+            " order by s.started_at desc,s.id desc limit $3",
+            teacher_id,
+            student_id,
+            limit,
+            after[0] if after else None,
+            after[1] if after else None,
+        )
+        return [{**dict(row), "scores": json.loads(row["scores"])} for row in rows]
+
+    async def publication_scores(self, publication_id: UUID) -> list[AdminRow]:
+        rows = await self._conn.fetch(
+            "select s.id as session_id,s.student_id,pr.full_name as "
+            "student_name,mi.title as mission_title,"
+            " mv.version_number as mission_version,c.name as "
+            "class_name,s.attempt_number,s.status::text,"
+            " e.status::text as evaluation_status,score.dimension::text,score.final_level"
+            " from v_latest_sessions s join profiles pr on pr.id = s.student_id"
+            " join publications p on p.id = s.publication_id join classes c on c.id = p.class_id"
+            " join mission_versions mv on mv.id = p.mission_version_id join missions mi "
+            "on mi.id = mv.mission_id"
+            " left join session_evaluations e on e.session_id = s.id"
+            " left join evaluation_scores score on score.evaluation_id = e.id"
+            " where s.publication_id = $1 order by pr.full_name,s.student_id,score.dimension",
+            publication_id,
+        )
+        return [dict(row) for row in rows]

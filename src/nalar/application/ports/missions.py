@@ -166,7 +166,11 @@ class MissionsRepo(Protocol):
         school_subject_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
     ) -> list[MissionSummary]:
         """The actor's own missions, plus missions with a reviewed version in a subject the
         actor teaches; for others' missions the latest version is the latest reviewed one."""
         ...
+
+    async def archive(self, mission_id: UUID, now: datetime) -> UUID: ...

@@ -42,6 +42,7 @@ class StoredInsight:
     narrative: str
     counts_snapshot: Mapping[str, Any]
     generated_at: datetime
+    suggestions: tuple[str, ...] = ()
 
 
 class ReleaseRepo(Protocol):

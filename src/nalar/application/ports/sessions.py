@@ -82,6 +82,7 @@ class StudentReflection:
     mission_title: str
     completed_at: datetime
     content: str
+    subject_name: str = ""
 
 
 class SessionsRepo(Protocol):
@@ -151,3 +152,5 @@ class SessionsRepo(Protocol):
     async def end_safety(self, session_id: UUID, now: datetime) -> bool:
         """paused_safety → ended_safety, once."""
         ...
+
+    async def end_teacher(self, session_id: UUID, now: datetime) -> bool: ...

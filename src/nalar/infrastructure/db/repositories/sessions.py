@@ -178,12 +178,14 @@ class PgSessionsRepo:
     ) -> list[StudentReflection]:
         rows = await self._conn.fetch(
             "select s.id as session_id, mi.title as mission_title, s.ended_at as completed_at,"
-            " sr.content from sessions s"
+            " sr.content, ss.name as subject_name from sessions s"
             " join session_reflections sr on sr.session_id = s.id and sr.school_id = s.school_id"
             " join session_evaluations e on e.session_id = s.id"
             " join publications p on p.id = s.publication_id"
             " join mission_versions mv on mv.id = p.mission_version_id"
             " join missions mi on mi.id = mv.mission_id"
+            " join knowledge_bases kb on kb.id = mi.knowledge_base_id"
+            " join school_subjects ss on ss.id = kb.school_subject_id"
             " where s.student_id = $1 and s.status in ('completed','timed_out','ended_safety')"
             " and s.ended_at is not null"
             " and exists(select 1 from schools sc where sc.id = s.school_id and sc.is_active)"
@@ -284,3 +286,15 @@ class PgSessionsRepo:
             now,
         )
         return row is not None
+
+    async def end_teacher(self, session_id: UUID, now: datetime) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update sessions set status = 'timed_out', end_reason = 'teacher_ended',"
+                " ended_at = $2, last_activity_at = $2 where id = $1 and status = "
+                "'in_progress' returning id",
+                session_id,
+                now,
+            )
+            is not None
+        )

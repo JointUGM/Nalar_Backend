@@ -48,6 +48,7 @@ class ReflectionView:
     content: str | None
     warmup_choice_id: str | None
     live_warmup: Mapping[str, Any] | None
+    subject_name: str = ""
 
 
 class EvaluationsRepo(Protocol):

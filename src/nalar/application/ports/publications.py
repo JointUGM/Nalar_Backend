@@ -75,6 +75,9 @@ class PublicationSummary:
     released_to_parents_at: datetime | None
     run: RunSummary
     counts: PublicationCounts
+    subject_name: str = ""
+    mission_id: UUID | None = None
+    mission_version: int | None = None
 
 
 @dataclass(frozen=True)
@@ -161,4 +164,7 @@ class PublicationsRepo(Protocol):
         class_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
+        school_subject_id: UUID | None = None,
     ) -> list[PublicationSummary]: ...
