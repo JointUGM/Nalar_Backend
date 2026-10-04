@@ -3,13 +3,15 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Query, Response
 
+from nalar.application.features.publications.commands.edit_publication import EditPublicationHandler
 from nalar.application.features.publications.commands.grant_attempt import (
     GrantAttempt,
     GrantAttemptHandler,
 )
 from nalar.application.features.publications.commands.publish import Publish, PublishHandler
+from nalar.application.features.publications.queries.get_publication import GetPublicationQuery
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
 )
@@ -37,8 +39,10 @@ from nalar.presentation.api.schemas.teacher import (
     AttentionPageOut,
     ClassStudentsOut,
     CountsOut,
+    PublicationDetailOut,
     PublicationOut,
     PublicationsPageOut,
+    PublicationWindowIn,
     PublishIn,
     PublishOut,
     RunSummaryOut,
@@ -164,3 +168,33 @@ async def publications(
         ],
         next_cursor=page.next_cursor,
     )
+
+
+@router.get("/publications/{publication_id}", response_model=PublicationDetailOut)
+async def publication_detail(
+    publication_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[GetPublicationQuery],
+) -> PublicationDetailOut:
+    return PublicationDetailOut.model_validate(await query.execute(user.id, publication_id))
+
+
+@router.patch("/publications/{publication_id}", status_code=204)
+async def edit_publication(
+    publication_id: UUID,
+    body: PublicationWindowIn,
+    user: CurrentUser,
+    handler: FromDishka[EditPublicationHandler],
+) -> Response:
+    await handler.execute(user.id, publication_id, body.opens_at, body.closes_at)
+    return Response(status_code=204)
+
+
+@router.post("/publications/{publication_id}/cancel", status_code=204)
+async def cancel_publication(
+    publication_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[EditPublicationHandler],
+) -> Response:
+    await handler.execute(user.id, publication_id, cancel=True)
+    return Response(status_code=204)
