@@ -1,5 +1,7 @@
-from dataclasses import dataclass
-from uuid import UUID, uuid4
+import hashlib
+import json
+from dataclasses import asdict, dataclass
+from uuid import UUID, uuid4, uuid5
 
 from nalar.application.errors import Conflict, Forbidden, InvalidInput, NotFound
 from nalar.application.features.knowledge_base.messages import detect_message
@@ -30,6 +32,7 @@ class CreateKb:
     school_subject_id: UUID
     topic_title: str
     file: UploadedPdf
+    request_key: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -46,8 +49,8 @@ def check_pdf(file: UploadedPdf, limits: UploadLimits) -> None:
         raise InvalidInput("FILE_NOT_PDF", "Hanya berkas PDF yang bisa diunggah.")
 
 
-def new_material(kb: KbRef, file: UploadedPdf) -> NewMaterial:
-    material_id = uuid4()
+def new_material(kb: KbRef, file: UploadedPdf, request_id: UUID | None = None) -> NewMaterial:
+    material_id = uuid5(request_id, "material") if request_id else uuid4()
     return NewMaterial(
         material_id, file.filename, f"{kb.school_id}/{kb.id}/{material_id}.pdf", len(file.data)
     )
@@ -64,6 +67,17 @@ async def queue_material(uow: UnitOfWork, kb: KbRef, actor_id: UUID, material: N
     )
     await uow.queue.send(KB_QUEUE, detect_message(material.id, job_id))
     return job_id
+
+
+def upload_digest(file: UploadedPdf, *fields: str) -> str:
+    payload = json.dumps([*fields, file.filename, hashlib.sha256(file.data).hexdigest()])
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def queued_receipt(receipt: dict[str, object]) -> MaterialQueued:
+    return MaterialQueued(
+        *(UUID(str(receipt[key])) for key in ("knowledge_base_id", "material_id", "job_id"))
+    )
 
 
 class CreateKbHandler:
@@ -87,11 +101,27 @@ class CreateKbHandler:
                 key = topic_key(cmd.topic_title)
             except ValueError as exc:
                 raise InvalidInput(details={"topic_title": "invalid"}) from exc
+            request_id = None
+            if cmd.request_key:
+                request_id, _ = await self._uow.administration.request(
+                    cmd.actor_id,
+                    "kb.create",
+                    cmd.school_id,
+                    cmd.request_key,
+                    upload_digest(cmd.file, str(cmd.school_subject_id), cmd.topic_title.strip()),
+                )
+                receipt = await self._uow.administration.request_receipt(request_id)
+                if receipt:
+                    return queued_receipt(receipt)
             if await self._uow.knowledge.topic_exists(cmd.school_subject_id, key):
                 raise Conflict("TOPIC_ALREADY_EXISTS")
-        kb = KbRef(uuid4(), cmd.school_id, cmd.school_subject_id, cmd.actor_id)
-        material = new_material(kb, cmd.file)
-        # ponytail: a failed insert below leaves an orphan object; add a bucket sweep if it matters.
+        kb = KbRef(
+            uuid5(request_id, "kb") if request_id else uuid4(),
+            cmd.school_id,
+            cmd.school_subject_id,
+            cmd.actor_id,
+        )
+        material = new_material(kb, cmd.file, request_id)
         await self._storage.upload(
             MATERIALS_BUCKET, material.storage_path, cmd.file.data, "application/pdf"
         )
@@ -102,7 +132,22 @@ class CreateKbHandler:
                 cmd.actor_id, cmd.school_id, cmd.school_subject_id
             ):
                 raise Forbidden("NOT_ASSIGNED_TO_SUBJECT")
+            if cmd.request_key:
+                assert request_id is not None
+                await self._uow.administration.request(
+                    cmd.actor_id,
+                    "kb.create",
+                    cmd.school_id,
+                    cmd.request_key,
+                    upload_digest(cmd.file, str(cmd.school_subject_id), cmd.topic_title.strip()),
+                )
+                receipt = await self._uow.administration.request_receipt(request_id)
+                if receipt:
+                    return queued_receipt(receipt)
             if not await self._uow.knowledge.create_kb(kb, key, cmd.topic_title.strip()):
                 raise Conflict("TOPIC_ALREADY_EXISTS")
             job_id = await queue_material(self._uow, kb, cmd.actor_id, material)
-        return MaterialQueued(kb.id, material.id, job_id)
+            result = MaterialQueued(kb.id, material.id, job_id)
+            if request_id:
+                await self._uow.administration.finish_receipt(request_id, kb.id, asdict(result))
+        return result

@@ -1,3 +1,5 @@
+import hashlib
+import json
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -11,6 +13,7 @@ class CreateMission:
     kb_id: UUID
     title: str
     learning_objective: str
+    request_key: UUID | None = None
 
 
 class CreateMissionHandler:
@@ -23,12 +26,28 @@ class CreateMissionHandler:
         async with self._uow:
             if not await self._uow.authz.can_read_kb(cmd.actor_id, cmd.kb_id):
                 raise NotFound()
+            await self._uow.knowledge.require_active(cmd.kb_id)
             school_id = await self._uow.missions.kb_school_id(cmd.kb_id)
             assert school_id is not None
-            return await self._uow.missions.create_mission(
+            request_id = None
+            if cmd.request_key:
+                digest = hashlib.sha256(
+                    json.dumps(
+                        [str(cmd.kb_id), cmd.title.strip(), cmd.learning_objective.strip()]
+                    ).encode()
+                ).hexdigest()
+                request_id, result_id = await self._uow.administration.request(
+                    cmd.actor_id, "mission.create", cmd.kb_id, cmd.request_key, digest
+                )
+                if result_id:
+                    return result_id
+            result_id = await self._uow.missions.create_mission(
                 school_id,
                 cmd.kb_id,
                 cmd.actor_id,
                 cmd.title.strip(),
                 cmd.learning_objective.strip(),
             )
+            if request_id:
+                await self._uow.administration.finish_request(request_id, result_id)
+            return result_id
