@@ -52,6 +52,46 @@ class ClassIn(Body):
     homeroom_teacher_id: UUID | None = None
 
 
+class StudentPlacementIn(Body):
+    user_ids: list[UUID] = Field(min_length=1, max_length=500)
+
+
+class ParentLinkIn(Body):
+    relationship: Literal["ayah", "ibu", "wali"] | None = None
+
+
+class PersonCreateIn(Body):
+    full_name: Name
+    role: Literal["teacher", "student", "parent"]
+    email: str | None = Field(default=None, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    nisn: str | None = Field(default=None, pattern=r"^\d{10}$")
+    class_id: UUID | None = None
+    child_ids: list[UUID] = Field(default_factory=list, max_length=100)
+    relationship: Literal["ayah", "ibu", "wali"] | None = None
+    invite: bool = False
+
+    @model_validator(mode="after")
+    def role_fields(self) -> Self:
+        if self.email is not None:
+            self.email = self.email.strip().lower()
+        if self.role == "student":
+            if self.nisn is None or self.class_id is None or self.child_ids:
+                raise ValueError("A student requires nisn and class_id")
+        elif self.email is None or self.nisn is not None or self.class_id is not None:
+            raise ValueError("A teacher or parent requires email")
+        if self.role == "parent" and not self.child_ids:
+            raise ValueError("A parent requires at least one child in this school")
+        if self.role != "parent" and (self.child_ids or self.relationship is not None):
+            raise ValueError("Child links belong to parents")
+        if self.invite and self.email is None:
+            raise ValueError("An invitation requires a real email")
+        return self
+
+
+class PersonCreatedOut(BaseModel):
+    user_id: UUID
+
+
 class ClassPatchIn(Body):
     name: Name | None = None
     grade_level: int | None = Field(None, ge=1, le=12)

@@ -9,6 +9,7 @@ from nalar.application.features.administration.commands.assign_teacher import As
 from nalar.application.features.administration.commands.create_academic_year import (
     CreateAcademicYearHandler,
 )
+from nalar.application.features.administration.commands.create_person import CreatePersonHandler
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
@@ -16,11 +17,16 @@ from nalar.application.features.administration.commands.edit_person import EditP
 from nalar.application.features.administration.commands.install_school_admin import (
     InstallSchoolAdminHandler,
 )
+from nalar.application.features.administration.commands.place_students import PlaceStudentsHandler
 from nalar.application.features.administration.commands.publish_curriculum import (
     PublishCurriculumHandler,
 )
+from nalar.application.features.administration.commands.reactivate_person import (
+    ReactivatePersonHandler,
+)
 from nalar.application.features.administration.commands.save_class import SaveClassHandler
 from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
+from nalar.application.features.administration.commands.set_parent_link import SetParentLinkHandler
 from nalar.application.features.administration.commands.set_school_status import (
     SetSchoolStatusHandler,
 )
@@ -44,6 +50,7 @@ from nalar.application.ports.administration import (
     LearningOutcome,
     NewAcademicYear,
     NewCurriculum,
+    NewPerson,
     NewSchool,
 )
 from nalar.presentation.api.deps import CurrentUser
@@ -61,7 +68,10 @@ from nalar.presentation.api.schemas.administration import (
     CurriculumMappingIn,
     CurriculumVersionOut,
     KbOwnerIn,
+    ParentLinkIn,
     PeoplePageOut,
+    PersonCreatedOut,
+    PersonCreateIn,
     PersonEditIn,
     Role,
     SchoolAdminOut,
@@ -71,6 +81,7 @@ from nalar.presentation.api.schemas.administration import (
     SchoolIn,
     SchoolsPageOut,
     SchoolStatusIn,
+    StudentPlacementIn,
     SubjectOut,
 )
 
@@ -311,3 +322,63 @@ async def publish_curriculum(
     )
     result = await handler.execute(user.id, details, key)
     return CurriculumCreatedOut(curriculum_version_id=result)
+
+
+@router.post("/schools/{school_id}/people", status_code=201, response_model=PersonCreatedOut)
+async def create_person(
+    school_id: UUID,
+    body: PersonCreateIn,
+    key: RequestKey,
+    user: CurrentUser,
+    handler: FromDishka[CreatePersonHandler],
+) -> PersonCreatedOut:
+    result = await handler.execute(user.id, school_id, NewPerson(**body.model_dump()), key)
+    return PersonCreatedOut(user_id=result)
+
+
+@router.post("/schools/{school_id}/people/{user_id}/reactivate", status_code=204)
+async def reactivate_person(
+    school_id: UUID,
+    user_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[ReactivatePersonHandler],
+) -> Response:
+    await handler.execute(user.id, school_id, user_id)
+    return Response(status_code=204)
+
+
+@router.post("/schools/{school_id}/classes/{class_id}/students", status_code=204)
+async def place_students(
+    school_id: UUID,
+    class_id: UUID,
+    body: StudentPlacementIn,
+    user: CurrentUser,
+    handler: FromDishka[PlaceStudentsHandler],
+) -> Response:
+    await handler.execute(user.id, school_id, class_id, body.user_ids)
+    return Response(status_code=204)
+
+
+@router.put("/schools/{school_id}/people/{parent_id}/children/{student_id}", status_code=204)
+async def link_child(
+    school_id: UUID,
+    parent_id: UUID,
+    student_id: UUID,
+    body: ParentLinkIn,
+    user: CurrentUser,
+    handler: FromDishka[SetParentLinkHandler],
+) -> Response:
+    await handler.execute(user.id, school_id, parent_id, student_id, True, body.relationship)
+    return Response(status_code=204)
+
+
+@router.delete("/schools/{school_id}/people/{parent_id}/children/{student_id}", status_code=204)
+async def unlink_child(
+    school_id: UUID,
+    parent_id: UUID,
+    student_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[SetParentLinkHandler],
+) -> Response:
+    await handler.execute(user.id, school_id, parent_id, student_id, False)
+    return Response(status_code=204)
