@@ -9,6 +9,9 @@ class Child:
     student_id: UUID
     name: str
     school_name: str
+    school_id: UUID | None = None
+    class_name: str | None = None
+    last_seen_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -27,6 +30,7 @@ class ParentReflection:
     mission_title: str
     completed_at: datetime
     content: str
+    subject_name: str = ""
 
 
 @dataclass(frozen=True)
@@ -75,3 +79,5 @@ class ParentsRepo(Protocol):
     async def digest_enabled(self, user_id: UUID) -> bool: ...
 
     async def set_digest(self, user_id: UUID, enabled: bool) -> None: ...
+
+    async def mark_seen(self, parent_id: UUID, student_id: UUID, now: datetime) -> None: ...

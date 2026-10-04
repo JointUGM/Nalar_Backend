@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from typing import Any, Literal, Protocol
 from uuid import UUID
 
+from nalar.application.ports.administration import AdminRow
+
 
 @dataclass(frozen=True)
 class PendingDigest:
@@ -88,3 +90,11 @@ class NotificationsRepo(Protocol):
     ) -> int:
         """D-S26-15: in-app only, once per teacher per publication; returns how many were new."""
         ...
+
+    async def inbox(
+        self, actor_id: UUID, limit: int, after: tuple[datetime, UUID] | None
+    ) -> list[AdminRow]: ...
+
+    async def unread_count(self, actor_id: UUID) -> int: ...
+
+    async def read(self, actor_id: UUID, notification_id: UUID, now: datetime) -> bool: ...

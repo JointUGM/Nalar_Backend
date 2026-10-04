@@ -13,6 +13,9 @@ class TeacherPublications:
     class_id: UUID | None
     limit: int
     cursor: str | None
+    search: str = ""
+    status: str | None = None
+    school_subject_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -33,7 +36,7 @@ class TeacherPublicationsQuery:
             ):
                 raise NotFound()
             rows = await self._uow.publications.teacher_publications(
-                q.actor_id, q.class_id, q.limit + 1, after
+                q.actor_id, q.class_id, q.limit + 1, after, q.search, q.status, q.school_subject_id
             )
         items = rows[: q.limit]
         return PublicationPage(

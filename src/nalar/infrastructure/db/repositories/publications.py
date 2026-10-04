@@ -19,7 +19,9 @@ from nalar.domain.labels import RunMode, RunStatus
 from nalar.infrastructure.db.pool import DbConnection
 
 _TEACHES_PUBLICATION_CLASS = """
-    exists (select 1 from teaching_assignments ta
+    exists (select 1 from schools sc where sc.id = p.school_id and sc.is_active)
+    and c.archived_at is null
+    and exists (select 1 from teaching_assignments ta
               join school_memberships m on m.school_id = ta.school_id and m.user_id = ta.teacher_id
                                        and m.role = 'teacher' and m.status = 'active'
              where ta.teacher_id = $1 and ta.class_id = p.class_id
@@ -213,7 +215,8 @@ class PgPublicationsRepo:
             " mv.reviewed_at is not null as reviewed"
             " from mission_versions mv join missions mi on mi.id = mv.mission_id"
             " join knowledge_bases kb on kb.id = mi.knowledge_base_id"
-            " where mv.id = $1 and mi.archived_at is null",
+            " where mv.id = $1 and mi.archived_at is null and kb.archived_at is null"
+            " for share of mi, kb",
             version_id,
         )
         return VersionForPublish(**dict(row)) if row else None
@@ -295,10 +298,15 @@ class PgPublicationsRepo:
         class_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
+        school_subject_id: UUID | None = None,
     ) -> list[PublicationSummary]:
         # The f-string slot takes only the fixed fragment above; values are $n parameters.
         rows = await self._conn.fetch(
             f"""select p.id, mi.title, c.id as class_id, c.name as class_name, p.created_at,
+                       ss.name as subject_name, mi.id as mission_id,
+                       mv.version_number as mission_version,
                        p.released_to_parents_at, r.id as run_id, r.mode::text as mode,
                        r.status::text as status, r.opens_at, r.closes_at, r.join_code,
                        (select count(*) from sessions s where s.publication_id = p.id) as started,
@@ -315,19 +323,29 @@ class PgPublicationsRepo:
                   join mission_versions mv on mv.id = p.mission_version_id
                   join missions mi on mi.id = mv.mission_id
                   join knowledge_bases kb on kb.id = mi.knowledge_base_id
+                  join school_subjects ss on ss.id = kb.school_subject_id
                  where p.cancelled_at is null and {_TEACHES_PUBLICATION_CLASS}
                    and ($2::uuid is null or p.class_id = $2)
                    and ($3::timestamptz is null or (p.created_at, p.id) < ($3, $4::uuid))
+                   and ($6 = '' or position(lower($6) in lower(mi.title || ' ' || c.name)) > 0)
+                   and ($7::text is null or r.status::text = $7)
+                   and ($8::uuid is null or kb.school_subject_id = $8)
                  order by p.created_at desc, p.id desc limit $5""",
             teacher_id,
             class_id,
             after[0] if after else None,
             after[1] if after else None,
             limit,
+            search.strip(),
+            status,
+            school_subject_id,
         )
         return [
             PublicationSummary(
                 id=r["id"],
+                subject_name=r["subject_name"],
+                mission_id=r["mission_id"],
+                mission_version=r["mission_version"],
                 mission_title=r["title"],
                 class_id=r["class_id"],
                 class_name=r["class_name"],

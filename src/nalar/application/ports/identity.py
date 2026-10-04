@@ -17,6 +17,7 @@ class Me:
     roles: tuple[RoleRef, ...]
     is_parent: bool
     is_platform_admin: bool
+    email: str | None = None
 
 
 class IdentityRepo(Protocol):

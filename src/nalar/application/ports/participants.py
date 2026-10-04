@@ -66,3 +66,7 @@ class ParticipantsRepo(Protocol):
     async def submit_warmup(self, participant_id: UUID, choice_id: str, now: datetime) -> bool:
         """False when a choice is already stored or the participant is no longer waiting."""
         ...
+
+    async def cancel_waiting(
+        self, run_id: UUID, participant_id: UUID | None, student_id: UUID | None
+    ) -> UUID: ...

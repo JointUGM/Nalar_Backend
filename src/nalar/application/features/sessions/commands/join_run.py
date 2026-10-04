@@ -7,7 +7,7 @@ from nalar.application.ports.clock import Clock
 from nalar.application.ports.participants import JoinTarget, Participant
 from nalar.application.ports.uow import UnitOfWork
 from nalar.domain.join_code import normalize
-from nalar.domain.labels import RunStatus
+from nalar.domain.labels import ParticipantStatus, RunStatus
 from nalar.domain.sessions import deadline_at
 
 
@@ -48,6 +48,8 @@ class JoinRunHandler:
                 raise NotFound("JOIN_CODE_INVALID")
             existing = await uow.participants.get(target.run_id, actor)
             if existing is not None:
+                if existing.status is ParticipantStatus.cancelled:
+                    raise Conflict("PARTICIPANT_CANCELLED")
                 return await self._result(target, existing)
             if await uow.sessions.latest_for_student(target.publication_id, actor) is not None:
                 raise Conflict("ATTEMPT_ALREADY_USED")

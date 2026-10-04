@@ -4,6 +4,7 @@ from uuid import UUID
 
 import asyncpg
 
+from nalar.application.errors import Conflict, NotFound
 from nalar.application.ports.participants import JoinTarget, Participant
 from nalar.domain.labels import ParticipantStatus, RunMode, RunStatus
 from nalar.infrastructure.db.pool import DbConnection
@@ -129,3 +130,26 @@ class PgParticipantsRepo:
             now,
         )
         return row is not None
+
+    async def cancel_waiting(
+        self, run_id: UUID, participant_id: UUID | None, student_id: UUID | None
+    ) -> UUID:
+        row = await self._conn.fetchrow(
+            "select id, status::text, session_id from run_participants where run_id = $1"
+            " and (($2::uuid is not null and id = $2) or ($3::uuid is not null and "
+            "student_id = $3)) for update",
+            run_id,
+            participant_id,
+            student_id,
+        )
+        if row is None:
+            raise NotFound()
+        if row["status"] == "cancelled":
+            return UUID(str(row["id"]))
+        if row["status"] != "waiting" or row["session_id"] is not None:
+            raise Conflict("PARTICIPANT_ALREADY_STARTED")
+        await self._conn.execute(
+            "update run_participants set status = 'cancelled' where id = $1 and status = 'waiting'",
+            row["id"],
+        )
+        return UUID(str(row["id"]))

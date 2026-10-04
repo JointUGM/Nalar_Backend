@@ -151,6 +151,7 @@ class MeOut(BaseModel):
     roles: list[RoleOut]
     is_parent: bool
     is_platform_admin: bool
+    email: str | None = None
 
 
 class RunIn(Body):
@@ -255,6 +256,9 @@ class PublicationOut(BaseModel):
     class_name: str
     run: RunSummaryOut
     counts: CountsOut
+    subject_name: str = ""
+    mission_id: UUID | None = None
+    mission_version: int | None = None
     released_to_parents_at: datetime | None
 
 

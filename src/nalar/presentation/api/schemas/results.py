@@ -59,6 +59,7 @@ class ConceptCountOut(BaseModel):
 
 
 class InsightOut(BaseModel):
+    suggestions: list[str] = Field(default_factory=list)
     narrative: str
     generated_at: datetime
 

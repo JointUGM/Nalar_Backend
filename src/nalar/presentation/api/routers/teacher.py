@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
@@ -117,7 +117,10 @@ async def attention(
 
 @router.post("/publications", status_code=201, response_model=PublishOut)
 async def publish(
-    body: PublishIn, user: CurrentUser, handler: FromDishka[PublishHandler]
+    body: PublishIn,
+    user: CurrentUser,
+    handler: FromDishka[PublishHandler],
+    idempotency_key: Annotated[UUID | None, Header(alias="Idempotency-Key")] = None,
 ) -> PublishOut:
     run = NewRun(
         RunMode(body.run.mode), body.run.opens_at, body.run.closes_at, body.run.planner_mode
@@ -128,6 +131,7 @@ async def publish(
             version_id=body.mission_version_id,
             class_id=body.class_id,
             run=run,
+            request_key=idempotency_key,
         )
     )
     return PublishOut(
@@ -151,13 +155,21 @@ async def publications(
     class_id: UUID | None = None,
     limit: int = Query(20, ge=1, le=100),
     cursor: str | None = None,
+    q: str = Query("", max_length=120),
+    status: Literal["scheduled", "lobby", "open", "closed"] | None = None,
+    school_subject_id: UUID | None = None,
 ) -> PublicationsPageOut:
-    page = await query.execute(TeacherPublications(user.id, class_id, limit, cursor))
+    page = await query.execute(
+        TeacherPublications(user.id, class_id, limit, cursor, q, status, school_subject_id)
+    )
     return PublicationsPageOut(
         items=[
             PublicationOut(
                 id=p.id,
                 mission_title=p.mission_title,
+                subject_name=p.subject_name,
+                mission_id=p.mission_id,
+                mission_version=p.mission_version,
                 class_id=p.class_id,
                 class_name=p.class_name,
                 run=RunSummaryOut(**vars(p.run)),

@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Literal
 from uuid import UUID
 
 import asyncpg
 
-from nalar.application.errors import NotFound
+from nalar.application.errors import Conflict, NotFound
 from nalar.application.features.knowledge_base.s1_calls import BuildBusy
 from nalar.application.ports.ai_contract import (
     CandidateIn,
@@ -44,8 +45,9 @@ _KB_PAGE = """
     select kb.id, kb.topic_key, kb.topic_title, kb.school_subject_id, kb.owner_teacher_id,
            (select count(*) from teaching_materials m
              where m.knowledge_base_id = kb.id and m.archived_at is null)::int as material_count,
-           (select count(*) from material_sections s
-             where s.knowledge_base_id = kb.id and s.build_status = 'built')::int
+           (select count(*) from material_sections s join teaching_materials m
+             on m.id = s.material_id where s.knowledge_base_id = kb.id
+             and m.archived_at is null and s.build_status = 'built')::int
                as built_section_count,
            ((select count(*) from concepts c where c.knowledge_base_id = kb.id
               and c.review_status = 'pending' and c.archived_at is null)
@@ -58,12 +60,29 @@ _KB_PAGE = """
       from knowledge_bases kb
       left join profiles pr on pr.id = kb.owner_teacher_id
      where kb.school_id = $2
+       and (($8 = 'archived' and kb.archived_at is not null)
+            or ($8 is distinct from 'archived' and kb.archived_at is null))
        and ($3::uuid is null or kb.school_subject_id = $3)
        and (kb.owner_teacher_id = $1 or exists (
              select 1 from teaching_assignments ta
               where ta.school_id = kb.school_id
                 and ta.school_subject_id = kb.school_subject_id and ta.teacher_id = $1))
        and ($5::timestamptz is null or (kb.created_at, kb.id) < ($5, $6))
+       and ($7 = '' or position(lower($7) in lower(kb.topic_title)) > 0)
+       and ($8::text is null or $8 = 'archived' or $8 = case
+          when exists(select 1 from material_sections s join teaching_materials m
+            on m.id = s.material_id where s.knowledge_base_id = kb.id
+            and m.archived_at is null and s.build_status = 'building') then 'building'
+          when exists(select 1 from material_sections s join teaching_materials m
+            on m.id = s.material_id where s.knowledge_base_id = kb.id
+            and m.archived_at is null and s.build_status = 'failed') then 'failed'
+          when exists(select 1 from concepts c where c.knowledge_base_id = kb.id
+            and c.archived_at is null and c.review_status = 'pending') or exists(
+            select 1 from misconceptions x where x.knowledge_base_id = kb.id
+            and x.archived_at is null and x.review_status = 'pending') then 'pending'
+          when exists(select 1 from concepts c where c.knowledge_base_id = kb.id
+            and c.archived_at is null and c.review_status = 'approved') then 'ready'
+          else 'empty' end)
      order by kb.created_at desc, kb.id desc
      limit $4
 """
@@ -324,6 +343,8 @@ class PgKnowledgeRepo:
         school_subject_id: UUID | None,
         limit: int,
         after: tuple[datetime, UUID] | None,
+        search: str = "",
+        status: str | None = None,
     ) -> list[KbSummary]:
         rows = await self._conn.fetch(
             _KB_PAGE,
@@ -333,6 +354,8 @@ class PgKnowledgeRepo:
             limit,
             after[0] if after else None,
             after[1] if after else None,
+            search.strip(),
+            status,
         )
         return [KbSummary(**dict(r)) for r in rows]
 
@@ -347,7 +370,7 @@ class PgKnowledgeRepo:
         visible = "and review_status = 'approved'" if approved_only else ""
         materials = await self._conn.fetch(
             "select id, title, page_count, pages_without_text, archived_at from teaching_materials"
-            " where knowledge_base_id = $1 order by created_at",
+            " where knowledge_base_id = $1 and archived_at is null order by created_at",
             kb_id,
         )
         concepts = await self._conn.fetch(
@@ -916,3 +939,80 @@ class PgKnowledgeRepo:
             kb_id,
         )
         return (int(row["pending_concepts"]), int(row["pending_misconceptions"])) if row else (0, 0)
+
+    async def require_active(self, kb_id: UUID) -> None:
+        row = await self._conn.fetchrow(
+            "select archived_at from knowledge_bases where id = $1 for no key update", kb_id
+        )
+        if row is None:
+            raise NotFound()
+        if row["archived_at"]:
+            raise Conflict("KNOWLEDGE_BASE_ARCHIVED")
+
+    async def archive(
+        self,
+        kb_id: UUID,
+        kind: Literal["kb", "material", "concept"],
+        item_id: UUID | None,
+        now: datetime,
+    ) -> UUID:
+        school_id: UUID | None = await self._conn.fetchval(
+            "select school_id from knowledge_bases where id = $1 for update", kb_id
+        )
+        if school_id is None:
+            raise NotFound()
+        if await self._conn.fetchval(
+            "select exists(select 1 from jobs j where j.status in ('queued','running') and ("
+            " (j.entity_type = 'teaching_materials' and j.entity_id in"
+            "  (select id from teaching_materials where knowledge_base_id = $1)) or"
+            " (j.entity_type = 'material_sections' and j.entity_id in"
+            "  (select id from material_sections where knowledge_base_id = $1)) or"
+            " (j.entity_type = 'missions' and j.entity_id in"
+            " (select id from missions where knowledge_base_id = $1))))",
+            kb_id,
+        ):
+            raise Conflict("KNOWLEDGE_BASE_BUSY")
+        if kind == "kb":
+            await self._conn.execute(
+                "update knowledge_bases set archived_at = coalesce(archived_at, $2) where id = $1",
+                kb_id,
+                now,
+            )
+        elif kind == "material":
+            found = await self._conn.fetchval(
+                "update teaching_materials set archived_at = coalesce(archived_at, $3)"
+                " where knowledge_base_id = $1 and id = $2 returning id",
+                kb_id,
+                item_id,
+                now,
+            )
+            if not found:
+                raise NotFound()
+        else:
+            found = await self._conn.fetchval(
+                "update concepts set archived_at = coalesce(archived_at, $3)"
+                " where knowledge_base_id = $1 and id = $2 and review_status = 'approved' "
+                "returning id",
+                kb_id,
+                item_id,
+                now,
+            )
+            if not found:
+                raise NotFound()
+            await self._conn.execute(
+                "update misconceptions set archived_at = coalesce(archived_at, $3)"
+                " where knowledge_base_id = $1 and concept_id = $2",
+                kb_id,
+                item_id,
+                now,
+            )
+        return school_id
+
+    async def material_file(self, kb_id: UUID, material_id: UUID) -> tuple[str, str] | None:
+        row = await self._conn.fetchrow(
+            "select storage_bucket, storage_path from teaching_materials"
+            " where knowledge_base_id = $1 and id = $2",
+            kb_id,
+            material_id,
+        )
+        return (row["storage_bucket"], row["storage_path"]) if row else None

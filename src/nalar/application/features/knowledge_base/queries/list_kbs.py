@@ -14,6 +14,8 @@ class ListKbs:
     school_subject_id: UUID | None
     limit: int
     cursor: str | None
+    search: str = ""
+    status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -32,7 +34,7 @@ class ListKbsQuery:
             if not await self._uow.authz.is_school_teacher(q.actor_id, q.school_id):
                 raise NotFound()
             rows = await self._uow.knowledge.kb_page(
-                q.actor_id, q.school_id, q.school_subject_id, q.limit + 1, after
+                q.actor_id, q.school_id, q.school_subject_id, q.limit + 1, after, q.search, q.status
             )
         items = rows[: q.limit]
         last = items[-1] if len(rows) > q.limit else None

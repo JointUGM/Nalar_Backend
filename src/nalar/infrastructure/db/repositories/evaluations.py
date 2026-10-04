@@ -29,11 +29,14 @@ _TURNS = """
 _REFLECTION = """
     select s.status::text as status,
            exists (select 1 from session_evaluations e where e.session_id = s.id) as evaluated,
-           mi.title as mission_title, s.ended_at, r.content, rp.warmup_choice_id, mv.live_warmup
+           mi.title as mission_title, s.ended_at, r.content, rp.warmup_choice_id,
+           mv.live_warmup, ss.name as subject_name
       from sessions s
       join publications p on p.id = s.publication_id
       join mission_versions mv on mv.id = p.mission_version_id
       join missions mi on mi.id = mv.mission_id
+      join knowledge_bases kb on kb.id = mi.knowledge_base_id
+      join school_subjects ss on ss.id = kb.school_subject_id
       left join session_reflections r on r.session_id = s.id
       left join run_participants rp on rp.session_id = s.id
      where s.id = $1

@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 class FilledInsight:
     narrative: str
     generated_at: datetime
+    suggestions: tuple[str, ...] = ()
 
 
 class ClassMapQuery:
@@ -44,7 +45,14 @@ class ClassMapQuery:
                 narrative = fill(
                     stored.narrative, counts_from_snapshot(stored.counts_snapshot), self._lexicon
                 )
-                insight = FilledInsight(narrative, stored.generated_at)
+                insight = FilledInsight(
+                    narrative,
+                    stored.generated_at,
+                    tuple(
+                        fill(text, counts_from_snapshot(stored.counts_snapshot), self._lexicon)
+                        for text in stored.suggestions
+                    ),
+                )
             except PlaceholderError:
                 log.warning(
                     "stored insight no longer fills", extra={"publication_id": str(publication_id)}

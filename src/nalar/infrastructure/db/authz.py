@@ -221,3 +221,13 @@ class PgAuthz:
             user_id,
             school_id,
         )
+
+    async def teaches_student(self, user_id: UUID, student_id: UUID) -> bool:
+        return await self._check(
+            f"""select exists(select 1 from class_enrollments ce
+            join teaching_assignments ta on ta.class_id = ce.class_id
+            where ce.student_id = $2 and ta.teacher_id = $1
+            and {_ACTIVE_TEACHER.format(school="ta.school_id")})""",
+            user_id,
+            student_id,
+        )

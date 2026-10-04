@@ -13,6 +13,7 @@ async def me(user: CurrentUser, query: FromDishka[MeQuery]) -> MeOut:
     result = await query.execute(user.id)
     return MeOut(
         user_id=result.user_id,
+        email=result.email,
         full_name=result.full_name,
         roles=[
             RoleOut(role=r.role, school_id=r.school_id, school_name=r.school_name)

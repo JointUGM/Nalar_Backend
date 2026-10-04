@@ -204,7 +204,14 @@ async def test_reflection_is_pending_then_stored_and_stable(
     assert first.status_code == 200
     assert first.json() == second.json()
     assert not forbidden_keys(json_keys(first.json()))
-    assert set(first.json()) == {"mission_title", "completed_at", "content", "opening_guess"}
+    assert first.json()["subject_name"] == "IPA"
+    assert set(first.json()) == {
+        "mission_title",
+        "completed_at",
+        "content",
+        "opening_guess",
+        "subject_name",
+    }
 
 
 async def test_no_answer_has_no_reflection(conn: asyncpg.Connection, world: World) -> None:

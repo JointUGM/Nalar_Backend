@@ -10,6 +10,7 @@ from nalar.application.ports.administration import AdministrationRepo
 from nalar.application.ports.ai import AiInvocationLog
 from nalar.application.ports.audit import AuditRepo
 from nalar.application.ports.authz import Authz
+from nalar.application.ports.client_events import ClientEventsRepo
 from nalar.application.ports.evaluations import EvaluationsRepo
 from nalar.application.ports.grading import GradingRepo
 from nalar.application.ports.identity import IdentityRepo
@@ -37,6 +38,7 @@ from nalar.infrastructure.db.repositories.activations import PgActivationsRepo
 from nalar.infrastructure.db.repositories.administration import PgAdministrationRepo
 from nalar.infrastructure.db.repositories.ai_invocations import PgAiInvocationLog
 from nalar.infrastructure.db.repositories.audit import PgAuditRepo
+from nalar.infrastructure.db.repositories.client_events import PgClientEventsRepo
 from nalar.infrastructure.db.repositories.evaluations import PgEvaluationsRepo
 from nalar.infrastructure.db.repositories.grading import PgGradingRepo
 from nalar.infrastructure.db.repositories.identity import PgIdentityRepo
@@ -63,6 +65,7 @@ type AcquireConnection = Callable[[], AbstractAsyncContextManager[DbConnection]]
 
 
 class PgUnitOfWork:
+    client_events: ClientEventsRepo
     authz: Authz
     administration: AdministrationRepo
     ai_invocations: AiInvocationLog
@@ -107,6 +110,7 @@ class PgUnitOfWork:
             self._lease = None
             self._transaction = None
             raise
+        self.client_events = PgClientEventsRepo(conn)
         self.authz = PgAuthz(conn)
         self.administration = PgAdministrationRepo(conn)
         self.ai_invocations = PgAiInvocationLog(conn)
