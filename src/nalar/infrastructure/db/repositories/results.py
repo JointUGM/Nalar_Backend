@@ -153,7 +153,7 @@ _MONITOR_RUN = """
 """
 
 _MONITOR_STUDENTS = """
-    select ce.student_id, pr.full_name as name, s.id as session_id,
+    select ce.student_id, pr.full_name as name, s.id as session_id, rp.id as participant_id,
            s.status::text as session_status,
            s.current_turn_index, s.deadline_at, rp.status::text as participant_status,
            (select count(*) from authenticity_flags f
@@ -472,6 +472,7 @@ class PgResultsRepo:
         students = tuple(
             MonitorStudent(
                 student_id=r["student_id"],
+                participant_id=r["participant_id"],
                 session_id=r["session_id"],
                 name=r["name"],
                 status=r["session_status"] or r["participant_status"] or "not_joined",
