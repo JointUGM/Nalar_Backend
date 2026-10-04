@@ -17,6 +17,7 @@ class MonitorRunOut(BaseModel):
 
 class MonitorStudentOut(BaseModel):
     student_id: UUID
+    participant_id: UUID | None
     session_id: UUID | None
     name: str
     status: str

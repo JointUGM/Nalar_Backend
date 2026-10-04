@@ -3656,6 +3656,18 @@
             "title": "Open Flag Count",
             "type": "integer"
           },
+          "participant_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participant Id"
+          },
           "safety_paused": {
             "title": "Safety Paused",
             "type": "boolean"
@@ -3684,6 +3696,7 @@
         },
         "required": [
           "student_id",
+          "participant_id",
           "session_id",
           "name",
           "status",

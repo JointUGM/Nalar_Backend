@@ -191,6 +191,8 @@ async def test_monitor_lists_every_enrolled_student(conn: asyncpg.Connection, wo
         )
     body = response.json()
     assert sorted(s["status"] for s in body["students"]) == ["in_progress", "not_joined"]
+    unjoined = next(s for s in body["students"] if s["status"] == "not_joined")
+    assert unjoined["participant_id"] is None
     assert body["run"]["id"] == str(world.run_id)
 
 

@@ -359,11 +359,15 @@ async def test_cancelled_lobby_participants_cannot_start_or_rejoin(
             "/student/runs/join", headers=as_user(student), json={"join_code": "ABC234"}
         )
         assert joined.status_code == 200, joined.text
-        participant_id = await conn.fetchval(
-            "select id from run_participants where run_id = $1 and student_id = $2",
-            world.run_id,
-            student,
+        monitor = await api.get(
+            f"/publications/{world.publication_id}/monitor",
+            headers=as_user(world.teacher_id),
         )
+        assert monitor.status_code == 200, monitor.text
+        row = next(s for s in monitor.json()["students"] if s["student_id"] == str(student))
+        assert row["status"] == "waiting"
+        participant_id = row["participant_id"]
+        assert participant_id == joined.json()["participant_id"]
         removed = await api.post(
             f"/runs/{world.run_id}/participants/{participant_id}/remove",
             headers=as_user(world.teacher_id),
