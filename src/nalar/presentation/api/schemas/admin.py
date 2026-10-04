@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -30,3 +30,20 @@ class RosterImportOut(BaseModel):
     rows_succeeded: int | None
     rows_failed: int | None
     errors: list[RowErrorOut]
+
+
+class RosterImportSummaryOut(BaseModel):
+    import_id: UUID
+    academic_year_id: UUID
+    status: str
+    rows_total: int | None
+    rows_succeeded: int | None
+    rows_failed: int | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class RosterImportsPageOut(BaseModel):
+    items: list[RosterImportSummaryOut]
+    next_cursor: UUID | None
+    total: int
