@@ -19,6 +19,7 @@ from nalar.application.features.administration.commands.assign_teacher import As
 from nalar.application.features.administration.commands.create_academic_year import (
     CreateAcademicYearHandler,
 )
+from nalar.application.features.administration.commands.create_person import CreatePersonHandler
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
@@ -26,11 +27,16 @@ from nalar.application.features.administration.commands.edit_person import EditP
 from nalar.application.features.administration.commands.install_school_admin import (
     InstallSchoolAdminHandler,
 )
+from nalar.application.features.administration.commands.place_students import PlaceStudentsHandler
 from nalar.application.features.administration.commands.publish_curriculum import (
     PublishCurriculumHandler,
 )
+from nalar.application.features.administration.commands.reactivate_person import (
+    ReactivatePersonHandler,
+)
 from nalar.application.features.administration.commands.save_class import SaveClassHandler
 from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
+from nalar.application.features.administration.commands.set_parent_link import SetParentLinkHandler
 from nalar.application.features.administration.commands.set_school_status import (
     SetSchoolStatusHandler,
 )
@@ -77,6 +83,7 @@ from nalar.application.features.knowledge_base.commands.build_section import (
     BuildSectionHandler,
     S1Settings,
 )
+from nalar.application.features.knowledge_base.commands.create_item import CreateItemHandler
 from nalar.application.features.knowledge_base.commands.create_kb import (
     CreateKbHandler,
     UploadLimits,
@@ -122,11 +129,13 @@ from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
 from nalar.application.features.parents.queries.progress import ProgressQuery
 from nalar.application.features.parents.queries.reflections import ParentReflectionsQuery
+from nalar.application.features.publications.commands.edit_publication import EditPublicationHandler
 from nalar.application.features.publications.commands.grant_attempt import (
     GrantAttemptHandler,
     GrantTiming,
 )
 from nalar.application.features.publications.commands.publish import PublishDefaults, PublishHandler
+from nalar.application.features.publications.queries.get_publication import GetPublicationQuery
 from nalar.application.features.publications.queries.teacher_assignments import (
     TeacherAssignmentsQuery,
 )
@@ -159,6 +168,7 @@ from nalar.application.features.roster.commands.upload_roster import (
 )
 from nalar.application.features.roster.queries.get_import import GetImportQuery
 from nalar.application.features.roster.queries.list_academic_years import ListAcademicYearsQuery
+from nalar.application.features.roster.queries.list_imports import ListImportsQuery
 from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
@@ -517,6 +527,14 @@ class InfrastructureProvider(Provider):
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
     handlers = provide_all(
+        CreatePersonHandler,
+        PlaceStudentsHandler,
+        ReactivatePersonHandler,
+        SetParentLinkHandler,
+        ListImportsQuery,
+        EditPublicationHandler,
+        GetPublicationQuery,
+        CreateItemHandler,
         AssignTeacherHandler,
         CreateAcademicYearHandler,
         DeactivatePersonHandler,

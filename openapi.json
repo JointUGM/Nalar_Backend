@@ -648,6 +648,26 @@
         "title": "ClassIn",
         "type": "object"
       },
+      "ClassMapEdgeOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "prerequisite_id": {
+            "format": "uuid",
+            "title": "Prerequisite Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_id",
+          "prerequisite_id"
+        ],
+        "title": "ClassMapEdgeOut",
+        "type": "object"
+      },
       "ClassMapOut": {
         "properties": {
           "concepts": {
@@ -674,6 +694,13 @@
                 "type": "null"
               }
             ]
+          },
+          "prerequisites": {
+            "items": {
+              "$ref": "#/components/schemas/ClassMapEdgeOut"
+            },
+            "title": "Prerequisites",
+            "type": "array"
           }
         },
         "required": [
@@ -981,6 +1008,41 @@
         "title": "ConceptCountOut",
         "type": "object"
       },
+      "ConceptCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ItemText"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ConceptCreateIn",
+        "type": "object"
+      },
       "ConceptOut": {
         "properties": {
           "cp_learning_outcome_id": {
@@ -1077,6 +1139,29 @@
           }
         },
         "title": "ConceptPatchIn",
+        "type": "object"
+      },
+      "ConfigOut": {
+        "properties": {
+          "account_email_enabled": {
+            "title": "Account Email Enabled",
+            "type": "boolean"
+          },
+          "password_reset_enabled": {
+            "title": "Password Reset Enabled",
+            "type": "boolean"
+          },
+          "weekly_digest_enabled": {
+            "title": "Weekly Digest Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "password_reset_enabled",
+          "account_email_enabled",
+          "weekly_digest_enabled"
+        ],
+        "title": "ConfigOut",
         "type": "object"
       },
       "ConnectionEvent": {
@@ -1956,6 +2041,11 @@
         "title": "InvitationsQueuedOut",
         "type": "object"
       },
+      "ItemText": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
       "JobOut": {
         "properties": {
           "entity_id": {
@@ -2664,6 +2754,48 @@
           "students"
         ],
         "title": "MisconceptionCountOut",
+        "type": "object"
+      },
+      "MisconceptionCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "correct_understanding": {
+            "$ref": "#/components/schemas/ItemText"
+          },
+          "counter_examples": {
+            "items": {
+              "$ref": "#/components/schemas/ItemText"
+            },
+            "maxItems": 30,
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "$ref": "#/components/schemas/ItemText"
+            },
+            "maxItems": 30,
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "source_chunk_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Source Chunk Ids",
+            "type": "array"
+          },
+          "statement": {
+            "$ref": "#/components/schemas/ItemText"
+          }
+        },
+        "required": [
+          "statement",
+          "correct_understanding"
+        ],
+        "title": "MisconceptionCreateIn",
         "type": "object"
       },
       "MisconceptionOut": {
@@ -3438,6 +3570,29 @@
         "title": "ParentChildrenOut",
         "type": "object"
       },
+      "ParentLinkIn": {
+        "additionalProperties": false,
+        "properties": {
+          "relationship": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ayah",
+                  "ibu",
+                  "wali"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          }
+        },
+        "title": "ParentLinkIn",
+        "type": "object"
+      },
       "ParentPreferencesIn": {
         "additionalProperties": false,
         "properties": {
@@ -3728,6 +3883,110 @@
         "title": "PeoplePageOut",
         "type": "object"
       },
+      "PersonCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "child_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Child Ids",
+            "type": "array"
+          },
+          "class_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "full_name": {
+            "$ref": "#/components/schemas/Name"
+          },
+          "invite": {
+            "default": false,
+            "title": "Invite",
+            "type": "boolean"
+          },
+          "nisn": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{10}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nisn"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ayah",
+                  "ibu",
+                  "wali"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          },
+          "role": {
+            "enum": [
+              "teacher",
+              "student",
+              "parent"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "full_name",
+          "role"
+        ],
+        "title": "PersonCreateIn",
+        "type": "object"
+      },
+      "PersonCreatedOut": {
+        "properties": {
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "title": "PersonCreatedOut",
+        "type": "object"
+      },
       "PersonEditIn": {
         "additionalProperties": false,
         "properties": {
@@ -3893,6 +4152,111 @@
         "title": "PromptOut",
         "type": "object"
       },
+      "PublicationDetailOut": {
+        "properties": {
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "class_id": {
+            "format": "uuid",
+            "title": "Class Id",
+            "type": "string"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "knowledge_base_id": {
+            "format": "uuid",
+            "title": "Knowledge Base Id",
+            "type": "string"
+          },
+          "mission_id": {
+            "format": "uuid",
+            "title": "Mission Id",
+            "type": "string"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "mission_version_id": {
+            "format": "uuid",
+            "title": "Mission Version Id",
+            "type": "string"
+          },
+          "published_by": {
+            "format": "uuid",
+            "title": "Published By",
+            "type": "string"
+          },
+          "released_to_parents_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released To Parents At"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/PublicationRunDetailOut"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "school_id": {
+            "format": "uuid",
+            "title": "School Id",
+            "type": "string"
+          },
+          "version_number": {
+            "title": "Version Number",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "school_id",
+          "class_id",
+          "class_name",
+          "published_by",
+          "created_at",
+          "cancelled_at",
+          "released_to_parents_at",
+          "mission_version_id",
+          "version_number",
+          "mission_id",
+          "mission_title",
+          "knowledge_base_id",
+          "runs"
+        ],
+        "title": "PublicationDetailOut",
+        "type": "object"
+      },
       "PublicationOut": {
         "properties": {
           "class_id": {
@@ -3942,6 +4306,102 @@
           "released_to_parents_at"
         ],
         "title": "PublicationOut",
+        "type": "object"
+      },
+      "PublicationRunDetailOut": {
+        "properties": {
+          "closes_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closes At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "join_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Join Code"
+          },
+          "kind": {
+            "enum": [
+              "primary",
+              "grant"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "window"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "opens_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opens At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "mode",
+          "status",
+          "opens_at",
+          "closes_at",
+          "join_code"
+        ],
+        "title": "PublicationRunDetailOut",
+        "type": "object"
+      },
+      "PublicationWindowIn": {
+        "additionalProperties": false,
+        "properties": {
+          "closes_at": {
+            "format": "date-time",
+            "title": "Closes At",
+            "type": "string"
+          },
+          "opens_at": {
+            "format": "date-time",
+            "title": "Opens At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "opens_at",
+          "closes_at"
+        ],
+        "title": "PublicationWindowIn",
         "type": "object"
       },
       "PublicationsPageOut": {
@@ -4852,6 +5312,120 @@
           "errors"
         ],
         "title": "RosterImportOut",
+        "type": "object"
+      },
+      "RosterImportSummaryOut": {
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "import_id": {
+            "format": "uuid",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "rows_failed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Failed"
+          },
+          "rows_succeeded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Succeeded"
+          },
+          "rows_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows Total"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "import_id",
+          "academic_year_id",
+          "status",
+          "rows_total",
+          "rows_succeeded",
+          "rows_failed",
+          "created_at",
+          "completed_at"
+        ],
+        "title": "RosterImportSummaryOut",
+        "type": "object"
+      },
+      "RosterImportsPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RosterImportSummaryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "total"
+        ],
+        "title": "RosterImportsPageOut",
         "type": "object"
       },
       "RosterQueuedOut": {
@@ -5829,6 +6403,26 @@
           "completed"
         ],
         "title": "StudentMissionsOut",
+        "type": "object"
+      },
+      "StudentPlacementIn": {
+        "additionalProperties": false,
+        "properties": {
+          "user_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "User Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "title": "StudentPlacementIn",
         "type": "object"
       },
       "StudentReflectionOut": {
@@ -7136,6 +7730,27 @@
         ]
       }
     },
+    "/api/v1/config": {
+      "get": {
+        "operationId": "config_api_v1_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Config",
+        "tags": [
+          "config"
+        ]
+      }
+    },
     "/api/v1/flags/{flag_id}/review": {
       "post": {
         "operationId": "review_flag_api_v1_flags__flag_id__review_post",
@@ -7285,6 +7900,152 @@
           }
         ],
         "summary": "Get Kb",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/concepts": {
+      "post": {
+        "operationId": "create_concept_api_v1_knowledge_bases__kb_id__concepts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConceptCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConceptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Concept",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/concepts/{concept_id}/misconceptions": {
+      "post": {
+        "operationId": "create_misconception_api_v1_knowledge_bases__kb_id__concepts__concept_id__misconceptions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "concept_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Concept Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MisconceptionCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Misconception",
         "tags": [
           "knowledge-base"
         ]
@@ -8704,6 +9465,103 @@
         ]
       }
     },
+    "/api/v1/publications/{publication_id}": {
+      "get": {
+        "operationId": "publication_detail_api_v1_publications__publication_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicationDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Publication Detail",
+        "tags": [
+          "teacher"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_publication_api_v1_publications__publication_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationWindowIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Edit Publication",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
     "/api/v1/publications/{publication_id}/attempt-grants": {
       "post": {
         "operationId": "grant_attempt_api_v1_publications__publication_id__attempt_grants_post",
@@ -8772,6 +9630,47 @@
         ]
       }
     },
+    "/api/v1/publications/{publication_id}/cancel": {
+      "post": {
+        "operationId": "cancel_publication_api_v1_publications__publication_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Cancel Publication",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
     "/api/v1/publications/{publication_id}/class-map": {
       "get": {
         "operationId": "class_map_api_v1_publications__publication_id__class_map_get",
@@ -8833,6 +9732,22 @@
               "title": "Publication Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
           }
         ],
         "responses": {
@@ -8844,7 +9759,39 @@
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Authorized view unchanged; empty body. Use Date for clock synchronization.",
+            "headers": {
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -9017,6 +9964,47 @@
           }
         ],
         "summary": "Get Import",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/roster-imports/{import_id}/errors.csv": {
+      "get": {
+        "operationId": "import_errors_api_v1_roster_imports__import_id__errors_csv_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "import_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Import Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Import Errors",
         "tags": [
           "admin"
         ]
@@ -9755,6 +10743,67 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/classes/{class_id}/students": {
+      "post": {
+        "operationId": "place_students_api_v1_schools__school_id__classes__class_id__students_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "class_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Class Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentPlacementIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Place Students",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/curriculum-versions": {
       "get": {
         "operationId": "school_curriculum_versions_api_v1_schools__school_id__curriculum_versions_get",
@@ -10151,6 +11200,202 @@
         "tags": [
           "administration"
         ]
+      },
+      "post": {
+        "operationId": "create_person_api_v1_schools__school_id__people_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Person",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/people/{parent_id}/children/{student_id}": {
+      "delete": {
+        "operationId": "unlink_child_api_v1_schools__school_id__people__parent_id__children__student_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "parent_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Parent Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Unlink Child",
+        "tags": [
+          "administration"
+        ]
+      },
+      "put": {
+        "operationId": "link_child_api_v1_schools__school_id__people__parent_id__children__student_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "parent_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Parent Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParentLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Link Child",
+        "tags": [
+          "administration"
+        ]
       }
     },
     "/api/v1/schools/{school_id}/people/{user_id}": {
@@ -10265,7 +11510,150 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/people/{user_id}/reactivate": {
+      "post": {
+        "operationId": "reactivate_person_api_v1_schools__school_id__people__user_id__reactivate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Reactivate Person",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/roster-imports": {
+      "get": {
+        "operationId": "list_imports_api_v1_schools__school_id__roster_imports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "academic_year_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Academic Year Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosterImportsPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "List Imports",
+        "tags": [
+          "admin"
+        ]
+      },
       "post": {
         "operationId": "upload_roster_api_v1_schools__school_id__roster_imports_post",
         "parameters": [
@@ -10816,6 +12204,22 @@
               "title": "Run Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
           }
         ],
         "responses": {
@@ -10827,7 +12231,39 @@
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Authorized view unchanged; empty body. Use Date for clock synchronization.",
+            "headers": {
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
@@ -11031,6 +12467,22 @@
               "title": "Session Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
           }
         ],
         "responses": {
@@ -11042,7 +12494,39 @@
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Successful Response",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Authorized view unchanged; empty body. Use Date for clock synchronization.",
+            "headers": {
+              "Date": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "422": {
             "content": {
