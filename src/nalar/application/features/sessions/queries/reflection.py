@@ -19,6 +19,7 @@ class Reflection:
     completed_at: datetime | None
     content: str
     opening_guess: OpeningGuess | None
+    subject_name: str = ""
 
 
 class ReflectionQuery:
@@ -48,4 +49,4 @@ class ReflectionQuery:
                 None,
             )
             guess = OpeningGuess(view.warmup_choice_id, text) if text else None
-        return Reflection(view.mission_title, view.ended_at, view.content, guess)
+        return Reflection(view.mission_title, view.ended_at, view.content, guess, view.subject_name)
