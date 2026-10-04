@@ -10,6 +10,9 @@ class ParentChildOut(BaseModel):
     student_id: UUID
     name: str
     school_name: str
+    school_id: UUID | None = None
+    class_name: str | None = None
+    last_seen_at: datetime | None = None
 
 
 class ParentChildrenOut(BaseModel):
@@ -36,6 +39,7 @@ class ParentReflectionOut(BaseModel):
     mission_title: str
     completed_at: datetime
     content: str
+    subject_name: str = ""
 
 
 class ParentReflectionsOut(BaseModel):

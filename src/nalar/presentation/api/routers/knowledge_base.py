@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
@@ -71,9 +71,17 @@ async def create_kb(
     file: Annotated[UploadFile, File()],
     handler: FromDishka[CreateKbHandler],
     limits: FromDishka[UploadLimits],
+    idempotency_key: Annotated[UUID | None, Header(alias="Idempotency-Key")] = None,
 ) -> MaterialQueuedOut:
     done = await handler.execute(
-        CreateKb(user.id, school_id, school_subject_id, topic_title, await _read(file, limits))
+        CreateKb(
+            user.id,
+            school_id,
+            school_subject_id,
+            topic_title,
+            await _read(file, limits),
+            idempotency_key,
+        )
     )
     return MaterialQueuedOut(**asdict(done))
 
@@ -87,8 +95,11 @@ async def add_material(
     file: Annotated[UploadFile, File()],
     handler: FromDishka[AddMaterialHandler],
     limits: FromDishka[UploadLimits],
+    idempotency_key: Annotated[UUID | None, Header(alias="Idempotency-Key")] = None,
 ) -> MaterialQueuedOut:
-    done = await handler.execute(AddMaterial(user.id, kb_id, await _read(file, limits)))
+    done = await handler.execute(
+        AddMaterial(user.id, kb_id, await _read(file, limits), idempotency_key)
+    )
     return MaterialQueuedOut(**asdict(done))
 
 
@@ -100,8 +111,12 @@ async def list_kbs(
     school_subject_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: str | None = None,
+    q: str = Query("", max_length=120),
+    status: Literal["empty", "pending", "ready", "building", "failed", "archived"] | None = None,
 ) -> KbPageOut:
-    page = await query.execute(ListKbs(user.id, school_id, school_subject_id, limit, cursor))
+    page = await query.execute(
+        ListKbs(user.id, school_id, school_subject_id, limit, cursor, q, status)
+    )
     return KbPageOut(
         items=[
             KbSummaryOut(

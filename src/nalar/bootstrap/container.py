@@ -55,6 +55,9 @@ from nalar.application.features.administration.queries.list_school_curriculum_ve
 )
 from nalar.application.features.administration.queries.list_schools import ListSchoolsQuery
 from nalar.application.features.administration.queries.list_subjects import ListSubjectsQuery
+from nalar.application.features.administration.queries.platform_operations import (
+    PlatformOperationsHandler,
+)
 from nalar.application.features.auth.commands.change_password import (
     ChangePasswordHandler,
     PasswordMutationHandler,
@@ -79,6 +82,7 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
 )
 from nalar.application.features.jobs.queries.get_job import GetJobQuery
 from nalar.application.features.knowledge_base.commands.add_material import AddMaterialHandler
+from nalar.application.features.knowledge_base.commands.archive import ArchiveHandler
 from nalar.application.features.knowledge_base.commands.build_section import (
     BuildSectionHandler,
     S1Settings,
@@ -97,6 +101,10 @@ from nalar.application.features.knowledge_base.commands.review_item import Revie
 from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
+from nalar.application.features.knowledge_base.queries.material_file import (
+    MaterialFilePolicy,
+    MaterialFileQuery,
+)
 from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
 from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
 from nalar.application.features.missions.commands.create_version import CreateVersionHandler
@@ -108,6 +116,7 @@ from nalar.application.features.missions.commands.review_version import ReviewVe
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
 from nalar.application.features.missions.queries.list_versions import ListVersionsQuery
+from nalar.application.features.notifications.inbox import InboxHandler
 from nalar.application.features.onboarding.commands.activate_account import (
     ActivateAccountHandler,
     ActivationPolicy,
@@ -124,6 +133,7 @@ from nalar.application.features.onboarding.commands.send_invitation import (
     SendAccountInvitationHandler,
 )
 from nalar.application.features.onboarding.queries.list_invitations import ListInvitationsQuery
+from nalar.application.features.parents.commands.mark_seen import MarkSeenHandler
 from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
 from nalar.application.features.parents.queries.children import ChildrenQuery
 from nalar.application.features.parents.queries.preferences import PreferencesQuery
@@ -154,8 +164,10 @@ from nalar.application.features.results.commands.override_score import OverrideS
 from nalar.application.features.results.commands.review_flag import ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.class_students import ClassStudentsQuery
+from nalar.application.features.results.queries.export_scores import ExportScoresQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
+from nalar.application.features.results.queries.student_history import StudentHistoryQuery
 from nalar.application.features.results.queries.teacher_attention import TeacherAttentionQuery
 from nalar.application.features.results.queries.teacher_dashboard import (
     ReportingTimezone,
@@ -171,6 +183,7 @@ from nalar.application.features.roster.queries.list_academic_years import ListAc
 from nalar.application.features.roster.queries.list_imports import ListImportsQuery
 from nalar.application.features.runs.commands.close_run import CloseRunHandler
 from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenLobbyHandler
+from nalar.application.features.runs.commands.remove_participant import RemoveParticipantHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
 from nalar.application.features.scheduler.commands.deliver_digest import DeliverDigestHandler
@@ -179,6 +192,7 @@ from nalar.application.features.scheduler.commands.weekly_digest import (
     DigestTiming,
     WeeklyDigestHandler,
 )
+from nalar.application.features.sessions.commands.end_session import EndSessionHandler
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
 from nalar.application.features.sessions.commands.run_turn_step import RunTurnStepHandler
@@ -194,6 +208,10 @@ from nalar.application.features.sessions.queries.session_state import SessionSta
 from nalar.application.features.sessions.queries.student_missions import StudentMissionsQuery
 from nalar.application.features.sessions.queries.student_reflections import StudentReflectionsQuery
 from nalar.application.features.sessions.timing import TurnTiming
+from nalar.application.features.telemetry.client_events import (
+    ClientEventPolicy,
+    ClientEventsHandler,
+)
 from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.auth import (
     BrowserSessions,
@@ -304,6 +322,20 @@ class InfrastructureProvider(Provider):
                 email_request_timeout_s=s.account_email_request_timeout_s,
                 email_total_timeout_s=s.account_email_total_timeout_s,
             )
+
+    @provide(scope=Scope.APP)
+    def client_event_policy(self) -> ClientEventPolicy:
+        s = self._settings
+        return ClientEventPolicy(
+            s.client_events_per_minute,
+            s.client_vitals_sample_rate,
+            s.client_event_max_age_s,
+            s.client_event_future_skew_s,
+        )
+
+    @provide(scope=Scope.APP)
+    def material_file_policy(self) -> MaterialFilePolicy:
+        return MaterialFilePolicy(self._settings.material_url_expiry_s)
 
     @provide(scope=Scope.APP)
     def invitation_timing(self) -> InvitationTiming:
@@ -527,6 +559,16 @@ class InfrastructureProvider(Provider):
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
     handlers = provide_all(
+        PlatformOperationsHandler,
+        ArchiveHandler,
+        MaterialFileQuery,
+        InboxHandler,
+        MarkSeenHandler,
+        ExportScoresQuery,
+        StudentHistoryQuery,
+        RemoveParticipantHandler,
+        EndSessionHandler,
+        ClientEventsHandler,
         CreatePersonHandler,
         PlaceStudentsHandler,
         ReactivatePersonHandler,

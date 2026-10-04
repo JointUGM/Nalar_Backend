@@ -1,9 +1,9 @@
 from dataclasses import asdict
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query
 
 from nalar.application.features.missions.commands.create_mission import (
     CreateMission,
@@ -49,10 +49,15 @@ async def list_versions(
 
 @router.post("/missions", status_code=201, response_model=MissionCreatedOut)
 async def create_mission(
-    body: MissionIn, user: CurrentUser, handler: FromDishka[CreateMissionHandler]
+    body: MissionIn,
+    user: CurrentUser,
+    handler: FromDishka[CreateMissionHandler],
+    idempotency_key: Annotated[UUID | None, Header(alias="Idempotency-Key")] = None,
 ) -> MissionCreatedOut:
     mission_id = await handler.execute(
-        CreateMission(user.id, body.knowledge_base_id, body.title, body.learning_objective)
+        CreateMission(
+            user.id, body.knowledge_base_id, body.title, body.learning_objective, idempotency_key
+        )
     )
     return MissionCreatedOut(mission_id=mission_id)
 
@@ -75,8 +80,12 @@ async def list_missions(
     school_subject_id: UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: str | None = None,
+    q: str = Query("", max_length=120),
+    status: Literal["draft", "reviewed", "locked", "archived"] | None = None,
 ) -> MissionPageOut:
-    page = await query.execute(ListMissions(user.id, school_id, school_subject_id, limit, cursor))
+    page = await query.execute(
+        ListMissions(user.id, school_id, school_subject_id, limit, cursor, q, status)
+    )
     return MissionPageOut(
         items=[
             MissionSummaryOut(

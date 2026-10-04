@@ -137,6 +137,68 @@
         "title": "AdminEmailIn",
         "type": "object"
       },
+      "AiUsageOut": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "failed_calls": {
+            "title": "Failed Calls",
+            "type": "integer"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "school_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Id"
+          }
+        },
+        "required": [
+          "day",
+          "school_id",
+          "purpose",
+          "model",
+          "calls",
+          "failed_calls",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd"
+        ],
+        "title": "AiUsageOut",
+        "type": "object"
+      },
       "AnswerAccepted": {
         "properties": {
           "next_prompt_url": {
@@ -427,6 +489,102 @@
           "next_cursor"
         ],
         "title": "AttentionPageOut",
+        "type": "object"
+      },
+      "AuditItemOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_table": {
+            "title": "Entity Table",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "school_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Id"
+          }
+        },
+        "required": [
+          "id",
+          "school_id",
+          "actor_id",
+          "action",
+          "entity_table",
+          "entity_id",
+          "created_at"
+        ],
+        "title": "AuditItemOut",
+        "type": "object"
+      },
+      "AuditPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "AuditPageOut",
         "type": "object"
       },
       "BankQuestionIn": {
@@ -945,6 +1103,94 @@
           "publication_id"
         ],
         "title": "ClassStudentsOut",
+        "type": "object"
+      },
+      "ClientEventIn": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "error",
+              "vital"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "route": {
+            "maxLength": 160,
+            "pattern": "^/[A-Za-z0-9_/:.\\-]*$",
+            "title": "Route",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maximum": 1000000000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "event_id",
+          "kind",
+          "code",
+          "route",
+          "occurred_at"
+        ],
+        "title": "ClientEventIn",
+        "type": "object"
+      },
+      "ClientEventsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/ClientEventIn"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "ClientEventsIn",
+        "type": "object"
+      },
+      "ClientEventsOut": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "title": "ClientEventsOut",
         "type": "object"
       },
       "ClosedOut": {
@@ -1767,6 +2013,24 @@
         "title": "HiddenEvent",
         "type": "object"
       },
+      "HistoryScoreOut": {
+        "properties": {
+          "dimension": {
+            "title": "Dimension",
+            "type": "string"
+          },
+          "final_level": {
+            "title": "Final Level",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dimension",
+          "final_level"
+        ],
+        "title": "HistoryScoreOut",
+        "type": "object"
+      },
       "InsightOut": {
         "properties": {
           "generated_at": {
@@ -1777,6 +2041,13 @@
           "narrative": {
             "title": "Narrative",
             "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
           }
         },
         "required": [
@@ -2589,6 +2860,24 @@
         "title": "LoginIn",
         "type": "object"
       },
+      "MaterialFileOut": {
+        "properties": {
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_in"
+        ],
+        "title": "MaterialFileOut",
+        "type": "object"
+      },
       "MaterialOut": {
         "properties": {
           "archived_at": {
@@ -2674,6 +2963,17 @@
       },
       "MeOut": {
         "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
           "full_name": {
             "title": "Full Name",
             "type": "string"
@@ -3401,6 +3701,77 @@
         "minLength": 1,
         "type": "string"
       },
+      "NotificationOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "created_at",
+          "read_at"
+        ],
+        "title": "NotificationOut",
+        "type": "object"
+      },
+      "NotificationsOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "unread_count": {
+            "title": "Unread Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread_count",
+          "next_cursor"
+        ],
+        "title": "NotificationsOut",
+        "type": "object"
+      },
       "OpeningGuessOut": {
         "properties": {
           "choice_id": {
@@ -3520,9 +3891,44 @@
       },
       "ParentChildOut": {
         "properties": {
+          "class_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Name"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "school_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "School Id"
           },
           "school_name": {
             "title": "School Name",
@@ -3675,6 +4081,11 @@
           "session_id": {
             "format": "uuid",
             "title": "Session Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "default": "",
+            "title": "Subject Name",
             "type": "string"
           }
         },
@@ -4276,9 +4687,32 @@
             "title": "Id",
             "type": "string"
           },
+          "mission_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mission Id"
+          },
           "mission_title": {
             "title": "Mission Title",
             "type": "string"
+          },
+          "mission_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mission Version"
           },
           "released_to_parents_at": {
             "anyOf": [
@@ -4294,6 +4728,11 @@
           },
           "run": {
             "$ref": "#/components/schemas/RunSummaryOut"
+          },
+          "subject_name": {
+            "default": "",
+            "title": "Subject Name",
+            "type": "string"
           }
         },
         "required": [
@@ -4513,6 +4952,11 @@
                 "type": "null"
               }
             ]
+          },
+          "subject_name": {
+            "default": "",
+            "title": "Subject Name",
+            "type": "string"
           }
         },
         "required": [
@@ -6001,6 +6445,51 @@
         "title": "SchoolOut",
         "type": "object"
       },
+      "SchoolPatchIn": {
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "npsn": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{8}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Npsn"
+          }
+        },
+        "title": "SchoolPatchIn",
+        "type": "object"
+      },
       "SchoolStatusIn": {
         "additionalProperties": false,
         "properties": {
@@ -6298,6 +6787,129 @@
         "title": "StudentConceptCountsOut",
         "type": "object"
       },
+      "StudentHistoryItemOut": {
+        "properties": {
+          "academic_year_id": {
+            "format": "uuid",
+            "title": "Academic Year Id",
+            "type": "string"
+          },
+          "academic_year_name": {
+            "title": "Academic Year Name",
+            "type": "string"
+          },
+          "attempt_number": {
+            "title": "Attempt Number",
+            "type": "integer"
+          },
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "evaluation_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Status"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryScoreOut"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subject_name": {
+            "title": "Subject Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "publication_id",
+          "started_at",
+          "ended_at",
+          "status",
+          "attempt_number",
+          "mission_title",
+          "subject_name",
+          "class_name",
+          "academic_year_id",
+          "academic_year_name",
+          "evaluation_status",
+          "scores"
+        ],
+        "title": "StudentHistoryItemOut",
+        "type": "object"
+      },
+      "StudentHistoryOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudentHistoryItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "StudentHistoryOut",
+        "type": "object"
+      },
       "StudentLobbyOut": {
         "properties": {
           "deadline_at": {
@@ -6443,6 +7055,11 @@
           "session_id": {
             "format": "uuid",
             "title": "Session Id",
+            "type": "string"
+          },
+          "subject_name": {
+            "default": "",
+            "title": "Subject Name",
             "type": "string"
           }
         },
@@ -7614,6 +8231,52 @@
         ]
       }
     },
+    "/api/v1/client-events": {
+      "post": {
+        "operationId": "client_events_api_v1_client_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientEventsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientEventsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Client Events",
+        "tags": [
+          "telemetry"
+        ]
+      }
+    },
     "/api/v1/concepts/{item_id}": {
       "patch": {
         "operationId": "patch_concept_api_v1_concepts__item_id__patch",
@@ -7905,6 +8568,47 @@
         ]
       }
     },
+    "/api/v1/knowledge-bases/{kb_id}/archive": {
+      "post": {
+        "operationId": "archive_kb_api_v1_knowledge_bases__kb_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Archive Kb",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
     "/api/v1/knowledge-bases/{kb_id}/concepts": {
       "post": {
         "operationId": "create_concept_api_v1_knowledge_bases__kb_id__concepts_post",
@@ -7968,6 +8672,57 @@
           }
         ],
         "summary": "Create Concept",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/concepts/{concept_id}/archive": {
+      "post": {
+        "operationId": "archive_concept_api_v1_knowledge_bases__kb_id__concepts__concept_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "concept_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Concept Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Archive Concept",
         "tags": [
           "knowledge-base"
         ]
@@ -8064,6 +8819,23 @@
               "title": "Kb Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -8104,6 +8876,115 @@
           }
         ],
         "summary": "Add Material",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/materials/{material_id}": {
+      "delete": {
+        "operationId": "delete_material_api_v1_knowledge_bases__kb_id__materials__material_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "material_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Material Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Delete Material",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
+    "/api/v1/knowledge-bases/{kb_id}/materials/{material_id}/file": {
+      "get": {
+        "operationId": "material_file_api_v1_knowledge_bases__kb_id__materials__material_id__file_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "material_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Material Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialFileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Material File",
         "tags": [
           "knowledge-base"
         ]
@@ -8459,6 +9340,25 @@
     "/api/v1/missions": {
       "post": {
         "operationId": "create_mission_api_v1_missions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -8497,6 +9397,47 @@
           }
         ],
         "summary": "Create Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/archive": {
+      "post": {
+        "operationId": "archive_mission_api_v1_missions__mission_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Archive Mission",
         "tags": [
           "missions"
         ]
@@ -8772,6 +9713,114 @@
         ]
       }
     },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "notifications_api_v1_notifications_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "post": {
+        "operationId": "read_notification_api_v1_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Notification Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Read Notification",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/parent/children": {
       "get": {
         "operationId": "children_api_v1_parent_children_get",
@@ -8962,6 +10011,47 @@
         ]
       }
     },
+    "/api/v1/parent/children/{student_id}/seen": {
+      "post": {
+        "operationId": "mark_seen_api_v1_parent_children__student_id__seen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Mark Seen",
+        "tags": [
+          "parent"
+        ]
+      }
+    },
     "/api/v1/parent/preferences": {
       "get": {
         "operationId": "preferences_api_v1_parent_preferences_get",
@@ -9029,6 +10119,135 @@
         "summary": "Set Preferences",
         "tags": [
           "parent"
+        ]
+      }
+    },
+    "/api/v1/platform/ai-usage": {
+      "get": {
+        "operationId": "ai_usage_api_v1_platform_ai_usage_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "title": "To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AiUsageOut"
+                  },
+                  "title": "Response Ai Usage Api V1 Platform Ai Usage Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Ai Usage",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/audit-log": {
+      "get": {
+        "operationId": "platform_audit_api_v1_platform_audit_log_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Platform Audit",
+        "tags": [
+          "platform"
         ]
       }
     },
@@ -9300,6 +10519,110 @@
         ]
       }
     },
+    "/api/v1/platform/schools/{school_id}": {
+      "get": {
+        "operationId": "school_detail_api_v1_platform_schools__school_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Detail",
+        "tags": [
+          "platform"
+        ]
+      },
+      "patch": {
+        "operationId": "edit_school_api_v1_platform_schools__school_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchoolPatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Edit School",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/api/v1/platform/schools/{school_id}/admin": {
       "post": {
         "operationId": "school_admin_api_v1_platform_schools__school_id__admin_post",
@@ -9422,6 +10745,25 @@
     "/api/v1/publications": {
       "post": {
         "operationId": "publish_api_v1_publications_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -9716,6 +11058,61 @@
         "summary": "Class Map",
         "tags": [
           "results"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/export": {
+      "get": {
+        "operationId": "export_publication_api_v1_publications__publication_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "const": "csv",
+              "default": "csv",
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Export Publication",
+        "tags": [
+          "teacher"
         ]
       }
     },
@@ -10103,6 +11500,57 @@
         "summary": "Open Lobby",
         "tags": [
           "runs"
+        ]
+      }
+    },
+    "/api/v1/runs/{run_id}/participants/{participant_id}/remove": {
+      "post": {
+        "operationId": "remove_participant_api_v1_runs__run_id__participants__participant_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "participant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Participant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Remove Participant",
+        "tags": [
+          "teacher"
         ]
       }
     },
@@ -10550,6 +11998,83 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/audit-log": {
+      "get": {
+        "operationId": "school_audit_api_v1_schools__school_id__audit_log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Audit",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/classes": {
       "get": {
         "operationId": "classes_api_v1_schools__school_id__classes_get",
@@ -10914,6 +12439,41 @@
               ],
               "title": "Cursor"
             }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 120,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "empty",
+                    "pending",
+                    "ready",
+                    "building",
+                    "failed",
+                    "archived"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
           }
         ],
         "responses": {
@@ -10959,6 +12519,23 @@
               "format": "uuid",
               "title": "School Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -11062,6 +12639,39 @@
                 }
               ],
               "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 120,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "reviewed",
+                    "locked",
+                    "archived"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           }
         ],
@@ -11882,6 +13492,47 @@
         ]
       }
     },
+    "/api/v1/sessions/{session_id}/end": {
+      "post": {
+        "operationId": "end_session_api_v1_sessions__session_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "End Session",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
     "/api/v1/sessions/{session_id}/report": {
       "get": {
         "operationId": "report_api_v1_sessions__session_id__report_get",
@@ -11927,6 +13578,61 @@
         "summary": "Report",
         "tags": [
           "results"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/report/export": {
+      "get": {
+        "operationId": "export_report_api_v1_sessions__session_id__report_export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "const": "csv",
+              "default": "csv",
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Export Report",
+        "tags": [
+          "teacher"
         ]
       }
     },
@@ -12186,6 +13892,47 @@
           }
         ],
         "summary": "Join",
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/runs/{run_id}/leave": {
+      "post": {
+        "operationId": "leave_lobby_api_v1_student_runs__run_id__leave_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Leave Lobby",
         "tags": [
           "student"
         ]
@@ -12872,6 +14619,56 @@
               ],
               "title": "Cursor"
             }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 120,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "scheduled",
+                    "lobby",
+                    "open",
+                    "closed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "school_subject_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "School Subject Id"
+            }
           }
         ],
         "responses": {
@@ -12902,6 +14699,83 @@
           }
         ],
         "summary": "Publications",
+        "tags": [
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/teacher/students/{student_id}/history": {
+      "get": {
+        "operationId": "student_history_api_v1_teacher_students__student_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentHistoryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Student History",
         "tags": [
           "teacher"
         ]

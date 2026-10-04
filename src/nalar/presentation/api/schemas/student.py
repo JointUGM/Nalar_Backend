@@ -168,6 +168,7 @@ class OpeningGuessOut(BaseModel):
 
 
 class ReflectionOut(BaseModel):
+    subject_name: str = ""
     mission_title: str
     completed_at: datetime | None
     content: str
@@ -175,6 +176,7 @@ class ReflectionOut(BaseModel):
 
 
 class StudentReflectionOut(BaseModel):
+    subject_name: str = ""
     session_id: UUID
     mission_title: str
     completed_at: datetime

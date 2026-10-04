@@ -247,6 +247,7 @@ async def reflection(
         return JSONResponse({"status": "pending"}, status_code=202)
     guess = found.opening_guess
     return ReflectionOut(
+        subject_name=found.subject_name,
         mission_title=found.mission_title,
         completed_at=found.completed_at,
         content=found.content,

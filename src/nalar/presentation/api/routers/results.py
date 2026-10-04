@@ -89,7 +89,11 @@ async def class_map(
         ],
         denominator=counts.denominator,
         incomplete_count=counts.incomplete_count,
-        insight=InsightOut(narrative=insight.narrative, generated_at=insight.generated_at)
+        insight=InsightOut(
+            narrative=insight.narrative,
+            generated_at=insight.generated_at,
+            suggestions=list(insight.suggestions),
+        )
         if insight
         else None,
         concepts=[

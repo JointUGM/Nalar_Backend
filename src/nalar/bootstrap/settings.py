@@ -13,6 +13,12 @@ class Settings(BaseSettings):
         env_prefix="NALAR_", env_file=".env", extra="ignore", hide_input_in_errors=True
     )
 
+    material_url_expiry_s: int = Field(default=300, ge=30, le=900)
+    client_events_per_minute: int = Field(default=60, ge=1, le=600)
+    client_event_max_age_s: int = Field(default=86400, ge=60, le=604800)
+    client_event_future_skew_s: int = Field(default=300, ge=0, le=900)
+    client_vitals_sample_rate: float = Field(default=0.1, ge=0, le=1)
+
     env: Literal["local", "test", "staging", "prod"] = "local"
 
     database_url: SecretStr = SecretStr("postgresql://postgres:postgres@127.0.0.1:54322/postgres")
