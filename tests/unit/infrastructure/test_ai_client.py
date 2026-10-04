@@ -7,6 +7,7 @@ import pytest
 from nalar.application.ports.ai import AiServiceError
 from nalar.application.ports.ai_contract import (
     CallStatus,
+    ClassInsightIn,
     ContextPackIn,
     EmbedIn,
     HistoryTurnIn,
@@ -77,6 +78,54 @@ async def test_success_envelope_returns_result_and_invocations() -> None:
     assert seen[0].url.path == "/v1/embeddings"
     assert seen[0].headers["X-Service-Key"] == "key"
     assert seen[0].headers["X-Request-Id"] == "req-1"
+
+
+@pytest.mark.parametrize("suggestions", [None, [], ["Diskusikan gaya gesek."]])
+async def test_class_insight_accepts_legacy_absence_and_preserves_new_suggestions(
+    suggestions: list[str] | None,
+) -> None:
+    result: dict[str, Any] = {"narrative": "Diskusikan gaya gesek.", "clusters": []}
+    if suggestions is not None:
+        result["suggestions"] = suggestions
+    body = ClassInsightIn.model_validate(
+        {
+            "mission_title": "Gaya",
+            "denominator": 1,
+            "incomplete_count": 0,
+            "concepts": [
+                {
+                    "concept_id": "00000000-0000-4000-8000-00000000c001",
+                    "name": "Gaya",
+                    "mastered_count": 1,
+                    "developing_count": 0,
+                    "not_observed_count": 0,
+                }
+            ],
+        }
+    )
+    reply = await make_client(
+        lambda _: httpx.Response(200, json={"result": result, "invocations": [INVOCATION]})
+    ).class_insight(body, "insight")
+    assert reply.result.suggestions == (suggestions or [])
+    assert len(reply.invocations) == 1
+
+
+async def test_explicit_null_suggestions_are_rejected_with_paid_provenance() -> None:
+    from nalar.application.ports.ai_contract import ClassInsightOut
+
+    client = make_client(
+        lambda _: httpx.Response(
+            200,
+            json={
+                "result": {"narrative": "Diskusikan gaya.", "clusters": [], "suggestions": None},
+                "invocations": [INVOCATION],
+            },
+        )
+    )
+    with pytest.raises(AiServiceError) as error:
+        await client._send("/v1/s5/class-insight", ClassInsightOut)
+    assert error.value.code == "bad_response"
+    assert len(error.value.invocations) == 1
 
 
 async def test_error_envelope_raises_with_the_paid_invocations() -> None:

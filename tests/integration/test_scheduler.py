@@ -121,12 +121,14 @@ async def test_evaluation_sweep_skips_evaluated_and_queued_sessions(
     other = await build_world(conn, "SMP Sweep B")
     bare = await build_world(conn, "SMP Sweep C")
     clock = FakeClock()
+    oldest = await conn.fetchval("select min(ended_at) from sessions")
+    ended_at = min(oldest or clock.now(), clock.now()) - timedelta(minutes=5)
     for w in (world, other, bare):
         await conn.execute(
             "update sessions set status = 'completed', end_reason = 'student_completed',"
             " ended_at = $2 where id = $1",
             w.session_id,
-            clock.now() - timedelta(minutes=5),
+            ended_at,
         )
     await conn.execute(
         "insert into session_evaluations (school_id, session_id) values ($1, $2)",

@@ -85,6 +85,7 @@ class ReleaseRepo(Protocol):
         clusters: Sequence[Mapping[str, Any]],
         narrative: str,
         ai_invocation_id: UUID | None,
+        suggestions: Sequence[str],
     ) -> None: ...
 
     async def latest_insight(self, publication_id: UUID) -> StoredInsight | None: ...

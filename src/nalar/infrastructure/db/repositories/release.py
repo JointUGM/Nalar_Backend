@@ -170,10 +170,15 @@ class PgReleaseRepo:
         clusters: Sequence[Mapping[str, Any]],
         narrative: str,
         ai_invocation_id: UUID | None,
+        suggestions: Sequence[str],
     ) -> None:
-        await self._conn.execute(
+        pub = await self.lock(publication_id)
+        if pub is None or pub.school_id != school_id or await self.has_insight(publication_id):
+            return
+        insight_id = await self._conn.fetchval(
             "insert into class_map_insights (school_id, publication_id, counts_snapshot,"
-            " clusters, narrative, ai_invocation_id) values ($1, $2, $3::jsonb, $4::jsonb, $5, $6)",
+            " clusters, narrative, ai_invocation_id) values ($1, $2, $3::jsonb, $4::jsonb, $5, $6)"
+            " returning id",
             school_id,
             publication_id,
             json.dumps(dict(counts_snapshot), default=str),
@@ -181,6 +186,15 @@ class PgReleaseRepo:
             narrative,
             ai_invocation_id,
         )
+        if suggestions:
+            await self._conn.executemany(
+                "insert into follow_up_suggestions (school_id, insight_id, rank, content)"
+                " values ($1, $2, $3, $4)",
+                [
+                    (school_id, insight_id, rank, text)
+                    for rank, text in enumerate(suggestions, start=1)
+                ],
+            )
 
     async def latest_insight(self, publication_id: UUID) -> StoredInsight | None:
         row = await self._conn.fetchrow(

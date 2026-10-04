@@ -616,11 +616,20 @@
             "description": "class_map_insights.narrative. Placeholders: {{total}}, {{incomplete}}, {{count|resolved:<misconception_id>}}, {{mastered|developing|not_observed:<concept_id>}}",
             "title": "Narrative",
             "type": "string"
+          },
+          "suggestions": {
+            "description": "Teacher actions; fill placeholders from the same counts snapshot",
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
           }
         },
         "required": [
           "narrative",
-          "clusters"
+          "clusters",
+          "suggestions"
         ],
         "title": "ClassInsightOut",
         "type": "object"

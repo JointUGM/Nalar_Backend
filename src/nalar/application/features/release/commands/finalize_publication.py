@@ -156,6 +156,8 @@ class FinalizePublicationHandler:
                 fill(reply.result.narrative, counts, self._lexicon)
                 for cluster in clusters:
                     fill(cluster["explanation"], counts, self._lexicon)
+                for suggestion in reply.result.suggestions:
+                    fill(suggestion, counts, self._lexicon)
             except PlaceholderError as error:
                 log.warning(
                     "class insight rejected: %s", error, extra={"publication_id": str(pub.id)}
@@ -168,4 +170,5 @@ class FinalizePublicationHandler:
                 clusters,
                 reply.result.narrative,
                 ids[-1] if ids else None,
+                reply.result.suggestions,
             )

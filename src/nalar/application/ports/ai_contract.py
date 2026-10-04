@@ -732,6 +732,13 @@ class ClassInsightOut(BaseModel):
             title="Narrative",
         ),
     ]
+    suggestions: Annotated[
+        list[str],
+        Field(
+            description="Teacher actions; fill placeholders from the same counts snapshot",
+            title="Suggestions",
+        ),
+    ]
 
 
 class ConceptCountIn(BaseModel):

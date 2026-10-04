@@ -231,8 +231,11 @@ class AiServiceClient:
 
         if response.is_success:
             try:
+                result_payload = payload["result"]
+                if result_type is ClassInsightOut and isinstance(result_payload, dict):
+                    result_payload = {"suggestions": [], **result_payload}
                 return AiResult(
-                    result=result_type.model_validate(payload["result"]),
+                    result=result_type.model_validate(result_payload),
                     invocations=[InvocationOut.model_validate(i) for i in payload["invocations"]],
                     warnings=[str(w) for w in payload.get("warnings", [])],
                 )
