@@ -183,6 +183,19 @@ async def test_parent_links_require_both_people_in_the_admin_school(
             assert response.status_code == 404
 
 
+async def test_people_page_with_no_matches_returns_zero_total(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    async with api_client(conn) as api:
+        response = await api.get(
+            f"/schools/{world.school_id}/people",
+            params={"role": "student", "q": "no-such-person-xyz"},
+            headers=as_user(world.admin_id),
+        )
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "next_cursor": None, "total": 0}
+
+
 async def test_parent_creation_links_only_local_children_and_queues_one_invitation(
     conn: asyncpg.Connection, world: World
 ) -> None:

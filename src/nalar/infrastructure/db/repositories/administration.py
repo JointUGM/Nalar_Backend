@@ -326,7 +326,7 @@ class PgAdministrationRepo:
             rows[0]["total"]
             if rows
             else await self._conn.fetchval(
-                "select count(distinct user_id)::int from ("
+                "select count(distinct m.user_id)::int from ("
                 " select user_id, role::text as role from school_memberships where school_id = $1"
                 " union all select parent_id, 'parent' from parent_student_links where"
                 " school_id = $1"
