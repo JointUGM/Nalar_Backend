@@ -312,8 +312,13 @@ async def test_unknown_acceptance_is_never_automatically_retried(
     await release(conn, world)
     clock, mailer = FakeClock(), AcceptedThenTimedOutMailer()
     await dispatch(conn, clock, mailer)
+    notification_id = await conn.fetchval(
+        "select id from notifications where recipient_id = $1 and type = 'parent_periodic_summary'",
+        world.parent_id,
+    )
     clock.advance(hours=24)
-    await dispatch(conn, clock, mailer)
+    await WeeklyDigestHandler(uow_on(conn), clock, mailer, TIMING).dispatch_due()
+    await DeliverDigestHandler(uow_on(conn), clock, mailer, TIMING).execute(notification_id)
     assert len(mail_to(mailer, world)) == 1
     row = await conn.fetchrow(
         "select status::text, payload->>'outcome' as outcome from notifications"
