@@ -16,6 +16,7 @@ from nalar.presentation.api.routers import (
     admin,
     administration,
     auth,
+    config,
     health,
     jobs,
     knowledge_base,
@@ -44,6 +45,11 @@ def create_app(
         await container.close()
 
     app = FastAPI(title="NALAR Backend", version="0.1.0", lifespan=lifespan)
+    app.state.public_config = {
+        "password_reset_enabled": settings.password_reset_enabled,
+        "account_email_enabled": settings.account_email_enabled,
+        "weekly_digest_enabled": settings.email_enabled,
+    }
     app.state.session_cookie_name = settings.session_cookie_name
     app.state.session_lifetime_s = settings.session_lifetime_s
     app.state.secure_session_cookie = settings.env in ("staging", "prod")
@@ -52,9 +58,15 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_methods=["*"],
-        allow_headers=["Content-Type", "X-Request-Id", "X-Nalar-CSRF", "Idempotency-Key"],
+        allow_headers=[
+            "Content-Type",
+            "X-Request-Id",
+            "X-Nalar-CSRF",
+            "Idempotency-Key",
+            "If-None-Match",
+        ],
         allow_credentials=True,
-        expose_headers=["X-Request-Id"],
+        expose_headers=["X-Request-Id", "ETag", "Date"],
     )
     # Added last so it is outermost: every response, including a 500, gets X-Request-Id.
     app.add_middleware(RequestContextMiddleware)
@@ -65,6 +77,7 @@ def create_app(
         admin.router,
         administration.router,
         auth.router,
+        config.router,
         me.router,
         teacher.router,
         runs.router,

@@ -23,8 +23,10 @@ class LobbyStateQuery:
 
     async def execute(self, actor_id: UUID, run_id: UUID) -> LobbyState:
         async with self._uow:
-            participant = await self._uow.participants.get(run_id, actor_id)
             target = await self._uow.participants.run_target(run_id)
+            if target is None or not await self._uow.authz.is_enrolled(actor_id, target.class_id):
+                raise NotFound()
+            participant = await self._uow.participants.get(run_id, actor_id)
             if participant is None or target is None:
                 raise NotFound()
             session = (
