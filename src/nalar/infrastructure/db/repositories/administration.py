@@ -10,6 +10,7 @@ from nalar.application.ports.administration import (
     ClassDetails,
     NewAcademicYear,
     NewCurriculum,
+    NewPerson,
     NewSchool,
 )
 from nalar.infrastructure.db.pool import DbConnection
@@ -84,6 +85,198 @@ class PgAdministrationRepo:
             "select school_id from knowledge_bases where id = $1", kb_id
         )
         return school_id
+
+    async def _students(
+        self, school_id: UUID, user_ids: list[UUID], *, active: bool = True
+    ) -> None:
+        rows = await self._conn.fetch(
+            "select user_id from school_memberships where school_id = $1"
+            " and user_id = any($2::uuid[]) and role = 'student'"
+            " and (not $3::bool or status = 'active')",
+            school_id,
+            user_ids,
+            active,
+        )
+        if {row["user_id"] for row in rows} != set(user_ids):
+            raise NotFound()
+
+    async def validate_person(self, school_id: UUID, details: NewPerson) -> None:
+        if details.class_id and not await self._conn.fetchval(
+            "select exists(select 1 from classes where school_id = $1 and id = $2"
+            " and archived_at is null)",
+            school_id,
+            details.class_id,
+        ):
+            raise NotFound()
+        await self._students(school_id, details.child_ids)
+
+    async def place_students(self, school_id: UUID, class_id: UUID, user_ids: list[UUID]) -> None:
+        await self._students(school_id, user_ids)
+        for user_id in sorted(set(user_ids)):
+            await self.edit_person(school_id, user_id, None, class_id)
+
+    async def reactivate_person(self, school_id: UUID, user_id: UUID) -> bool:
+        await self._person(school_id, user_id)
+        if await self._conn.fetchval(
+            "select exists(select 1 from school_memberships where school_id = $1 and user_id = $2"
+            " and role = 'school_admin' and status = 'inactive')",
+            school_id,
+            user_id,
+        ):
+            raise Conflict("ADMIN_REACTIVATION_REQUIRES_HANDOFF")
+        snapshot = await self._conn.fetchrow(
+            "select created_at, changes from audit_logs where school_id = $1 and entity_id = $2"
+            " and action = 'admin.deactivate_person' order by created_at desc, id desc limit 1",
+            school_id,
+            user_id,
+        )
+        if snapshot is None:
+            if await self._conn.fetchval(
+                "select exists(select 1 from school_memberships where school_id = $1"
+                " and user_id = $2 and status = 'inactive')",
+                school_id,
+                user_id,
+            ):
+                raise Conflict("REACTIVATION_HISTORY_MISSING")
+            return False
+        deactivated = snapshot["created_at"]
+        snapshot_data = json.loads(snapshot["changes"])
+
+        def ids(field: str) -> list[UUID] | None:
+            return (
+                [UUID(value) for value in snapshot_data[field]] if field in snapshot_data else None
+            )
+
+        changed = await self._conn.fetch(
+            "update school_memberships set status = 'active', deactivated_at = null"
+            " where school_id = $1 and user_id = $2 and status = 'inactive'"
+            " and deactivated_at = $3 and ($4::uuid[] is null or id = any($4)) returning id",
+            school_id,
+            user_id,
+            deactivated,
+            ids("membership_ids"),
+        )
+        links = await self._conn.fetch(
+            "update parent_student_links l set deactivated_at = null"
+            " where school_id = $1 and parent_id = $2 and deactivated_at = $3"
+            " and exists(select 1 from school_memberships m where m.school_id = $1"
+            " and m.user_id = l.student_id and m.role = 'student' and m.status = 'active')"
+            " and ($4::uuid[] is null or l.id = any($4)) returning id",
+            school_id,
+            user_id,
+            deactivated,
+            ids("parent_link_ids"),
+        )
+        await self._conn.execute(
+            "update class_enrollments ce set status = 'active', ended_at = null"
+            " where ce.school_id = $1 and ce.student_id = $2 and ce.ended_at = $3"
+            " and ($4::uuid[] is null or ce.id = any($4))"
+            " and ce.status = 'inactive' and exists(select 1 from classes c"
+            " where c.id = ce.class_id and c.archived_at is null)"
+            " and exists(select 1 from school_memberships m where m.school_id = $1"
+            " and m.user_id = $2 and m.role = 'student' and m.status = 'active')"
+            " and not exists(select 1 from class_enrollments active where active.student_id = $2"
+            " and active.academic_year_id = ce.academic_year_id and active.status = 'active')",
+            school_id,
+            user_id,
+            deactivated,
+            ids("enrollment_ids"),
+        )
+        if changed or links:
+            await self._conn.execute(
+                "update profiles set credential_revision = credential_revision + 1 where id = $1",
+                user_id,
+            )
+        return bool(changed or links)
+
+    async def set_parent_link(
+        self,
+        school_id: UUID,
+        parent_id: UUID,
+        student_id: UUID,
+        linked: bool,
+        relationship: str | None,
+    ) -> None:
+        await self._person(school_id, parent_id)
+        await self._students(school_id, [student_id], active=linked)
+        if not await self._conn.fetchval(
+            "select exists(select 1 from parent_student_links where school_id = $1"
+            " and parent_id = $2)",
+            school_id,
+            parent_id,
+        ):
+            raise NotFound()
+        if linked:
+            await self.attach_parent(school_id, parent_id, student_id, relationship, restore=True)
+        else:
+            await self._conn.execute(
+                "update parent_student_links set deactivated_at = now() where school_id = $1"
+                " and parent_id = $2 and student_id = $3 and deactivated_at is null",
+                school_id,
+                parent_id,
+                student_id,
+            )
+
+    async def attach_parent(
+        self,
+        school_id: UUID,
+        parent_id: UUID,
+        student_id: UUID,
+        relationship: str | None,
+        *,
+        restore: bool,
+    ) -> None:
+        row = await self._conn.fetchval(
+            "insert into parent_student_links(parent_id, student_id, school_id, relationship)"
+            " values($2,$3,$1,$4) on conflict(parent_id, student_id) do update"
+            " set relationship = excluded.relationship, deactivated_at = null"
+            " where parent_student_links.school_id = excluded.school_id"
+            " and ($5::bool or parent_student_links.deactivated_at is null) returning id",
+            school_id,
+            parent_id,
+            student_id,
+            relationship,
+            restore,
+        )
+        if row is None:
+            raise NotFound()
+
+    async def roster_imports(
+        self, school_id: UUID, year_id: UUID | None, cursor: UUID | None, limit: int
+    ) -> AdminPage:
+        if year_id:
+            await self._year(school_id, year_id)
+        after = None
+        if cursor:
+            after = await self._conn.fetchval(
+                "select created_at from roster_imports where school_id = $1 and id = $2"
+                " and ($3::uuid is null or academic_year_id = $3)",
+                school_id,
+                cursor,
+                year_id,
+            )
+            if after is None:
+                raise NotFound()
+        rows = await self._conn.fetch(
+            "select id as import_id, academic_year_id, status::text, rows_total,"
+            " rows_succeeded, rows_failed, created_at, completed_at from roster_imports"
+            " where school_id = $1 and ($2::uuid is null or academic_year_id = $2)"
+            " and ($3::timestamptz is null or (created_at, id) < ($3, $4::uuid))"
+            " order by created_at desc, id desc limit $5",
+            school_id,
+            year_id,
+            after,
+            cursor,
+            limit + 1,
+        )
+        total = await self._conn.fetchval(
+            "select count(*)::int from roster_imports where school_id = $1"
+            " and ($2::uuid is null or academic_year_id = $2)",
+            school_id,
+            year_id,
+        )
+        items = [dict(row) for row in rows[:limit]]
+        return AdminPage(items, items[-1]["import_id"] if len(rows) > limit else None, total)
 
     async def _teacher(self, school_id: UUID, teacher_id: UUID) -> None:
         if not await self._conn.fetchval(
@@ -181,12 +374,20 @@ class PgAdministrationRepo:
                 row["academic_year_id"],
                 class_id,
             )
+            placed = await self._conn.fetchval(
+                "select class_id from class_enrollments where student_id = $1"
+                " and academic_year_id = $2 and status = 'active'",
+                user_id,
+                row["academic_year_id"],
+            )
+            if placed != class_id:
+                raise Conflict("CLASS_PLACEMENT_CONFLICT")
         if full_name is not None:
             await self._conn.execute(
                 "update profiles set full_name = $2 where id = $1", user_id, full_name
             )
 
-    async def deactivate_person(self, school_id: UUID, user_id: UUID) -> bool:
+    async def deactivate_person(self, school_id: UUID, user_id: UUID) -> AdminRow | None:
         await self._person(school_id, user_id)
         is_admin = await self._conn.fetchval(
             "select exists(select 1 from school_memberships where school_id = $1"
@@ -214,9 +415,9 @@ class PgAdministrationRepo:
             school_id,
             user_id,
         )
-        await self._conn.execute(
+        enrollments = await self._conn.fetch(
             "update class_enrollments set status = 'inactive', ended_at = now()"
-            " where school_id = $1 and student_id = $2 and status = 'active'",
+            " where school_id = $1 and student_id = $2 and status = 'active' returning id",
             school_id,
             user_id,
         )
@@ -231,7 +432,12 @@ class PgAdministrationRepo:
                 "update profiles set credential_revision = credential_revision + 1 where id = $1",
                 user_id,
             )
-        return bool(changed or links)
+            return {
+                "membership_ids": [str(row["id"]) for row in changed],
+                "enrollment_ids": [str(row["id"]) for row in enrollments],
+                "parent_link_ids": [str(row["id"]) for row in links],
+            }
+        return None
 
     async def classes(self, school_id: UUID, year_id: UUID | None) -> list[AdminRow]:
         if year_id:

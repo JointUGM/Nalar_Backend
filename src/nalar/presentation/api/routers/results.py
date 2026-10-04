@@ -2,7 +2,7 @@ from dataclasses import asdict
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 
 from nalar.application.features.results.commands.override_score import (
     OverrideScore,
@@ -17,8 +17,10 @@ from nalar.application.features.sessions.commands.safety_action import (
     SafetyActionHandler,
 )
 from nalar.application.ports.clock import Clock
+from nalar.presentation.api.conditional import POLL_RESPONSES, PollRequestTag, conditional_response
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.results import (
+    ClassMapEdgeOut,
     ClassMapOut,
     ConceptCountOut,
     EvidenceOut,
@@ -50,15 +52,19 @@ from nalar.presentation.api.schemas.results import (
 router = APIRouter(tags=["results"], route_class=DishkaRoute)
 
 
-@router.get("/publications/{publication_id}/monitor", response_model=MonitorOut)
+@router.get(
+    "/publications/{publication_id}/monitor", response_model=MonitorOut, responses=POLL_RESPONSES
+)
 async def monitor(
     publication_id: UUID,
+    request: Request,
     user: CurrentUser,
     query: FromDishka[MonitorQuery],
     clock: FromDishka[Clock],
-) -> MonitorOut:
+    if_none_match: PollRequestTag = None,
+) -> Response:
     found = await query.execute(user.id, publication_id)
-    return MonitorOut(
+    body = MonitorOut(
         run=MonitorRunOut(**asdict(found.run)),
         waiting_count=found.waiting_count,
         students=[
@@ -66,6 +72,7 @@ async def monitor(
         ],
         server_now=clock.now(),
     )
+    return conditional_response(body, request, user.id, if_none_match)
 
 
 @router.get("/publications/{publication_id}/class-map", response_model=ClassMapOut)
@@ -77,6 +84,9 @@ async def class_map(
     statements = {m: statement for m, _, statement in data.misconceptions}
     students = {s.student_id: MisconceptionStudentOut(**asdict(s)) for s in data.students}
     return ClassMapOut(
+        prerequisites=[
+            ClassMapEdgeOut(concept_id=a, prerequisite_id=b) for a, b in data.prerequisites
+        ],
         denominator=counts.denominator,
         incomplete_count=counts.incomplete_count,
         insight=InsightOut(narrative=insight.narrative, generated_at=insight.generated_at)

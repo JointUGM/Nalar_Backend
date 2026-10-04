@@ -1,6 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
+from nalar.application.errors import Conflict, InvalidInput, NotFound
+from nalar.application.ports.administration import AdminRow
 from nalar.application.ports.publications import (
     Assignment,
     ClassRef,
@@ -26,10 +28,98 @@ _TEACHES_PUBLICATION_CLASS = """
 
 
 class PgPublicationsRepo:
+    async def detail(self, publication_id: UUID) -> AdminRow | None:
+        row = await self._conn.fetchrow(
+            "select p.id, p.school_id, p.class_id, c.name as class_name, p.published_by,"
+            " p.created_at, p.cancelled_at, p.released_to_parents_at,"
+            " mv.id as mission_version_id, mv.version_number, mi.id as mission_id,"
+            " mi.title as mission_title, mi.knowledge_base_id"
+            " from publications p join classes c on c.id = p.class_id"
+            " join mission_versions mv on mv.id = p.mission_version_id"
+            " join missions mi on mi.id = mv.mission_id where p.id = $1",
+            publication_id,
+        )
+        if row is None:
+            return None
+        runs = await self._conn.fetch(
+            "select id, kind::text, mode::text, status::text, opens_at, closes_at,"
+            " join_code from publication_runs where publication_id = $1"
+            " order by kind, created_at, id",
+            publication_id,
+        )
+        return {**dict(row), "runs": [dict(run) for run in runs]}
+
+    async def edit(
+        self,
+        publication_id: UUID,
+        now: datetime,
+        opens_at: datetime | None,
+        closes_at: datetime | None,
+        *,
+        cancel: bool,
+    ) -> UUID:
+        publication = await self.lock_for_grant(publication_id)
+        if publication is None:
+            raise NotFound()
+        runs = await self._conn.fetch(
+            "select id, kind::text, mode::text, status::text, opens_at, started_at"
+            " from publication_runs where publication_id = $1 order by id for update",
+            publication_id,
+        )
+        if cancel and publication.cancelled_at is not None:
+            return publication.school_id
+        if publication.cancelled_at or publication.released_to_parents_at:
+            raise Conflict("PUBLICATION_NOT_EDITABLE")
+        if await self._conn.fetchval(
+            "select exists(select 1 from sessions where publication_id = $1)", publication_id
+        ):
+            raise Conflict("PUBLICATION_HAS_SESSIONS")
+        if cancel:
+            await self._conn.execute(
+                "update publications set cancelled_at = $2 where id = $1 and cancelled_at is null",
+                publication_id,
+                now,
+            )
+            await self._conn.execute(
+                "update run_participants set status = 'cancelled' where run_id = any($1::uuid[])"
+                " and status = 'waiting'",
+                [run["id"] for run in runs],
+            )
+            await self._conn.execute(
+                "update publication_runs set status = 'closed', closed_at = $2"
+                " where publication_id = $1 and status <> 'closed'",
+                publication_id,
+                now,
+            )
+        else:
+            primary = next((run for run in runs if run["kind"] == "primary"), None)
+            if primary is None:
+                raise NotFound()
+            if (
+                primary["mode"] != "window"
+                or primary["status"] != "scheduled"
+                or primary["started_at"] is not None
+                or primary["opens_at"] <= now
+            ):
+                raise Conflict("PUBLICATION_NOT_EDITABLE")
+            if opens_at is None or closes_at is None or not now < opens_at < closes_at:
+                raise InvalidInput("INVALID_WINDOW")
+            changed = await self._conn.fetchval(
+                "update publication_runs set opens_at = $2, closes_at = $3"
+                " where id = $1 and status = 'scheduled' returning id",
+                primary["id"],
+                opens_at,
+                closes_at,
+            )
+            if changed is None:
+                raise Conflict("PUBLICATION_NOT_EDITABLE")
+        return publication.school_id
+
     async def lock_for_grant(self, publication_id: UUID) -> GrantPublication | None:
+        # Lifecycle writes must not block the foreign-key locks of a live session start.
         row = await self._conn.fetchrow(
             "select school_id, class_id, cancelled_at, released_to_parents_at"
-            " from publications where id = $1 for update",
+            " from publications where id = $1 for no key update",
             publication_id,
         )
         return GrantPublication(**dict(row)) if row else None

@@ -197,7 +197,29 @@ class ItemPatch:
     counter_examples: tuple[str, ...] | None = None
 
 
+@dataclass(frozen=True)
+class ManualItem:
+    name: str
+    description: str | None = None
+    concept_id: UUID | None = None
+    correct_understanding: str | None = None
+    detection_cues: tuple[str, ...] = ()
+    counter_examples: tuple[str, ...] = ()
+    source_chunk_ids: tuple[UUID, ...] = ()
+
+
 class KnowledgeRepo(Protocol):
+    async def validate_manual(self, kb_id: UUID, item: ManualItem) -> None: ...
+
+    async def create_manual(
+        self,
+        kb: KbRef,
+        item_id: UUID,
+        item: ManualItem,
+        embedding: Sequence[float],
+        model: str,
+    ) -> None: ...
+
     async def claim_build(
         self, ctx: BuildContext, job_id: UUID, now: datetime, stale_after_s: float
     ) -> int | None:

@@ -4,6 +4,7 @@ from uuid import UUID
 
 import asyncpg
 
+from nalar.application.errors import NotFound
 from nalar.application.features.knowledge_base.s1_calls import BuildBusy
 from nalar.application.ports.ai_contract import (
     CandidateIn,
@@ -24,6 +25,7 @@ from nalar.application.ports.knowledge import (
     KbDetail,
     KbRef,
     KbSummary,
+    ManualItem,
     MaterialForDetect,
     MaterialView,
     MisconceptionView,
@@ -76,6 +78,63 @@ def _pages(chunk_ids: Sequence[UUID], pages: dict[UUID, PageSource]) -> tuple[Pa
 
 
 class PgKnowledgeRepo:
+    async def validate_manual(self, kb_id: UUID, item: ManualItem) -> None:
+        if item.concept_id and not await self._conn.fetchval(
+            "select exists(select 1 from concepts where id = $1"
+            " and knowledge_base_id = $2 and archived_at is null"
+            " and review_status <> 'rejected')",
+            item.concept_id,
+            kb_id,
+        ):
+            raise NotFound()
+        rows = await self._conn.fetch(
+            "select id from material_chunks where knowledge_base_id = $1 and id = any($2::uuid[])",
+            kb_id,
+            list(item.source_chunk_ids),
+        )
+        if {row["id"] for row in rows} != set(item.source_chunk_ids):
+            raise NotFound()
+
+    async def create_manual(
+        self,
+        kb: KbRef,
+        item_id: UUID,
+        item: ManualItem,
+        embedding: Sequence[float],
+        model: str,
+    ) -> None:
+        if item.concept_id:
+            await self._conn.execute(
+                "insert into misconceptions(id,school_id,knowledge_base_id,concept_id,statement,"
+                " correct_understanding,origin,detection_cues,counter_examples,source_chunk_ids,"
+                " embedding,embedding_model) values($1,$2,$3,$4,$5,$6,'teacher',$7,$8,$9,$10,$11)",
+                item_id,
+                kb.school_id,
+                kb.id,
+                item.concept_id,
+                item.name,
+                item.correct_understanding,
+                list(item.detection_cues),
+                list(item.counter_examples),
+                list(item.source_chunk_ids),
+                list(embedding),
+                model,
+            )
+        else:
+            await self._conn.execute(
+                "insert into concepts(id,school_id,knowledge_base_id,name,description,origin,"
+                " source_chunk_ids,embedding,embedding_model)"
+                " values($1,$2,$3,$4,$5,'teacher',$6,$7,$8)",
+                item_id,
+                kb.school_id,
+                kb.id,
+                item.name,
+                item.description,
+                list(item.source_chunk_ids),
+                list(embedding),
+                model,
+            )
+
     async def _source_pages(
         self, school_id: UUID, kb_id: UUID, chunk_ids: list[UUID]
     ) -> dict[UUID, PageSource]:

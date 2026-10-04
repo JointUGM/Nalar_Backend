@@ -3,12 +3,13 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, File, Form, Query, UploadFile
+from fastapi import APIRouter, File, Form, Header, Query, UploadFile
 
 from nalar.application.features.knowledge_base.commands.add_material import (
     AddMaterial,
     AddMaterialHandler,
 )
+from nalar.application.features.knowledge_base.commands.create_item import CreateItemHandler
 from nalar.application.features.knowledge_base.commands.create_kb import (
     CreateKb,
     CreateKbHandler,
@@ -28,10 +29,11 @@ from nalar.application.features.knowledge_base.queries.get_kb import GetKbQuery
 from nalar.application.features.knowledge_base.queries.list_kbs import ListKbs, ListKbsQuery
 from nalar.application.features.knowledge_base.queries.list_sections import ListSectionsQuery
 from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
-from nalar.application.ports.knowledge import ItemPatch
+from nalar.application.ports.knowledge import ItemPatch, ManualItem
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.knowledge_base import (
     BuildQueuedOut,
+    ConceptCreateIn,
     ConceptOut,
     ConceptPatchIn,
     KbDetailOut,
@@ -39,6 +41,7 @@ from nalar.presentation.api.schemas.knowledge_base import (
     KbSummaryOut,
     MaterialOut,
     MaterialQueuedOut,
+    MisconceptionCreateIn,
     MisconceptionOut,
     MisconceptionPatchIn,
     PrerequisiteOut,
@@ -212,3 +215,41 @@ async def review_queue(
     return ReviewQueueOut(
         knowledge_base_id=kb_id, pending_concepts=concepts, pending_misconceptions=misconceptions
     )
+
+
+@router.post("/knowledge-bases/{kb_id}/concepts", status_code=201, response_model=ConceptOut)
+async def create_concept(
+    kb_id: UUID,
+    body: ConceptCreateIn,
+    user: CurrentUser,
+    handler: FromDishka[CreateItemHandler],
+    key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> ConceptOut:
+    item = ManualItem(body.name, body.description, source_chunk_ids=tuple(body.source_chunk_ids))
+    view = await handler.execute(user.id, kb_id, item, key)
+    return ConceptOut(**asdict(view))
+
+
+@router.post(
+    "/knowledge-bases/{kb_id}/concepts/{concept_id}/misconceptions",
+    status_code=201,
+    response_model=MisconceptionOut,
+)
+async def create_misconception(
+    kb_id: UUID,
+    concept_id: UUID,
+    body: MisconceptionCreateIn,
+    user: CurrentUser,
+    handler: FromDishka[CreateItemHandler],
+    key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> MisconceptionOut:
+    item = ManualItem(
+        body.statement,
+        concept_id=concept_id,
+        correct_understanding=body.correct_understanding,
+        detection_cues=tuple(body.detection_cues),
+        counter_examples=tuple(body.counter_examples),
+        source_chunk_ids=tuple(body.source_chunk_ids),
+    )
+    view = await handler.execute(user.id, kb_id, item, key)
+    return MisconceptionOut(**asdict(view))

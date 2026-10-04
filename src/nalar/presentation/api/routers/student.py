@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import JSONResponse
 
 from nalar.application.errors import InvalidInput, TooManyRequests
@@ -32,6 +32,7 @@ from nalar.application.features.sessions.queries.student_missions import Student
 from nalar.application.features.sessions.queries.student_reflections import StudentReflectionsQuery
 from nalar.application.ports.clock import Clock
 from nalar.domain.labels import ParticipantStatus
+from nalar.presentation.api.conditional import POLL_RESPONSES, PollRequestTag, conditional_response
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.rate_limit import RateLimiter
 from nalar.presentation.api.schemas.student import (
@@ -132,11 +133,17 @@ async def join(
     )
 
 
-@router.get("/runs/{run_id}/lobby", response_model=StudentLobbyOut)
+@router.get("/runs/{run_id}/lobby", response_model=StudentLobbyOut, responses=POLL_RESPONSES)
 async def lobby(
-    run_id: UUID, user: CurrentUser, query: FromDishka[LobbyStateQuery], clock: FromDishka[Clock]
-) -> StudentLobbyOut:
-    return StudentLobbyOut(**vars(await query.execute(user.id, run_id)), server_now=clock.now())
+    run_id: UUID,
+    request: Request,
+    user: CurrentUser,
+    query: FromDishka[LobbyStateQuery],
+    clock: FromDishka[Clock],
+    if_none_match: PollRequestTag = None,
+) -> Response:
+    body = StudentLobbyOut(**vars(await query.execute(user.id, run_id)), server_now=clock.now())
+    return conditional_response(body, request, user.id, if_none_match)
 
 
 @router.put("/runs/{run_id}/warmup-choice", response_model=WarmupSavedOut)
@@ -183,16 +190,18 @@ async def submit_answer(
     return AnswerAccepted(next_prompt_url=f"/api/v1/student/sessions/{session_id}/state")
 
 
-@router.get("/sessions/{session_id}/state", response_model=StateOut)
+@router.get("/sessions/{session_id}/state", response_model=StateOut, responses=POLL_RESPONSES)
 async def session_state(
     session_id: UUID,
+    request: Request,
     user: CurrentUser,
     query: FromDishka[SessionStateQuery],
     clock: FromDishka[Clock],
-) -> StateOut:
+    if_none_match: PollRequestTag = None,
+) -> Response:
     state = await query.execute(user.id, session_id)
     prompt = state.prompt
-    return StateOut(
+    body = StateOut(
         status=state.status,
         turn_index=state.turn_index,
         probe_number=state.probe_number,
@@ -206,6 +215,7 @@ async def session_state(
         reflection_ready=state.reflection_ready,
         server_now=clock.now(),
     )
+    return conditional_response(body, request, user.id, if_none_match)
 
 
 @router.post("/sessions/{session_id}/telemetry", response_model=TelemetryAccepted)

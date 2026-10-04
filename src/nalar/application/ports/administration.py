@@ -39,6 +39,18 @@ class NewSchool:
 
 
 @dataclass(frozen=True)
+class NewPerson:
+    full_name: str
+    role: str
+    email: str | None
+    nisn: str | None
+    class_id: UUID | None
+    child_ids: list[UUID]
+    relationship: str | None
+    invite: bool
+
+
+@dataclass(frozen=True)
 class LearningOutcome:
     description: str
     element: str | None = None
@@ -66,6 +78,37 @@ class AdministrationRepo(Protocol):
 
     async def lock_school(self, school_id: UUID) -> bool: ...
 
+    async def validate_person(self, school_id: UUID, details: NewPerson) -> None: ...
+
+    async def attach_parent(
+        self,
+        school_id: UUID,
+        parent_id: UUID,
+        student_id: UUID,
+        relationship: str | None,
+        *,
+        restore: bool,
+    ) -> None: ...
+
+    async def place_students(
+        self, school_id: UUID, class_id: UUID, user_ids: list[UUID]
+    ) -> None: ...
+
+    async def reactivate_person(self, school_id: UUID, user_id: UUID) -> bool: ...
+
+    async def set_parent_link(
+        self,
+        school_id: UUID,
+        parent_id: UUID,
+        student_id: UUID,
+        linked: bool,
+        relationship: str | None,
+    ) -> None: ...
+
+    async def roster_imports(
+        self, school_id: UUID, year_id: UUID | None, cursor: UUID | None, limit: int
+    ) -> AdminPage: ...
+
     async def kb_school(self, kb_id: UUID) -> UUID | None: ...
 
     async def people(
@@ -76,7 +119,7 @@ class AdministrationRepo(Protocol):
         self, school_id: UUID, user_id: UUID, full_name: str | None, class_id: UUID | None
     ) -> None: ...
 
-    async def deactivate_person(self, school_id: UUID, user_id: UUID) -> bool: ...
+    async def deactivate_person(self, school_id: UUID, user_id: UUID) -> AdminRow | None: ...
 
     async def classes(self, school_id: UUID, year_id: UUID | None) -> list[AdminRow]: ...
 

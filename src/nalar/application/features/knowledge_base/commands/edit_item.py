@@ -1,13 +1,11 @@
-from collections.abc import Sequence
 from dataclasses import dataclass
-from math import isfinite
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from nalar.application.errors import Conflict, DependencyUnavailable, NotFound
+from nalar.application.errors import Conflict, NotFound
 from nalar.application.features.knowledge_base.commands.add_material import require_owner
 from nalar.application.features.knowledge_base.commands.build_section import S1Settings
-from nalar.application.ports.ai import AiGateway, AiServiceError
-from nalar.application.ports.ai_contract import EmbedIn, InvocationOut, Tag
+from nalar.application.features.knowledge_base.embeddings import embed_item
+from nalar.application.ports.ai import AiGateway
 from nalar.application.ports.knowledge import (
     ConceptView,
     ItemKind,
@@ -55,7 +53,11 @@ class EditItemHandler:
                     "ITEM_NOT_PENDING", "Hanya butir yang belum ditinjau yang bisa diubah."
                 )
         text = _embed_text(ref, cmd.patch)
-        vector, invocations = (None, []) if text is None else await self._embed(ref, text)
+        vector, invocations = (
+            (None, [])
+            if text is None
+            else await embed_item(self._uow, self._ai, self._model, ref, text)
+        )
         if invocations:
             # AI-6: paid calls survive a later authorization or state conflict.
             async with self._uow:
@@ -94,28 +96,3 @@ class EditItemHandler:
             )
         assert view is not None
         return view
-
-    async def _embed(self, ref: ItemRef, text: str) -> tuple[list[float], Sequence[InvocationOut]]:
-        tag = Tag.concept if ref.kind == "concept" else Tag.misconception
-        body = EmbedIn.model_validate({"tag": tag, "texts": [text]})
-        try:
-            reply = await self._ai.embed(body, f"embed-{ref.id}-{uuid4()}")
-        except AiServiceError as error:
-            async with self._uow:
-                await self._uow.ai_invocations.record(ref.school_id, error.invocations)
-            raise DependencyUnavailable() from error
-        result = reply.result
-        if result.embedding_model != self._model:
-            async with self._uow:
-                await self._uow.ai_invocations.record(ref.school_id, reply.invocations)
-            raise DependencyUnavailable("EMBEDDING_MODEL_MISMATCH")
-        if (
-            result.dimensions != 1536
-            or len(result.vectors) != 1
-            or len(result.vectors[0]) != 1536
-            or not all(map(isfinite, result.vectors[0]))
-        ):
-            async with self._uow:
-                await self._uow.ai_invocations.record(ref.school_id, reply.invocations)
-            raise DependencyUnavailable("EMBEDDING_INVALID")
-        return result.vectors[0], reply.invocations

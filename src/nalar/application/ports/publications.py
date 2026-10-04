@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from nalar.application.ports.administration import AdminRow
 from nalar.domain.labels import RunMode, RunStatus
 
 
@@ -91,6 +92,18 @@ class StoredGrant:
 
 
 class PublicationsRepo(Protocol):
+    async def detail(self, publication_id: UUID) -> AdminRow | None: ...
+
+    async def edit(
+        self,
+        publication_id: UUID,
+        now: datetime,
+        opens_at: datetime | None,
+        closes_at: datetime | None,
+        *,
+        cancel: bool,
+    ) -> UUID: ...
+
     async def lock_for_grant(self, publication_id: UUID) -> GrantPublication | None: ...
 
     async def grant_by_key(

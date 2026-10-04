@@ -63,11 +63,17 @@ class InsightOut(BaseModel):
     generated_at: datetime
 
 
+class ClassMapEdgeOut(BaseModel):
+    concept_id: UUID
+    prerequisite_id: UUID
+
+
 class ClassMapOut(BaseModel):
     denominator: int
     incomplete_count: int
     concepts: list[ConceptCountOut]
     insight: InsightOut | None = None
+    prerequisites: list[ClassMapEdgeOut] = Field(default_factory=list)
 
 
 class ReportStudentOut(BaseModel):

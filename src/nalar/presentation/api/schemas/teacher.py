@@ -181,6 +181,44 @@ class PublishOut(BaseModel):
     run_status: str
 
 
+class PublicationWindowIn(Body):
+    opens_at: AwareDatetime
+    closes_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def ordered_window(self) -> Self:
+        if self.opens_at >= self.closes_at:
+            raise ValueError("opens_at must precede closes_at")
+        return self
+
+
+class PublicationRunDetailOut(BaseModel):
+    id: UUID
+    kind: Literal["primary", "grant"]
+    mode: Literal["live", "window"]
+    status: str
+    opens_at: datetime | None
+    closes_at: datetime | None
+    join_code: str | None
+
+
+class PublicationDetailOut(BaseModel):
+    id: UUID
+    school_id: UUID
+    class_id: UUID
+    class_name: str
+    published_by: UUID
+    created_at: datetime
+    cancelled_at: datetime | None
+    released_to_parents_at: datetime | None
+    mission_version_id: UUID
+    version_number: int
+    mission_id: UUID
+    mission_title: str
+    knowledge_base_id: UUID
+    runs: list[PublicationRunDetailOut]
+
+
 class AssignmentOut(BaseModel):
     school_id: UUID
     class_id: UUID
