@@ -133,6 +133,7 @@ class ClassMapInput:
     misconceptions: tuple[tuple[UUID, UUID, str], ...]
     attempts: tuple[StudentAttempt, ...]
     students: tuple[ClassMapStudent, ...]
+    prerequisites: tuple[tuple[UUID, UUID], ...] = ()
 
 
 @dataclass(frozen=True)

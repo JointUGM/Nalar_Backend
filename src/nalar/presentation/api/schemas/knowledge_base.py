@@ -61,6 +61,25 @@ class PrerequisiteOut(BaseModel):
     prerequisite_concept_id: UUID
 
 
+type ItemText = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)
+]
+
+
+class ConceptCreateIn(Body):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    description: ItemText | None = None
+    source_chunk_ids: list[UUID] = Field(default_factory=list, max_length=100)
+
+
+class MisconceptionCreateIn(Body):
+    statement: ItemText
+    correct_understanding: ItemText
+    detection_cues: list[ItemText] = Field(default_factory=list, max_length=30)
+    counter_examples: list[ItemText] = Field(default_factory=list, max_length=30)
+    source_chunk_ids: list[UUID] = Field(default_factory=list, max_length=100)
+
+
 class MisconceptionOut(BaseModel):
     id: UUID
     concept_id: UUID

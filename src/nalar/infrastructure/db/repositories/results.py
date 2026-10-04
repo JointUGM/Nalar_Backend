@@ -571,6 +571,12 @@ class PgResultsRepo:
         concepts = await self._conn.fetch(_TARGETS, publication_id)
         misconceptions = await self._conn.fetch(_VERSION_MISCONCEPTIONS, publication_id)
         latest = await self._conn.fetch(_LATEST_ATTEMPTS, publication_id)
+        edges = await self._conn.fetch(
+            "select concept_id, prerequisite_concept_id from concept_prerequisites"
+            " where concept_id = any($1::uuid[]) and prerequisite_concept_id = any($1::uuid[])"
+            " order by concept_id, prerequisite_concept_id",
+            [c["id"] for c in concepts],
+        )
         by_session: defaultdict[UUID, list[ConceptResult]] = defaultdict(list)
         for r in await self._conn.fetch(_CONCEPT_RESULTS, [a["id"] for a in latest]):
             by_session[r["session_id"]].append(
@@ -583,6 +589,9 @@ class PgResultsRepo:
                 )
             )
         return ClassMapInput(
+            prerequisites=tuple(
+                (edge["concept_id"], edge["prerequisite_concept_id"]) for edge in edges
+            ),
             concepts=tuple((c["id"], c["name"]) for c in concepts),
             misconceptions=tuple(
                 (m["id"], m["concept_id"], m["statement"]) for m in misconceptions
