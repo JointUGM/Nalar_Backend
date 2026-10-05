@@ -14,7 +14,7 @@ from nalar.application.features.onboarding.commands.send_invitation import (
 )
 from nalar.application.ports.activations import PendingInvitation
 from nalar.application.ports.auth_admin import AuthAccount, AuthEmailError
-from tests.integration.support.factories import World
+from tests.integration.support.factories import World, create_user
 from tests.integration.support.uow import uow_on
 from tests.unit.application.fakes import FakeClock
 
@@ -120,6 +120,48 @@ async def test_accepted_invitation_is_not_resent_and_link_lifetime_starts_at_sub
         "select expires_at from account_activations where user_id=$1", world.teacher_id
     ) == clock.now() + timedelta(hours=1)
     assert auth.calls[0][0] not in json.dumps(payload)
+
+
+async def test_platform_admin_issued_invitation_is_sent_and_activatable(
+    conn: asyncpg.Connection,
+    world: World,
+) -> None:
+    clock, auth = FakeClock(), FakeAuth(conn)
+    platform = await create_user(conn, "Platform Uji")
+    await conn.execute("update profiles set is_platform_admin = true where id = $1", platform)
+    await conn.execute(
+        "update profiles set onboarding_required = true, has_real_email = true where id = $1",
+        world.teacher_id,
+    )
+    async with uow_on(conn) as uow:
+        notification_id = await uow.activations.queue_initial(
+            world.teacher_id,
+            world.school_id,
+            platform,
+            clock.now(),
+            clock.now() + timedelta(days=2),
+        )
+    assert notification_id is not None
+    await SendAccountInvitationHandler(uow_on(conn), clock, auth, TIMING).execute(notification_id)
+    status, payload = await state(conn, notification_id)
+    assert status == "sent" and payload["outcome"] == "accepted"
+    assert len(auth.calls) == 1
+    row = await conn.fetchrow(
+        "select id, recipient_email from account_activations where user_id = $1", world.teacher_id
+    )
+    assert row is not None
+    pending = PendingInvitation(
+        notification_id,
+        row["id"],
+        world.teacher_id,
+        world.school_id,
+        platform,
+        row["recipient_email"],
+        clock.now() + timedelta(days=2),
+        1,
+    )
+    async with uow_on(conn) as uow:
+        assert await uow.activations._activation_eligible(pending)  # type: ignore[attr-defined]
 
 
 async def test_accepted_response_without_new_auth_proof_fails_closed(
