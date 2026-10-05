@@ -162,7 +162,8 @@ class PgActivationsRepo:
         return bool(
             await self._conn.fetchval(
                 "select exists(select 1 from school_memberships where user_id=$1 and school_id=$2"
-                " and role='school_admin' and status='active')",
+                " and role='school_admin' and status='active')"
+                " or exists(select 1 from profiles where id=$1 and is_platform_admin)",
                 invitation.issuer_id,
                 invitation.school_id,
             )

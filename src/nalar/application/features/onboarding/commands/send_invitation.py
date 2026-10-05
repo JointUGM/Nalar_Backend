@@ -174,11 +174,12 @@ class SendAccountInvitationHandler:
             )
 
     async def _eligible(self, invitation: PendingInvitation) -> bool:
-        return (
-            invitation.issuer_id is not None
-            and await self._uow.authz.is_school_admin(invitation.issuer_id, invitation.school_id)
-            and await self._uow.activations.eligible(invitation)
-        )
+        if invitation.issuer_id is None:
+            return False
+        issuer_allowed = await self._uow.authz.is_school_admin(
+            invitation.issuer_id, invitation.school_id
+        ) or await self._uow.authz.is_platform_admin(invitation.issuer_id)
+        return issuer_allowed and await self._uow.activations.eligible(invitation)
 
     async def _failed(
         self,
