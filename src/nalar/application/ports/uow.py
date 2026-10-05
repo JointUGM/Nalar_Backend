@@ -14,6 +14,7 @@ from nalar.application.ports.integrity import IntegrityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.knowledge import KnowledgeRepo
 from nalar.application.ports.missions import MissionsRepo
+from nalar.application.ports.national_references import NationalReferencesRepo
 from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
@@ -46,6 +47,7 @@ class UnitOfWork(Protocol):
     sessions: SessionsRepo
     turns: TurnsRepo
     notifications: NotificationsRepo
+    national_references: NationalReferencesRepo
     telemetry: TelemetryRepo
     scheduler: SchedulerRepo
     evaluations: EvaluationsRepo

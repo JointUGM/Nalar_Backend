@@ -694,6 +694,50 @@
         "title": "Body_create_kb_api_v1_schools__school_id__knowledge_bases_post",
         "type": "object"
       },
+      "Body_upload_api_v1_platform_references_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "issuer": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Issuer",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "curriculum",
+              "guidance"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source_url": {
+            "format": "uri",
+            "minLength": 1,
+            "title": "Source Url",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "kind",
+          "title",
+          "issuer",
+          "source_url"
+        ],
+        "title": "Body_upload_api_v1_platform_references_post",
+        "type": "object"
+      },
       "Body_upload_roster_api_v1_schools__school_id__roster_imports_post": {
         "properties": {
           "academic_year_id": {
@@ -2697,6 +2741,11 @@
         ],
         "title": "KbSummaryOut",
         "type": "object"
+      },
+      "Label": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
       },
       "LearningOutcomeIn": {
         "additionalProperties": false,
@@ -4934,6 +4983,468 @@
         "title": "PublishOut",
         "type": "object"
       },
+      "ReferenceCurriculumIn": {
+        "additionalProperties": false,
+        "properties": {
+          "decree_code": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "is_current": {
+            "default": true,
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceSubjectIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "decree_code",
+          "effective_on",
+          "subjects"
+        ],
+        "title": "ReferenceCurriculumIn",
+        "type": "object"
+      },
+      "ReferenceDetailOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "curriculum_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Version Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "kind": {
+            "enum": [
+              "curriculum",
+              "guidance"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/ReferencePageOut"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceReviewDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "uploading",
+              "extracting",
+              "review",
+              "indexing",
+              "published",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "issuer",
+          "source_url",
+          "sha256",
+          "status",
+          "revision",
+          "created_at",
+          "published_at",
+          "curriculum_version_id",
+          "job_id",
+          "error_code",
+          "review",
+          "pages"
+        ],
+        "title": "ReferenceDetailOut",
+        "type": "object"
+      },
+      "ReferencePageOut": {
+        "properties": {
+          "page_number": {
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_number",
+          "text"
+        ],
+        "title": "ReferencePageOut",
+        "type": "object"
+      },
+      "ReferenceQueuedOut": {
+        "properties": {
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "extracting",
+              "indexing"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "job_id",
+          "status"
+        ],
+        "title": "ReferenceQueuedOut",
+        "type": "object"
+      },
+      "ReferenceReviewDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "curriculum": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceCurriculumIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selected_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "title": "Selected Pages",
+            "type": "array"
+          }
+        },
+        "title": "ReferenceReviewDraft",
+        "type": "object"
+      },
+      "ReferenceReviewIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 0.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "curriculum": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceCurriculumIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selected_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 500,
+            "title": "Selected Pages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "base_revision"
+        ],
+        "title": "ReferenceReviewIn",
+        "type": "object"
+      },
+      "ReferenceRevisionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 0.0,
+            "title": "Base Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "base_revision"
+        ],
+        "title": "ReferenceRevisionIn",
+        "type": "object"
+      },
+      "ReferenceRevisionOut": {
+        "properties": {
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "ReferenceRevisionOut",
+        "type": "object"
+      },
+      "ReferenceSubjectIn": {
+        "additionalProperties": false,
+        "properties": {
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/SourceElementIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Elements",
+            "type": "array"
+          },
+          "name": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "phase": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F"
+            ],
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phase",
+          "elements"
+        ],
+        "title": "ReferenceSubjectIn",
+        "type": "object"
+      },
+      "ReferenceSummaryOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "curriculum_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Version Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "kind": {
+            "enum": [
+              "curriculum",
+              "guidance"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_url": {
+            "title": "Source Url",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "uploading",
+              "extracting",
+              "review",
+              "indexing",
+              "published",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "issuer",
+          "source_url",
+          "sha256",
+          "status",
+          "revision",
+          "created_at",
+          "published_at",
+          "curriculum_version_id",
+          "job_id",
+          "error_code"
+        ],
+        "title": "ReferenceSummaryOut",
+        "type": "object"
+      },
       "ReflectionOut": {
         "properties": {
           "completed_at": {
@@ -6679,6 +7190,70 @@
         "title": "SessionOut",
         "type": "object"
       },
+      "SourceElementIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/Text"
+          },
+          "element": {
+            "$ref": "#/components/schemas/Label"
+          },
+          "page_end": {
+            "minimum": 1.0,
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "minimum": 1.0,
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/SourceStatementIn"
+            },
+            "maxItems": 2048,
+            "minItems": 1,
+            "title": "Statements",
+            "type": "array"
+          }
+        },
+        "required": [
+          "description",
+          "page_start",
+          "page_end",
+          "element",
+          "statements"
+        ],
+        "title": "SourceElementIn",
+        "type": "object"
+      },
+      "SourceStatementIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/Text"
+          },
+          "page_end": {
+            "minimum": 1.0,
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "minimum": 1.0,
+            "title": "Page Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "page_start",
+          "page_end"
+        ],
+        "title": "SourceStatementIn",
+        "type": "object"
+      },
       "StartedOut": {
         "properties": {
           "started_at": {
@@ -7373,6 +7948,11 @@
         ],
         "title": "TelemetryIn",
         "type": "object"
+      },
+      "Text": {
+        "maxLength": 30000,
+        "minLength": 1,
+        "type": "string"
       },
       "TypingEvent": {
         "additionalProperties": false,
@@ -9003,6 +9583,74 @@
         ]
       }
     },
+    "/api/v1/knowledge-bases/{kb_id}/national-references/{document_id}": {
+      "post": {
+        "operationId": "adopt_api_v1_knowledge_bases__kb_id__national_references__document_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Adopt",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
     "/api/v1/knowledge-bases/{kb_id}/owner": {
       "post": {
         "operationId": "transfer_kb_api_v1_knowledge_bases__kb_id__owner_post",
@@ -10395,6 +11043,375 @@
         "summary": "Curriculum Version",
         "tags": [
           "administration"
+        ]
+      }
+    },
+    "/api/v1/platform/references": {
+      "get": {
+        "operationId": "list_platform_api_v1_platform_references_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReferenceSummaryOut"
+                  },
+                  "title": "Response List Platform Api V1 Platform References Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "List Platform",
+        "tags": [
+          "national-references"
+        ]
+      },
+      "post": {
+        "operationId": "upload_api_v1_platform_references_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_v1_platform_references_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Upload",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}": {
+      "get": {
+        "operationId": "detail_api_v1_platform_references__document_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Detail",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}/file": {
+      "get": {
+        "operationId": "source_file_api_v1_platform_references__document_id__file_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Source File",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}/publish": {
+      "post": {
+        "operationId": "publish_api_v1_platform_references__document_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceRevisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Publish",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}/retry": {
+      "post": {
+        "operationId": "retry_api_v1_platform_references__document_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceRevisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Retry",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}/review": {
+      "put": {
+        "operationId": "review_api_v1_platform_references__document_id__review_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceRevisionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Review",
+        "tags": [
+          "national-references"
         ]
       }
     },
@@ -12718,6 +13735,58 @@
         "summary": "List Missions",
         "tags": [
           "missions"
+        ]
+      }
+    },
+    "/api/v1/schools/{school_id}/national-references": {
+      "get": {
+        "operationId": "list_teacher_api_v1_schools__school_id__national_references_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReferenceSummaryOut"
+                  },
+                  "title": "Response List Teacher Api V1 Schools  School Id  National References Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "List Teacher",
+        "tags": [
+          "national-references"
         ]
       }
     },
