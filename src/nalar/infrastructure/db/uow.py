@@ -18,6 +18,7 @@ from nalar.application.ports.integrity import IntegrityRepo
 from nalar.application.ports.jobs import JobStore
 from nalar.application.ports.knowledge import KnowledgeRepo
 from nalar.application.ports.missions import MissionsRepo
+from nalar.application.ports.national_references import NationalReferencesRepo
 from nalar.application.ports.notifications import NotificationsRepo
 from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
@@ -46,6 +47,7 @@ from nalar.infrastructure.db.repositories.integrity import PgIntegrityRepo
 from nalar.infrastructure.db.repositories.jobs import PgJobStore
 from nalar.infrastructure.db.repositories.knowledge import PgKnowledgeRepo
 from nalar.infrastructure.db.repositories.missions import PgMissionsRepo
+from nalar.infrastructure.db.repositories.national_references import PgNationalReferencesRepo
 from nalar.infrastructure.db.repositories.notifications import PgNotificationsRepo
 from nalar.infrastructure.db.repositories.parents import PgParentsRepo
 from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
@@ -78,6 +80,7 @@ class PgUnitOfWork:
     sessions: SessionsRepo
     turns: TurnsRepo
     notifications: NotificationsRepo
+    national_references: NationalReferencesRepo
     telemetry: TelemetryRepo
     scheduler: SchedulerRepo
     evaluations: EvaluationsRepo
@@ -123,6 +126,7 @@ class PgUnitOfWork:
         self.sessions = PgSessionsRepo(conn)
         self.turns = PgTurnsRepo(conn)
         self.notifications = PgNotificationsRepo(conn)
+        self.national_references = PgNationalReferencesRepo(conn)
         self.telemetry = PgTelemetryRepo(conn)
         self.scheduler = PgSchedulerRepo(conn)
         self.evaluations = PgEvaluationsRepo(conn)

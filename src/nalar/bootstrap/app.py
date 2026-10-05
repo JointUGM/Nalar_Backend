@@ -22,6 +22,7 @@ from nalar.presentation.api.routers import (
     knowledge_base,
     me,
     missions,
+    national_references,
     operations,
     parent,
     release,
@@ -88,6 +89,7 @@ def create_app(
         parent.router,
         operations.router,
         missions.router,
+        national_references.router,
         knowledge_base.router,
         jobs.router,
     ):

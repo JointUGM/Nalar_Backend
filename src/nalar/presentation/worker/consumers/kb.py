@@ -4,6 +4,13 @@ from uuid import UUID
 
 from dishka import AsyncContainer
 
+from nalar.application.features.administration.commands.process_reference import (
+    ProcessReferenceHandler,
+)
+from nalar.application.features.administration.commands.upload_reference import (
+    EXTRACT_REFERENCE,
+    INDEX_REFERENCE,
+)
 from nalar.application.features.knowledge_base.commands.build_section import BuildSectionHandler
 from nalar.application.features.knowledge_base.commands.detect_sections import (
     DetectSectionsHandler,
@@ -23,4 +30,14 @@ def kb_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             handler = await scope.get(BuildSectionHandler)
             await handler.execute(UUID(str(message["section_id"])), UUID(str(message["job_id"])))
 
-    return {DETECT_KIND: detect, BUILD_KIND: build}
+    async def reference(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(ProcessReferenceHandler)
+            await handler.execute(UUID(str(message["document_id"])), UUID(str(message["job_id"])))
+
+    return {
+        DETECT_KIND: detect,
+        BUILD_KIND: build,
+        EXTRACT_REFERENCE: reference,
+        INDEX_REFERENCE: reference,
+    }

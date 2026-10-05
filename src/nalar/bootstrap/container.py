@@ -28,11 +28,18 @@ from nalar.application.features.administration.commands.install_school_admin imp
     InstallSchoolAdminHandler,
 )
 from nalar.application.features.administration.commands.place_students import PlaceStudentsHandler
+from nalar.application.features.administration.commands.process_reference import (
+    ProcessReferenceHandler,
+)
 from nalar.application.features.administration.commands.publish_curriculum import (
     PublishCurriculumHandler,
 )
 from nalar.application.features.administration.commands.reactivate_person import (
     ReactivatePersonHandler,
+)
+from nalar.application.features.administration.commands.review_reference import (
+    PublishReferenceHandler,
+    ReviewReferenceHandler,
 )
 from nalar.application.features.administration.commands.save_class import SaveClassHandler
 from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
@@ -41,6 +48,9 @@ from nalar.application.features.administration.commands.set_school_status import
     SetSchoolStatusHandler,
 )
 from nalar.application.features.administration.commands.transfer_kb import TransferKbHandler
+from nalar.application.features.administration.commands.upload_reference import (
+    UploadReferenceHandler,
+)
 from nalar.application.features.administration.queries.get_curriculum_version import (
     GetCurriculumVersionQuery,
 )
@@ -58,6 +68,7 @@ from nalar.application.features.administration.queries.list_subjects import List
 from nalar.application.features.administration.queries.platform_operations import (
     PlatformOperationsHandler,
 )
+from nalar.application.features.administration.queries.references import ReferencesQuery
 from nalar.application.features.auth.commands.change_password import (
     ChangePasswordHandler,
     PasswordMutationHandler,
@@ -82,6 +93,7 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
 )
 from nalar.application.features.jobs.queries.get_job import GetJobQuery
 from nalar.application.features.knowledge_base.commands.add_material import AddMaterialHandler
+from nalar.application.features.knowledge_base.commands.adopt_reference import AdoptReferenceHandler
 from nalar.application.features.knowledge_base.commands.archive import ArchiveHandler
 from nalar.application.features.knowledge_base.commands.build_section import (
     BuildSectionHandler,
@@ -224,6 +236,7 @@ from nalar.application.ports.auth_admin import AuthAdmin
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.mailer import Mailer
+from nalar.application.ports.national_references import ReferencePdf, ReferencePolicy
 from nalar.application.ports.password_resets import CredentialState
 from nalar.application.ports.queue import QueueConsumer
 from nalar.application.ports.readiness import ReadinessProbe
@@ -244,6 +257,7 @@ from nalar.infrastructure.clock import SystemClock
 from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
+from nalar.infrastructure.documents.reference_pdf import NationalReferencePdf
 from nalar.infrastructure.email.smtp import DisabledMailer, GmailSmtpMailer
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
 from nalar.infrastructure.readiness import PoolAndAiProbe
@@ -396,6 +410,23 @@ class InfrastructureProvider(Provider):
     @provide(scope=Scope.APP)
     def upload_limits(self) -> UploadLimits:
         return UploadLimits(self._settings.kb_max_upload_bytes)
+
+    @provide(scope=Scope.APP)
+    def reference_policy(self) -> ReferencePolicy:
+        s = self._settings
+        return ReferencePolicy(
+            s.reference_max_upload_bytes,
+            s.reference_max_pages,
+            s.reference_max_characters,
+            s.reference_max_statements,
+            s.reference_lease_s,
+            s.reference_max_attempts,
+            s.embedding_model,
+        )
+
+    @provide(scope=Scope.APP)
+    def reference_pdf(self, policy: ReferencePolicy) -> ReferencePdf:
+        return NationalReferencePdf(policy)
 
     @provide(scope=Scope.APP)
     def s1_settings(self) -> S1Settings:
@@ -583,6 +614,12 @@ class ApplicationProvider(Provider):
         EditPersonHandler,
         InstallSchoolAdminHandler,
         PublishCurriculumHandler,
+        UploadReferenceHandler,
+        ReviewReferenceHandler,
+        PublishReferenceHandler,
+        ProcessReferenceHandler,
+        ReferencesQuery,
+        AdoptReferenceHandler,
         SaveClassHandler,
         SetCurriculumHandler,
         SetSchoolStatusHandler,
