@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     auth_activation_timeout_s: float = Field(default=15, gt=0, allow_inf_nan=False)
     auth_activation_lease_s: float = Field(default=60, gt=0, allow_inf_nan=False)
     redis_url: SecretStr = SecretStr("redis://127.0.0.1:6379")
-    redis_timeout_s: float = 0.25
+    redis_timeout_s: float = 1.0
     session_lifetime_s: int = 43200
     session_refresh_margin_s: int = 60
     session_refresh_lock_s: int = 15

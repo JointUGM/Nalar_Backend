@@ -14,6 +14,8 @@ from dishka import (
     provide,
     provide_all,
 )
+from redis.backoff import NoBackoff
+from redis.retry import Retry
 
 from nalar.application.features.administration.commands.assign_teacher import AssignTeacherHandler
 from nalar.application.features.administration.commands.create_academic_year import (
@@ -512,6 +514,7 @@ class InfrastructureProvider(Provider):
             s.redis_url.get_secret_value(),
             socket_timeout=s.redis_timeout_s,
             socket_connect_timeout=s.redis_timeout_s,
+            retry=Retry(NoBackoff(), 1),
             health_check_interval=30,
         )
         yield RedisAuthState(client, s.access_token_ttl_s, s.login_rate_limit_per_minute)
@@ -529,6 +532,8 @@ class InfrastructureProvider(Provider):
             s.redis_url.get_secret_value(),
             socket_timeout=s.redis_timeout_s,
             socket_connect_timeout=s.redis_timeout_s,
+            retry=Retry(NoBackoff(), 1),
+            health_check_interval=30,
         )
         try:
             yield RedisBrowserSessions(
