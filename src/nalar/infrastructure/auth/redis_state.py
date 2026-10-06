@@ -65,8 +65,9 @@ class RedisAuthState:
         except (RedisError, OSError) as exc:
             self._skip_until = self._clock() + self._backoff_s
             log.warning(
-                "redis unavailable, auth checks blocked for %ss: %s",
+                "redis unavailable, auth checks blocked for %ss: %s: %s",
                 self._backoff_s,
                 type(exc).__name__,
+                exc,
             )
             raise DependencyUnavailable() from exc
