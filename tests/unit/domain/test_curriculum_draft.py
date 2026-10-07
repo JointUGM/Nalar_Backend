@@ -183,3 +183,29 @@ def test_a_lone_number_at_a_page_edge_is_kept_when_pages_are_not_numbered() -> N
     pages = {n: f"Isi unik {WORDS[n]}." for n in range(1, 7)}
     pages[3] = "Bilangan cacah sampai\n100"
     assert strip_running_lines(pages, 0.5)[3] == "Bilangan cacah sampai\n100"
+
+
+def _booklet(heading_pages: tuple[int, ...]) -> dict[int, str]:
+    pages = {n: f"Isi unik {chr(96 + n) * 3}." for n in range(1, 19)}
+    pages[13] = "Pemahaman IPA Pada akhir fase D, peserta didik mampu mengukur besaran"
+    pages[14] = "fisis. Peserta didik memahami gerak."
+    for number in heading_pages:
+        pages[number] = f"Elemen Fase D\n{pages[number]}"
+    return pages
+
+
+def test_a_table_heading_repeated_on_a_few_continuation_pages_does_not_split_a_quote() -> None:
+    pages = strip_running_lines(_booklet((14, 15, 16)), 0.5)
+    assert not pages[14].startswith("Elemen Fase D")
+    verify_source(
+        "Pada akhir fase D, peserta didik mampu mengukur besaran fisis. "
+        "Peserta didik memahami gerak.",
+        13,
+        14,
+        pages,
+    )
+
+
+def test_a_line_that_tops_only_two_pages_is_content() -> None:
+    pages = strip_running_lines(_booklet((14, 15)), 0.5)
+    assert pages[14].startswith("Elemen Fase D")

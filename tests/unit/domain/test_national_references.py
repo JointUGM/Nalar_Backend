@@ -24,3 +24,22 @@ def test_source_cannot_point_at_missing_or_empty_pages() -> None:
 def test_statement_cannot_be_empty() -> None:
     with pytest.raises(ValueError, match="SOURCE_TEXT_MISMATCH"):
         verify_source("  ", 1, 1, {1: "Gaya"})
+
+
+def test_a_line_break_after_a_hyphen_is_not_content() -> None:
+    verify_source(
+        "Peserta didik melakukan langkah-langkah operasional.",
+        1,
+        2,
+        {1: "Peserta didik melakukan langkah-\nlangkah", 2: "operasional."},
+    )
+
+
+def test_a_dropped_hyphen_is_still_a_mismatch() -> None:
+    with pytest.raises(ValueError, match="SOURCE_TEXT_MISMATCH"):
+        verify_source(
+            "Peserta didik melakukan langkah langkah operasional.",
+            1,
+            1,
+            {1: "Peserta didik melakukan langkah-\nlangkah operasional."},
+        )
