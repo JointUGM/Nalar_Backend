@@ -44,6 +44,25 @@ def _edge(lines: Sequence[str], last: bool) -> int | None:
     return filled[-1] if last else filled[0]
 
 
+def _without_repeated_edges(pages: dict[int, list[str]]) -> dict[int, list[str]]:
+    """Drop a heading that tops or ends at least three pages, such as a table continuation header.
+
+    The share rule misses it when it repeats only inside one section of a long document.
+    """
+    result = {number: list(lines) for number, lines in pages.items()}
+    for last in (False, True):
+        edges = {}
+        for number, lines in result.items():
+            index = _edge(lines, last)
+            if index is not None and _is_running_candidate(lines[index]):
+                edges[number] = (index, _line_key(lines[index]))
+        counts = Counter(key for _, key in edges.values())
+        for number, (index, key) in edges.items():
+            if counts[key] >= _RUNNING_MIN_PAGES:
+                del result[number][index]
+    return result
+
+
 def strip_running_lines(pages: Mapping[int, str], share: float) -> dict[int, str]:
     """Drop running headers, footers and page numbers so a quote can cross a page break.
 
@@ -65,6 +84,8 @@ def strip_running_lines(pages: Mapping[int, str], share: float) -> dict[int, str
         ]
         for number, text in pages.items()
     }
+
+    kept = _without_repeated_edges(kept)
 
     def numbered_at(last: bool) -> set[int]:
         found = set()
