@@ -43,3 +43,50 @@ def test_a_dropped_hyphen_is_still_a_mismatch() -> None:
             1,
             {1: "Peserta didik melakukan langkah-\nlangkah operasional."},
         )
+
+
+TABLE_PAGES = {
+    1: "Elemen Fase D\nPemahaman IPA Pada akhir fase D, peserta didik mengukur suhu.",
+    2: "Elemen Fase D\nPeserta didik memahami gerak.\nPeserta didik membuat rangkaian listrik.",
+    3: "Elemen Fase D\nMengamati benda di sekitar.",
+}
+
+
+def test_a_table_header_continued_at_a_page_join_is_layout() -> None:
+    # The 2022 CP IPA booklet repeats "Elemen Fase D" atop each continued page of its CP table.
+    verify_source(
+        "Pada akhir fase D, peserta didik mengukur suhu. Peserta didik memahami gerak.",
+        1,
+        2,
+        TABLE_PAGES,
+    )
+
+
+def test_only_the_join_may_skip_a_repeated_line() -> None:
+    with pytest.raises(ValueError, match="SOURCE_TEXT_MISMATCH"):
+        verify_source("Pemahaman IPA", 1, 2, {1: "Pemahaman\nElemen\nIPA", 2: "Elemen\nGaya."})
+
+
+def test_a_heading_under_the_continued_header_is_content_even_when_repeated() -> None:
+    pages = {
+        1: "Elemen | Deskripsi\nMengamati\nMenjelaskan cara mengamati.",
+        2: "Elemen Fase D\nPeserta didik mengamati.",
+        3: "Elemen Fase D\nMengamati\nMenggunakan alat bantu.",
+    }
+    verify_source("Peserta didik mengamati. Mengamati Menggunakan alat bantu.", 2, 3, pages)
+
+
+def test_a_sentence_at_a_page_join_is_content_even_when_repeated() -> None:
+    pages = {
+        1: "Peserta didik mengukur suhu.",
+        2: "Bagus.\nPeserta didik memahami gerak.",
+        3: "Bagus.",
+    }
+    with pytest.raises(ValueError, match="SOURCE_TEXT_MISMATCH"):
+        verify_source("Peserta didik mengukur suhu. Peserta didik memahami gerak.", 1, 2, pages)
+
+
+def test_a_line_on_only_one_page_is_content() -> None:
+    pages = {1: "Peserta didik mengukur suhu", 2: "Elemen Fase D\nPeserta didik memahami gerak."}
+    with pytest.raises(ValueError, match="SOURCE_TEXT_MISMATCH"):
+        verify_source("Peserta didik mengukur suhu Peserta didik memahami gerak.", 1, 2, pages)
