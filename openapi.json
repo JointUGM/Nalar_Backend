@@ -1890,6 +1890,101 @@
         "title": "DashboardWeekOut",
         "type": "object"
       },
+      "DraftCurriculumOut": {
+        "properties": {
+          "decree_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decree Code"
+          },
+          "effective_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective On"
+          },
+          "is_current": {
+            "title": "Is Current",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceSubjectIn"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "decree_code",
+          "effective_on",
+          "is_current",
+          "subjects"
+        ],
+        "title": "DraftCurriculumOut",
+        "type": "object"
+      },
+      "DraftRejectionOut": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "element",
+              "statement"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "not_in_source",
+              "outside_element",
+              "no_statements",
+              "limit",
+              "unnamed"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "reason",
+          "page_start",
+          "page_end"
+        ],
+        "title": "DraftRejectionOut",
+        "type": "object"
+      },
       "EvidenceOut": {
         "properties": {
           "quote": {
@@ -4983,6 +5078,26 @@
         "title": "PublishOut",
         "type": "object"
       },
+      "ReferenceAiDraftOut": {
+        "properties": {
+          "curriculum": {
+            "$ref": "#/components/schemas/DraftCurriculumOut"
+          },
+          "selected_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Selected Pages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "curriculum",
+          "selected_pages"
+        ],
+        "title": "ReferenceAiDraftOut",
+        "type": "object"
+      },
       "ReferenceCurriculumIn": {
         "additionalProperties": false,
         "properties": {
@@ -5039,6 +5154,54 @@
               }
             ],
             "title": "Curriculum Version Id"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceAiDraftOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Error"
+          },
+          "draft_report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceDraftReportOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "ready",
+                  "failed",
+                  "skipped"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Status"
           },
           "error_code": {
             "anyOf": [
@@ -5153,9 +5316,64 @@
           "job_id",
           "error_code",
           "review",
-          "pages"
+          "pages",
+          "draft_status",
+          "draft",
+          "draft_report",
+          "draft_error"
         ],
         "title": "ReferenceDetailOut",
+        "type": "object"
+      },
+      "ReferenceDraftQueuedOut": {
+        "properties": {
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "job_id"
+        ],
+        "title": "ReferenceDraftQueuedOut",
+        "type": "object"
+      },
+      "ReferenceDraftReportOut": {
+        "properties": {
+          "accepted_statements": {
+            "title": "Accepted Statements",
+            "type": "integer"
+          },
+          "pages_considered": {
+            "title": "Pages Considered",
+            "type": "integer"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/DraftRejectionOut"
+            },
+            "title": "Rejected",
+            "type": "array"
+          },
+          "windows": {
+            "title": "Windows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pages_considered",
+          "windows",
+          "accepted_statements",
+          "rejected"
+        ],
+        "title": "ReferenceDraftReportOut",
         "type": "object"
       },
       "ReferencePageOut": {
@@ -11175,6 +11393,64 @@
           }
         ],
         "summary": "Detail",
+        "tags": [
+          "national-references"
+        ]
+      }
+    },
+    "/api/v1/platform/references/{document_id}/draft": {
+      "post": {
+        "operationId": "request_draft_api_v1_platform_references__document_id__draft_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceDraftQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Request Draft",
         "tags": [
           "national-references"
         ]

@@ -4,10 +4,14 @@ from uuid import UUID
 
 from dishka import AsyncContainer
 
+from nalar.application.features.administration.commands.draft_reference import (
+    DraftReferenceHandler,
+)
 from nalar.application.features.administration.commands.process_reference import (
     ProcessReferenceHandler,
 )
 from nalar.application.features.administration.commands.upload_reference import (
+    DRAFT_REFERENCE,
     EXTRACT_REFERENCE,
     INDEX_REFERENCE,
 )
@@ -35,9 +39,15 @@ def kb_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             handler = await scope.get(ProcessReferenceHandler)
             await handler.execute(UUID(str(message["document_id"])), UUID(str(message["job_id"])))
 
+    async def draft(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(DraftReferenceHandler)
+            await handler.execute(UUID(str(message["document_id"])), UUID(str(message["job_id"])))
+
     return {
         DETECT_KIND: detect,
         BUILD_KIND: build,
         EXTRACT_REFERENCE: reference,
         INDEX_REFERENCE: reference,
+        DRAFT_REFERENCE: draft,
     }

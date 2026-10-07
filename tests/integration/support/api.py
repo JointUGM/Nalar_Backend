@@ -1,5 +1,6 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager, nullcontext
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -116,8 +117,9 @@ async def api_client(
     identity: FakeIdentityProvider | None = None,
     storage: FakeStorage | None = None,
     providers: tuple[Provider, ...] = (),
+    overrides: Mapping[str, Any] | None = None,
 ) -> AsyncIterator[httpx.AsyncClient]:
-    settings = Settings(env="test", cors_origins=["http://test"])
+    settings = Settings(env="test", cors_origins=["http://test"], **(overrides or {}))
     adapters = HarnessAdapters(
         conn,
         clock or FakeClock(),

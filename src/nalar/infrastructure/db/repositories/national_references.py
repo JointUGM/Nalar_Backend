@@ -43,7 +43,10 @@ class PgNationalReferencesRepo:
         )
         if row is None:
             return None
-        return dict(row) | {"review": json.loads(row["review"]) if row["review"] else None}
+        return dict(row) | {
+            column: json.loads(row[column]) if row[column] else None
+            for column in ("review", "draft", "draft_report")
+        }
 
     async def documents(self, *, published_only: bool) -> list[ReferenceRow]:
         rows = await self._conn.fetch(
@@ -58,7 +61,12 @@ class PgNationalReferencesRepo:
     async def queue(self, document_id: UUID, job_id: UUID, status: str) -> None:
         await self._conn.execute(
             "update national_reference_documents set job_id=$2,status=$3,lease_token=null,"
-            " lease_until=null,error_code=null where id=$1 and status <> 'published'",
+            " lease_until=null,error_code=null,"
+            " draft_status=case when $3='indexing' and draft_status='pending'"
+            " then 'failed' else draft_status end,"
+            " draft_error=case when $3='indexing' and draft_status='pending'"
+            " then 'REFERENCE_DRAFT_SUPERSEDED' else draft_error end"
+            " where id=$1 and status <> 'published'",
             document_id,
             job_id,
             status,
@@ -222,6 +230,43 @@ class PgNationalReferencesRepo:
                 document_id,
                 token,
                 error_code,
+            )
+            is not None
+        )
+
+    async def draft_queued(self, document_id: UUID, job_id: UUID) -> None:
+        await self._conn.execute(
+            "update national_reference_documents set draft_status='pending',draft_job_id=$2,"
+            " draft=null,draft_report=null,draft_error=null where id=$1 and status <> 'published'",
+            document_id,
+            job_id,
+        )
+
+    async def save_draft(
+        self, document_id: UUID, job_id: UUID, draft: ReferenceRow, report: ReferenceRow
+    ) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update national_reference_documents set draft=$3::jsonb,draft_report=$4::jsonb,"
+                " draft_status='ready' where id=$1 and draft_job_id=$2 and draft_status='pending'"
+                " and status in ('review','failed') returning true",
+                document_id,
+                job_id,
+                json.dumps(draft),
+                json.dumps(report),
+            )
+            is not None
+        )
+
+    async def draft_failed(self, document_id: UUID, job_id: UUID, status: str, code: str) -> bool:
+        return (
+            await self._conn.fetchval(
+                "update national_reference_documents set draft_status=$3,draft_error=$4"
+                " where id=$1 and draft_job_id=$2 and draft_status='pending' returning true",
+                document_id,
+                job_id,
+                status,
+                code,
             )
             is not None
         )

@@ -17,6 +17,7 @@ from nalar.application.ports.ai_contract import (
     ChunkSectionOut,
     ClassInsightIn,
     ClassInsightOut,
+    CpExcerptDraft,
     DedupeIn,
     DedupeOut,
     DetectSectionsOut,
@@ -26,6 +27,7 @@ from nalar.application.ports.ai_contract import (
     EvaluateOut,
     ExtractConceptsIn,
     ExtractConceptsOut,
+    ExtractCurriculumIn,
     GenerateMisconceptionsIn,
     GenerateMisconceptionsOut,
     GenerateMissionIn,
@@ -187,6 +189,11 @@ class ScriptedAiGateway:
 
     async def align_cp(self, body: AlignCpIn, request_id: str) -> AiResult[AlignCpOut]:
         return cast(AiResult[AlignCpOut], await self._reply("align_cp", body))
+
+    async def extract_curriculum(
+        self, body: ExtractCurriculumIn, request_id: str
+    ) -> AiResult[CpExcerptDraft]:
+        return cast(AiResult[CpExcerptDraft], await self._reply("extract_curriculum", body))
 
     async def generate_misconceptions(
         self, body: GenerateMisconceptionsIn, request_id: str

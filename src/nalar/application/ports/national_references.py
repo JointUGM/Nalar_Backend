@@ -14,6 +14,10 @@ class ReferencePolicy:
     lease_s: int
     max_attempts: int
     embedding_model: str
+    ai_draft: bool = False
+    draft_window_chars: int = 12_000
+    draft_max_windows: int = 12
+    running_line_share: float = 0.5
 
 
 class ReferencePdf(Protocol):
@@ -53,6 +57,20 @@ class NationalReferencesRepo(Protocol):
     ) -> bool: ...
 
     async def release(self, document_id: UUID, token: UUID, error_code: str | None) -> bool: ...
+
+    async def draft_queued(self, document_id: UUID, job_id: UUID) -> None:
+        """Make this job the only one allowed to write a draft, clearing any earlier draft."""
+        ...
+
+    async def save_draft(
+        self, document_id: UUID, job_id: UUID, draft: ReferenceRow, report: ReferenceRow
+    ) -> bool:
+        """Store the draft if this job is still the pending one and the review is open."""
+        ...
+
+    async def draft_failed(self, document_id: UUID, job_id: UUID, status: str, code: str) -> bool:
+        """Record a failed or skipped draft if this job is still the pending one."""
+        ...
 
     async def adoption(self, kb_id: UUID, document_id: UUID) -> ReferenceRow | None: ...
 

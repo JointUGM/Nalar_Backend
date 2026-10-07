@@ -25,6 +25,9 @@ from nalar.application.features.administration.commands.create_person import Cre
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
+from nalar.application.features.administration.commands.draft_reference import (
+    DraftReferenceHandler,
+)
 from nalar.application.features.administration.commands.edit_person import EditPersonHandler
 from nalar.application.features.administration.commands.install_school_admin import (
     InstallSchoolAdminHandler,
@@ -39,6 +42,7 @@ from nalar.application.features.administration.commands.publish_curriculum impor
 from nalar.application.features.administration.commands.reactivate_person import (
     ReactivatePersonHandler,
 )
+from nalar.application.features.administration.commands.request_draft import RequestDraftHandler
 from nalar.application.features.administration.commands.review_reference import (
     PublishReferenceHandler,
     ReviewReferenceHandler,
@@ -424,6 +428,10 @@ class InfrastructureProvider(Provider):
             s.reference_lease_s,
             s.reference_max_attempts,
             s.embedding_model,
+            ai_draft=s.reference_ai_draft_enabled,
+            draft_window_chars=s.reference_draft_window_chars,
+            draft_max_windows=s.reference_draft_max_windows,
+            running_line_share=s.reference_running_line_share,
         )
 
     @provide(scope=Scope.APP)
@@ -623,6 +631,8 @@ class ApplicationProvider(Provider):
         ReviewReferenceHandler,
         PublishReferenceHandler,
         ProcessReferenceHandler,
+        DraftReferenceHandler,
+        RequestDraftHandler,
         ReferencesQuery,
         AdoptReferenceHandler,
         SaveClassHandler,
