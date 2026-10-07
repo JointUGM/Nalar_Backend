@@ -1,6 +1,11 @@
 from uuid import UUID
 
 from nalar.application.errors import NotFound
+from nalar.application.features.administration.commands.upload_reference import (
+    DRAFT_REFERENCE,
+    EXTRACT_REFERENCE,
+    INDEX_REFERENCE,
+)
 from nalar.application.features.roster.messages import ROSTER_KIND
 from nalar.application.ports.jobs import Job
 from nalar.application.ports.uow import UnitOfWork
@@ -18,7 +23,7 @@ class GetJobQuery:
             if job.kind == ROSTER_KIND:
                 if not await self._uow.authz.can_manage_roster(actor_id, job.entity_id):
                     raise NotFound()
-            elif job.kind in ("national_reference_extract", "national_reference_index"):
+            elif job.kind in (EXTRACT_REFERENCE, INDEX_REFERENCE, DRAFT_REFERENCE):
                 if not await self._uow.authz.is_platform_admin(actor_id):
                     raise NotFound()
             elif job.kind == "mission_generate":

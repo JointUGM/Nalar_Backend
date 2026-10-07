@@ -8,6 +8,7 @@ from nalar.application.errors import Conflict
 from nalar.application.features.administration.commands.upload_reference import (
     EXTRACT_REFERENCE,
     INDEX_REFERENCE,
+    queue_draft,
 )
 from nalar.application.features.knowledge_base.s1_calls import BuildBusy, StepFailed, call_s1
 from nalar.application.ports.ai import AiGateway
@@ -15,6 +16,7 @@ from nalar.application.ports.ai_contract import EmbedIn, InvocationOut, Tag
 from nalar.application.ports.national_references import ReferencePdf, ReferencePolicy, ReferenceRow
 from nalar.application.ports.storage import MATERIALS_BUCKET, ObjectStorage
 from nalar.application.ports.uow import UnitOfWork
+from nalar.domain.curriculum_draft import strip_running_lines
 
 
 class ProcessReferenceHandler:
@@ -56,6 +58,8 @@ class ProcessReferenceHandler:
                     raise StepFailed("REFERENCE_SOURCE_CHANGED")
                 try:
                     pages = await self._pdf.extract(data)
+                    if self._policy.ai_draft and row["kind"] == "curriculum":
+                        pages = strip_running_lines(pages, self._policy.running_line_share)
                 except Exception as exc:
                     code = str(exc) if isinstance(exc, ValueError) else "REFERENCE_PDF_INVALID"
                     raise StepFailed(code) from exc
@@ -63,6 +67,9 @@ class ProcessReferenceHandler:
                     await self._authorize_in_transaction(job.requested_by)
                     if not await self._uow.national_references.extracted(document_id, token, pages):
                         raise BuildBusy()
+                    if self._policy.ai_draft and row["kind"] == "curriculum":
+                        assert job.requested_by is not None
+                        await queue_draft(self._uow, document_id, job.requested_by)
                     await self._uow.jobs.mark_succeeded(job_id)
             else:
                 vectors = await self._vectors(row)

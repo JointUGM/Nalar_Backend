@@ -6,6 +6,7 @@ from dishka.integrations.fastapi import DishkaRoute, FromDishka
 from fastapi import APIRouter, File, Form, Header, Response, UploadFile
 from pydantic import AnyHttpUrl
 
+from nalar.application.features.administration.commands.request_draft import RequestDraftHandler
 from nalar.application.features.administration.commands.review_reference import (
     PublishReferenceHandler,
     ReviewReferenceHandler,
@@ -21,6 +22,7 @@ from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.knowledge_base import MaterialQueuedOut
 from nalar.presentation.api.schemas.national_references import (
     ReferenceDetailOut,
+    ReferenceDraftQueuedOut,
     ReferenceQueuedOut,
     ReferenceReviewIn,
     ReferenceRevisionIn,
@@ -140,6 +142,22 @@ async def retry(
 ) -> ReferenceQueuedOut:
     return ReferenceQueuedOut.model_validate(
         await handler.execute(user.id, document_id, body.base_revision, idempotency_key, retry=True)
+    )
+
+
+@router.post(
+    "/platform/references/{document_id}/draft",
+    status_code=202,
+    response_model=ReferenceDraftQueuedOut,
+)
+async def request_draft(
+    document_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[RequestDraftHandler],
+    idempotency_key: RequestKey,
+) -> ReferenceDraftQueuedOut:
+    return ReferenceDraftQueuedOut.model_validate(
+        await handler.execute(user.id, document_id, idempotency_key)
     )
 
 

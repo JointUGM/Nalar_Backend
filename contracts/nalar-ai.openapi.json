@@ -8,6 +8,7 @@
           "kb_extract",
           "kb_misconceptions",
           "cp_align",
+          "cp_extract",
           "kb_dedup",
           "embedding",
           "turn_analyze",
@@ -1093,6 +1094,141 @@
         "title": "CpCandidateIn",
         "type": "object"
       },
+      "CpElement": {
+        "properties": {
+          "element": {
+            "maxLength": 200,
+            "title": "Element",
+            "type": "string"
+          },
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/CpStatement"
+            },
+            "title": "Statements",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 30000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "element",
+          "text",
+          "page_start",
+          "page_end",
+          "statements"
+        ],
+        "title": "CpElement",
+        "type": "object"
+      },
+      "CpExcerptDraft": {
+        "properties": {
+          "decree_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrintedQuote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effective_on": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrintedQuote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/CpSubject"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "decree_code",
+          "effective_on",
+          "subjects"
+        ],
+        "title": "CpExcerptDraft",
+        "type": "object"
+      },
+      "CpStatement": {
+        "properties": {
+          "page_end": {
+            "title": "Page End",
+            "type": "integer"
+          },
+          "page_start": {
+            "title": "Page Start",
+            "type": "integer"
+          },
+          "text": {
+            "maxLength": 4000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "page_start",
+          "page_end"
+        ],
+        "title": "CpStatement",
+        "type": "object"
+      },
+      "CpSubject": {
+        "properties": {
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/CpElement"
+            },
+            "title": "Elements",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 200,
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D",
+              "E",
+              "F"
+            ],
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "phase",
+          "elements"
+        ],
+        "title": "CpSubject",
+        "type": "object"
+      },
       "DedupBasis": {
         "enum": [
           "name_match",
@@ -1441,6 +1577,34 @@
           "warnings"
         ],
         "title": "Envelope[ClassInsightOut]",
+        "type": "object"
+      },
+      "Envelope_CpExcerptDraft_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CpExcerptDraft"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[CpExcerptDraft]",
         "type": "object"
       },
       "Envelope_DedupeOut_": {
@@ -2075,6 +2239,27 @@
         "title": "EvaluationPackIn",
         "type": "object"
       },
+      "ExcerptPageIn": {
+        "properties": {
+          "page_number": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "text": {
+            "maxLength": 40000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_number",
+          "text"
+        ],
+        "title": "ExcerptPageIn",
+        "type": "object"
+      },
       "ExistingConceptIn": {
         "properties": {
           "description": {
@@ -2223,6 +2408,31 @@
           "embedding_model"
         ],
         "title": "ExtractConceptsOut",
+        "type": "object"
+      },
+      "ExtractCurriculumIn": {
+        "properties": {
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/ExcerptPageIn"
+            },
+            "maxItems": 40,
+            "minItems": 1,
+            "title": "Pages",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "pages"
+        ],
+        "title": "ExtractCurriculumIn",
         "type": "object"
       },
       "FailedConceptOut": {
@@ -3130,6 +3340,25 @@
           "prerequisite_concept_id"
         ],
         "title": "PrerequisiteEdgeIn",
+        "type": "object"
+      },
+      "PrintedQuote": {
+        "properties": {
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "text": {
+            "maxLength": 300,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "page"
+        ],
+        "title": "PrintedQuote",
         "type": "object"
       },
       "ProbeOut": {
@@ -4168,6 +4397,116 @@
           }
         },
         "summary": "Extract Concepts",
+        "tags": [
+          "s1"
+        ]
+      }
+    },
+    "/v1/s1/curriculum/extract": {
+      "post": {
+        "description": "Copy CP subjects, elements and statements verbatim from one excerpt (cp_extract).",
+        "operationId": "extract_curriculum_v1_s1_curriculum_extract_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractCurriculumIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CpExcerptDraft_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Extract Curriculum",
         "tags": [
           "s1"
         ]

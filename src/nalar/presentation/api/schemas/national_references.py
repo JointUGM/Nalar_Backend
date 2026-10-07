@@ -79,6 +79,43 @@ class ReferencePageOut(BaseModel):
     text: str
 
 
+class DraftCurriculumOut(BaseModel):
+    name: str
+    decree_code: str | None
+    effective_on: date | None
+    is_current: bool
+    subjects: list[ReferenceSubjectIn]
+
+
+class ReferenceAiDraftOut(BaseModel):
+    curriculum: DraftCurriculumOut
+    selected_pages: list[int]
+
+
+class DraftRejectionOut(BaseModel):
+    kind: Literal["element", "statement"]
+    text: str
+    reason: Literal["not_in_source", "outside_element", "no_statements", "limit", "unnamed"]
+    page_start: int
+    page_end: int
+
+
+class ReferenceDraftReportOut(BaseModel):
+    pages_considered: int
+    windows: int
+    accepted_statements: int
+    rejected: list[DraftRejectionOut]
+
+
+class ReferenceDraftQueuedOut(BaseModel):
+    document_id: UUID
+    job_id: UUID
+
+
 class ReferenceDetailOut(ReferenceSummaryOut):
     review: ReferenceReviewDraft | None
     pages: list[ReferencePageOut]
+    draft_status: Literal["pending", "ready", "failed", "skipped"] | None
+    draft: ReferenceAiDraftOut | None
+    draft_report: ReferenceDraftReportOut | None
+    draft_error: str | None

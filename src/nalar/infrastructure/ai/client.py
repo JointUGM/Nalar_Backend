@@ -12,6 +12,7 @@ from nalar.application.ports.ai_contract import (
     ChunkSectionOut,
     ClassInsightIn,
     ClassInsightOut,
+    CpExcerptDraft,
     DedupeIn,
     DedupeOut,
     DetectSectionsOut,
@@ -22,6 +23,7 @@ from nalar.application.ports.ai_contract import (
     EvaluateOut,
     ExtractConceptsIn,
     ExtractConceptsOut,
+    ExtractCurriculumIn,
     GenerateMisconceptionsIn,
     GenerateMisconceptionsOut,
     GenerateMissionIn,
@@ -167,6 +169,13 @@ class AiServiceClient:
     async def align_cp(self, body: AlignCpIn, request_id: str) -> AiResult[AlignCpOut]:
         return await self._post(
             "/v1/s1/concepts/align-cp", body, AlignCpOut, self._timeouts.s1_step_s, request_id
+        )
+
+    async def extract_curriculum(
+        self, body: ExtractCurriculumIn, request_id: str
+    ) -> AiResult[CpExcerptDraft]:
+        return await self._post(
+            "/v1/s1/curriculum/extract", body, CpExcerptDraft, self._timeouts.s1_step_s, request_id
         )
 
     async def generate_misconceptions(

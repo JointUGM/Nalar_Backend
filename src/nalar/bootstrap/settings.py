@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     reference_max_statements: int = Field(default=2048, gt=0, le=2048)
     reference_lease_s: int = Field(default=900, ge=600, lt=2400)
     reference_max_attempts: int = Field(default=3, ge=1, le=5)
+    reference_ai_draft_enabled: bool = False
+    reference_draft_window_chars: int = Field(default=12_000, ge=4_000, le=60_000)
+    reference_draft_max_windows: int = Field(default=12, ge=1, le=40)
+    reference_running_line_share: float = Field(default=0.5, gt=0, le=1)
     ai_s5_insight_timeout_s: float = 190.0
     ai_s5_summary_timeout_s: float = 90.0
 

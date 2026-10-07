@@ -14,6 +14,7 @@ class AiPurpose(StrEnum):
     kb_extract = "kb_extract"
     kb_misconceptions = "kb_misconceptions"
     cp_align = "cp_align"
+    cp_extract = "cp_extract"
     kb_dedup = "kb_dedup"
     embedding = "embedding"
     turn_analyze = "turn_analyze"
@@ -213,6 +214,21 @@ class CpCandidateIn(BaseModel):
     similarity: Annotated[float, Field(ge=-1.0, le=1.0, title="Similarity")]
 
 
+class CpStatement(BaseModel):
+    page_end: Annotated[int, Field(title="Page End")]
+    page_start: Annotated[int, Field(title="Page Start")]
+    text: Annotated[str, Field(max_length=4000, title="Text")]
+
+
+class Phase(StrEnum):
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
+    E = "E"
+    F = "F"
+
+
 class DedupBasis(StrEnum):
     name_match = "name_match"
     similarity = "similarity"
@@ -336,6 +352,11 @@ class EvaluationPackIn(BaseModel):
     targets: Annotated[list[EvalTargetIn], Field(max_length=5, min_length=1, title="Targets")]
 
 
+class ExcerptPageIn(BaseModel):
+    page_number: Annotated[int, Field(ge=1, le=500, title="Page Number")]
+    text: Annotated[str, Field(max_length=40000, title="Text")]
+
+
 class ExistingConceptIn(BaseModel):
     description: Annotated[str | None, Field(max_length=2000, title="Description")] = ""
     id: Annotated[UUID, Field(title="Id")]
@@ -352,6 +373,11 @@ class ExtractConceptsOut(BaseModel):
     dropped: Annotated[list[DroppedOut], Field(title="Dropped")]
     embedding_model: Annotated[str, Field(title="Embedding Model")]
     existing_links: Annotated[list[ExistingLinkOut], Field(title="Existing Links")]
+
+
+class ExtractCurriculumIn(BaseModel):
+    pages: Annotated[list[ExcerptPageIn], Field(max_length=40, min_length=1, title="Pages")]
+    title: Annotated[str, Field(max_length=200, min_length=1, title="Title")]
 
 
 class FailedConceptOut(BaseModel):
@@ -539,6 +565,11 @@ class PlannerMode(StrEnum):
 class PrerequisiteEdgeIn(BaseModel):
     concept_id: Annotated[UUID, Field(title="Concept Id")]
     prerequisite_concept_id: Annotated[UUID, Field(title="Prerequisite Concept Id")]
+
+
+class PrintedQuote(BaseModel):
+    page: Annotated[int, Field(title="Page")]
+    text: Annotated[str, Field(max_length=300, title="Text")]
 
 
 class ProbeStrategy(StrEnum):
@@ -802,6 +833,20 @@ class CpAlignmentOut(BaseModel):
     reason: Annotated[str, Field(title="Reason")]
 
 
+class CpElement(BaseModel):
+    element: Annotated[str, Field(max_length=200, title="Element")]
+    page_end: Annotated[int, Field(title="Page End")]
+    page_start: Annotated[int, Field(title="Page Start")]
+    statements: Annotated[list[CpStatement], Field(title="Statements")]
+    text: Annotated[str, Field(max_length=30000, title="Text")]
+
+
+class CpSubject(BaseModel):
+    elements: Annotated[list[CpElement], Field(title="Elements")]
+    name: Annotated[str, Field(max_length=200, title="Name")]
+    phase: Annotated[Phase, Field(title="Phase")]
+
+
 class DetectSectionsOut(BaseModel):
     has_toc: Annotated[bool, Field(title="Has Toc")]
     page_count: Annotated[int, Field(title="Page Count")]
@@ -975,6 +1020,12 @@ class ClassInsightIn(BaseModel):
     mission_title: Annotated[str, Field(max_length=300, min_length=1, title="Mission Title")]
 
 
+class CpExcerptDraft(BaseModel):
+    decree_code: PrintedQuote | None
+    effective_on: PrintedQuote | None
+    subjects: Annotated[list[CpSubject], Field(title="Subjects")]
+
+
 class EvaluateOut(BaseModel):
     concept_results: Annotated[list[ConceptResultOut], Field(title="Concept Results")]
     reflection: SessionReflectionOut
@@ -1027,6 +1078,12 @@ class EnvelopeChunkSectionOut(BaseModel):
 class EnvelopeClassInsightOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: ClassInsightOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
+class EnvelopeCpExcerptDraft(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: CpExcerptDraft
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 

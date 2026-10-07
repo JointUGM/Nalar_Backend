@@ -14,6 +14,7 @@ from nalar.application.ports.uow import UnitOfWork
 
 EXTRACT_REFERENCE = "national_reference_extract"
 INDEX_REFERENCE = "national_reference_index"
+DRAFT_REFERENCE = "national_reference_draft"
 
 
 async def require_platform(uow: UnitOfWork, actor_id: UUID) -> None:
@@ -41,6 +42,21 @@ async def queue_reference(
     )
     await uow.queue.send(
         KB_QUEUE, {"kind": kind, "document_id": str(document_id), "job_id": str(job_id)}
+    )
+    return job_id
+
+
+async def queue_draft(uow: UnitOfWork, document_id: UUID, actor_id: UUID) -> UUID:
+    job_id = await uow.jobs.create(
+        kind=DRAFT_REFERENCE,
+        entity_type="national_reference_documents",
+        entity_id=document_id,
+        school_id=None,
+        requested_by=actor_id,
+    )
+    await uow.national_references.draft_queued(document_id, job_id)
+    await uow.queue.send(
+        KB_QUEUE, {"kind": DRAFT_REFERENCE, "document_id": str(document_id), "job_id": str(job_id)}
     )
     return job_id
 
