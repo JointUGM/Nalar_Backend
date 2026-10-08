@@ -14,6 +14,7 @@ from nalar.application.features.administration.commands.create_subject import Cr
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
+from nalar.application.features.administration.commands.delete_subject import DeleteSubjectHandler
 from nalar.application.features.administration.commands.edit_person import EditPersonHandler
 from nalar.application.features.administration.commands.install_school_admin import (
     InstallSchoolAdminHandler,
@@ -199,6 +200,17 @@ async def create_subject(
         user.id, school_id, body.name, body.cp_version_id, body.cp_subject_id, key
     )
     return SubjectCreatedOut(school_subject_id=result)
+
+
+@router.delete("/schools/{school_id}/subjects/{subject_id}", status_code=204)
+async def delete_subject(
+    school_id: UUID,
+    subject_id: UUID,
+    user: CurrentUser,
+    handler: FromDishka[DeleteSubjectHandler],
+) -> Response:
+    await handler.execute(user.id, school_id, subject_id)
+    return Response(status_code=204)
 
 
 @router.get(

@@ -537,6 +537,19 @@ class PgAdministrationRepo:
             raise Conflict("SUBJECT_ALREADY_EXISTS") from exc
         return created
 
+    async def delete_subject(self, school_id: UUID, subject_id: UUID) -> str:
+        try:
+            name: str | None = await self._conn.fetchval(
+                "delete from school_subjects where school_id = $1 and id = $2 returning name",
+                school_id,
+                subject_id,
+            )
+        except asyncpg.ForeignKeyViolationError as exc:
+            raise Conflict("SUBJECT_IN_USE") from exc
+        if name is None:
+            raise NotFound()
+        return name
+
     async def published_cp_subject(self, version_id: UUID, cp_subject_id: UUID) -> AdminRow | None:
         row = await self._conn.fetchrow(
             "select cs.id,cs.name,cs.phase,cs.cp_version_id as version_id,"

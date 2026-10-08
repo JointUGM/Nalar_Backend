@@ -26,6 +26,7 @@ from nalar.application.features.administration.commands.create_subject import Cr
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
+from nalar.application.features.administration.commands.delete_subject import DeleteSubjectHandler
 from nalar.application.features.administration.commands.draft_reference import (
     DraftReferenceHandler,
 )
@@ -628,6 +629,7 @@ class ApplicationProvider(Provider):
         AssignTeacherHandler,
         CreateAcademicYearHandler,
         CreateSubjectHandler,
+        DeleteSubjectHandler,
         GetSchoolCpSubjectQuery,
         DeactivatePersonHandler,
         EditPersonHandler,
