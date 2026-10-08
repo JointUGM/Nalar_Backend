@@ -14949,6 +14949,57 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/subjects/{subject_id}": {
+      "delete": {
+        "operationId": "delete_subject_api_v1_schools__school_id__subjects__subject_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Delete Subject",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/subjects/{subject_id}/curriculum": {
       "put": {
         "operationId": "set_curriculum_api_v1_schools__school_id__subjects__subject_id__curriculum_put",

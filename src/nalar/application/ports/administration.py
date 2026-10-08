@@ -137,6 +137,10 @@ class AdministrationRepo(Protocol):
         self, school_id: UUID, name: str, version_id: UUID, cp_subject_id: UUID
     ) -> UUID: ...
 
+    async def delete_subject(self, school_id: UUID, subject_id: UUID) -> str:
+        """Returns the deleted name; Conflict while assignments or knowledge bases use it."""
+        ...
+
     async def published_cp_subject(
         self, version_id: UUID, cp_subject_id: UUID
     ) -> AdminRow | None: ...

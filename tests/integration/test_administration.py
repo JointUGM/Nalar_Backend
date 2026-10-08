@@ -22,6 +22,8 @@ from tests.integration.support.factories import (
     assign_teacher,
     build_world,
     create_class,
+    create_knowledge_base,
+    create_subject,
     create_teacher,
     create_user,
 )
@@ -612,3 +614,27 @@ async def test_school_admin_creates_mapped_subject_once_and_reads_cp_elements(
         )
         assert created["name"] == "IPA Terpadu"
         assert created["cp_subject_id"] == str(cp_ipa) and created["knowledge_bases"] == []
+
+
+async def test_subject_delete_is_scoped_and_blocked_while_in_use(
+    conn: asyncpg.Connection,
+    world: World,
+) -> None:
+    foreign = await build_world(conn, "Other school")
+    unused = await create_subject(conn, world.school_id, "Seni")
+    used = await create_subject(conn, world.school_id, "Matematika")
+    await create_knowledge_base(conn, world.school_id, used, world.teacher_id)
+    root = f"/schools/{world.school_id}/subjects"
+    async with api_client(conn) as api:
+        for actor in (world.teacher_id, foreign.admin_id):
+            denied = await api.delete(f"{root}/{unused}", headers=as_user(actor))
+            assert denied.status_code == 404
+        admin = as_user(world.admin_id)
+        for in_use in (used, world.subject_id):
+            blocked = await api.delete(f"{root}/{in_use}", headers=admin)
+            assert blocked.status_code == 409
+            assert blocked.json()["error"]["code"] == "SUBJECT_IN_USE"
+        assert (await api.delete(f"{root}/{unused}", headers=admin)).status_code == 204
+        assert (await api.delete(f"{root}/{unused}", headers=admin)).status_code == 404
+        listed = {s["school_subject_id"] for s in (await api.get(root, headers=admin)).json()}
+        assert str(unused) not in listed and str(used) in listed
