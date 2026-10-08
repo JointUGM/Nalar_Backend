@@ -10,6 +10,7 @@ from nalar.application.features.administration.commands.create_academic_year imp
     CreateAcademicYearHandler,
 )
 from nalar.application.features.administration.commands.create_person import CreatePersonHandler
+from nalar.application.features.administration.commands.create_subject import CreateSubjectHandler
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
@@ -33,6 +34,9 @@ from nalar.application.features.administration.commands.set_school_status import
 from nalar.application.features.administration.commands.transfer_kb import TransferKbHandler
 from nalar.application.features.administration.queries.get_curriculum_version import (
     GetCurriculumVersionQuery,
+)
+from nalar.application.features.administration.queries.get_school_cp_subject import (
+    GetSchoolCpSubjectQuery,
 )
 from nalar.application.features.administration.queries.list_assignments import ListAssignmentsQuery
 from nalar.application.features.administration.queries.list_classes import ListClassesQuery
@@ -76,12 +80,15 @@ from nalar.presentation.api.schemas.administration import (
     Role,
     SchoolAdminOut,
     SchoolAssignmentOut,
+    SchoolCpSubjectOut,
     SchoolCreatedOut,
     SchoolCurriculumVersionOut,
     SchoolIn,
     SchoolsPageOut,
     SchoolStatusIn,
     StudentPlacementIn,
+    SubjectCreatedOut,
+    SubjectCreateIn,
     SubjectOut,
 )
 
@@ -178,6 +185,36 @@ async def subjects(
     school_id: UUID, user: CurrentUser, query: FromDishka[ListSubjectsQuery]
 ) -> list[SubjectOut]:
     return [SubjectOut.model_validate(row) for row in await query.execute(user.id, school_id)]
+
+
+@router.post("/schools/{school_id}/subjects", status_code=201, response_model=SubjectCreatedOut)
+async def create_subject(
+    school_id: UUID,
+    body: SubjectCreateIn,
+    key: RequestKey,
+    user: CurrentUser,
+    handler: FromDishka[CreateSubjectHandler],
+) -> SubjectCreatedOut:
+    result = await handler.execute(
+        user.id, school_id, body.name, body.cp_version_id, body.cp_subject_id, key
+    )
+    return SubjectCreatedOut(school_subject_id=result)
+
+
+@router.get(
+    "/schools/{school_id}/curriculum-versions/{version_id}/subjects/{cp_subject_id}",
+    response_model=SchoolCpSubjectOut,
+)
+async def school_cp_subject(
+    school_id: UUID,
+    version_id: UUID,
+    cp_subject_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[GetSchoolCpSubjectQuery],
+) -> SchoolCpSubjectOut:
+    return SchoolCpSubjectOut.model_validate(
+        await query.execute(user.id, school_id, version_id, cp_subject_id)
+    )
 
 
 @router.put("/schools/{school_id}/subjects/{subject_id}/curriculum", status_code=204)

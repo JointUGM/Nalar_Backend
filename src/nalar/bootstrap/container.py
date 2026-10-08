@@ -22,6 +22,7 @@ from nalar.application.features.administration.commands.create_academic_year imp
     CreateAcademicYearHandler,
 )
 from nalar.application.features.administration.commands.create_person import CreatePersonHandler
+from nalar.application.features.administration.commands.create_subject import CreateSubjectHandler
 from nalar.application.features.administration.commands.deactivate_person import (
     DeactivatePersonHandler,
 )
@@ -59,6 +60,9 @@ from nalar.application.features.administration.commands.upload_reference import 
 )
 from nalar.application.features.administration.queries.get_curriculum_version import (
     GetCurriculumVersionQuery,
+)
+from nalar.application.features.administration.queries.get_school_cp_subject import (
+    GetSchoolCpSubjectQuery,
 )
 from nalar.application.features.administration.queries.list_assignments import ListAssignmentsQuery
 from nalar.application.features.administration.queries.list_classes import ListClassesQuery
@@ -623,6 +627,8 @@ class ApplicationProvider(Provider):
         CreateItemHandler,
         AssignTeacherHandler,
         CreateAcademicYearHandler,
+        CreateSubjectHandler,
+        GetSchoolCpSubjectQuery,
         DeactivatePersonHandler,
         EditPersonHandler,
         InstallSchoolAdminHandler,

@@ -134,6 +134,16 @@ class SubjectOut(BaseModel):
     knowledge_bases: list[SubjectKnowledgeBaseOut]
 
 
+class SubjectCreateIn(Body):
+    name: str
+    cp_version_id: UUID
+    cp_subject_id: UUID | None = None
+
+
+class SubjectCreatedOut(BaseModel):
+    school_subject_id: UUID
+
+
 class CurriculumMappingIn(Body):
     cp_version_id: UUID
     cp_subject_id: UUID | None = None
@@ -295,6 +305,10 @@ class CurriculumSubjectOut(BaseModel):
     name: str
     phase: str
     learning_outcomes: list[LearningOutcomeOut]
+
+
+class SchoolCpSubjectOut(CurriculumSubjectOut):
+    version_id: UUID
 
 
 class CurriculumDetailOut(CurriculumVersionOut):

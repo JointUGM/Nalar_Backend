@@ -7015,6 +7015,44 @@
         "title": "SchoolAssignmentOut",
         "type": "object"
       },
+      "SchoolCpSubjectOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "learning_outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/LearningOutcomeOut"
+            },
+            "title": "Learning Outcomes",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phase",
+          "learning_outcomes",
+          "version_id"
+        ],
+        "title": "SchoolCpSubjectOut",
+        "type": "object"
+      },
       "SchoolCreatedOut": {
         "properties": {
           "pending_activation": {
@@ -7904,6 +7942,52 @@
           "next_cursor"
         ],
         "title": "StudentReflectionsOut",
+        "type": "object"
+      },
+      "SubjectCreateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "cp_subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cp Subject Id"
+          },
+          "cp_version_id": {
+            "format": "uuid",
+            "title": "Cp Version Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "cp_version_id"
+        ],
+        "title": "SubjectCreateIn",
+        "type": "object"
+      },
+      "SubjectCreatedOut": {
+        "properties": {
+          "school_subject_id": {
+            "format": "uuid",
+            "title": "School Subject Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "school_subject_id"
+        ],
+        "title": "SubjectCreatedOut",
         "type": "object"
       },
       "SubjectKnowledgeBaseOut": {
@@ -13687,6 +13771,74 @@
         ]
       }
     },
+    "/api/v1/schools/{school_id}/curriculum-versions/{version_id}/subjects/{cp_subject_id}": {
+      "get": {
+        "operationId": "school_cp_subject_api_v1_schools__school_id__curriculum_versions__version_id__subjects__cp_subject_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cp_subject_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Cp Subject Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolCpSubjectOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "School Cp Subject",
+        "tags": [
+          "administration"
+        ]
+      }
+    },
     "/api/v1/schools/{school_id}/knowledge-bases": {
       "get": {
         "operationId": "list_kbs_api_v1_schools__school_id__knowledge_bases_get",
@@ -14726,6 +14878,72 @@
           }
         ],
         "summary": "Subjects",
+        "tags": [
+          "administration"
+        ]
+      },
+      "post": {
+        "operationId": "create_subject_api_v1_schools__school_id__subjects_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "school_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "School Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Create Subject",
         "tags": [
           "administration"
         ]

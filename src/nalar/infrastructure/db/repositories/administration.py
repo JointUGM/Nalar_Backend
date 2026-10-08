@@ -506,6 +506,53 @@ class PgAdministrationRepo:
         )
         return [dict(r) | {"knowledge_bases": json.loads(r["knowledge_bases"])} for r in rows]
 
+    async def create_subject(
+        self, school_id: UUID, name: str, version_id: UUID, cp_subject_id: UUID
+    ) -> UUID:
+        published = await self._conn.fetchval(
+            "select status = 'published' from cp_versions where id = $1", version_id
+        )
+        owner = await self._conn.fetchval(
+            "select cp_version_id from cp_subjects where id = $1", cp_subject_id
+        )
+        if not published or owner is None:
+            raise NotFound()
+        if owner != version_id:
+            raise InvalidInput("CURRICULUM_SUBJECT_REQUIRED")
+        if await self._conn.fetchval(
+            "select 1 from school_subjects where school_id = $1 and lower(name) = lower($2)",
+            school_id,
+            name,
+        ):
+            raise Conflict("SUBJECT_ALREADY_EXISTS")
+        try:
+            created: UUID = await self._conn.fetchval(
+                "insert into school_subjects(school_id,name,cp_subject_id) values($1,$2,$3)"
+                " returning id",
+                school_id,
+                name,
+                cp_subject_id,
+            )
+        except asyncpg.UniqueViolationError as exc:
+            raise Conflict("SUBJECT_ALREADY_EXISTS") from exc
+        return created
+
+    async def published_cp_subject(self, version_id: UUID, cp_subject_id: UUID) -> AdminRow | None:
+        row = await self._conn.fetchrow(
+            "select cs.id,cs.name,cs.phase,cs.cp_version_id as version_id,"
+            " coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'element',o.element,"
+            "'description',o.description,'ordinal',o.ordinal) order by o.ordinal,o.id)"
+            " from cp_learning_outcomes o where o.cp_subject_id = cs.id and o.grain = 'element'),"
+            " '[]') as learning_outcomes"
+            " from cp_subjects cs join cp_versions v on v.id = cs.cp_version_id"
+            " where cs.id = $2 and v.id = $1 and v.status = 'published'",
+            version_id,
+            cp_subject_id,
+        )
+        if row is None:
+            return None
+        return dict(row) | {"learning_outcomes": json.loads(row["learning_outcomes"])}
+
     async def set_curriculum(
         self, school_id: UUID, subject_id: UUID, version_id: UUID, cp_subject_id: UUID | None
     ) -> None:
