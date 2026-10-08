@@ -133,6 +133,14 @@ class AdministrationRepo(Protocol):
         self, school_id: UUID, subject_id: UUID, version_id: UUID, cp_subject_id: UUID | None
     ) -> None: ...
 
+    async def create_subject(
+        self, school_id: UUID, name: str, version_id: UUID, cp_subject_id: UUID
+    ) -> UUID: ...
+
+    async def published_cp_subject(
+        self, version_id: UUID, cp_subject_id: UUID
+    ) -> AdminRow | None: ...
+
     async def assignments(self, school_id: UUID, year_id: UUID | None) -> list[AdminRow]: ...
 
     async def assign_teacher(

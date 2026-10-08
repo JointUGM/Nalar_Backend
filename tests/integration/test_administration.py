@@ -528,3 +528,87 @@ async def test_competing_admin_deactivations_cannot_remove_every_admin(pool: asy
             )
             == 1
         )
+
+
+async def test_school_admin_creates_mapped_subject_once_and_reads_cp_elements(
+    conn: asyncpg.Connection,
+    world: World,
+) -> None:
+    foreign = await build_world(conn, "Other school")
+    published, draft = uuid4(), uuid4()
+    await conn.executemany(
+        "insert into cp_versions(id,title,decree_code,effective_on,status)"
+        " values($1,$2,$3,'2026-10-01',$4::cp_version_status)",
+        [(published, "p", str(published), "published"), (draft, "d", str(draft), "draft")],
+    )
+    cp_ipa, cp_draft = uuid4(), uuid4()
+    await conn.executemany(
+        "insert into cp_subjects(id,cp_version_id,name,phase) values($1,$2,'IPA','D')",
+        [(cp_ipa, published), (cp_draft, draft)],
+    )
+    await conn.executemany(
+        "insert into cp_learning_outcomes(cp_subject_id,element,description,ordinal,grain)"
+        " values($1,'Pemahaman IPA',$2,$3,$4)",
+        [(cp_ipa, "Elemen", 1, "element"), (cp_ipa, "Kalimat", 2, "statement")],
+    )
+    root = f"/schools/{world.school_id}"
+    detail = f"{root}/curriculum-versions/{published}/subjects/{cp_ipa}"
+    body = {
+        "name": "  IPA   Terpadu ",
+        "cp_version_id": str(published),
+        "cp_subject_id": str(cp_ipa),
+    }
+    key = str(uuid4())
+    async with api_client(conn) as api:
+        admin = as_user(world.admin_id)
+        outcomes = (await api.get(detail, headers=admin)).json()["learning_outcomes"]
+        assert [o["description"] for o in outcomes] == ["Elemen"]
+        assert (
+            await api.get(f"{root}/curriculum-versions/{draft}/subjects/{cp_draft}", headers=admin)
+        ).status_code == 404
+        for actor in (world.teacher_id, foreign.admin_id):
+            assert (await api.get(detail, headers=as_user(actor))).status_code == 404
+            denied = await api.post(
+                f"{root}/subjects", json=body, headers=as_user(actor) | {"Idempotency-Key": key}
+            )
+            assert denied.status_code == 404
+
+        first = await api.post(
+            f"{root}/subjects", json=body, headers=admin | {"Idempotency-Key": key}
+        )
+        assert first.status_code == 201, first.text
+        again = await api.post(
+            f"{root}/subjects", json=body, headers=admin | {"Idempotency-Key": key}
+        )
+        assert again.json() == first.json()
+        changed = await api.post(
+            f"{root}/subjects",
+            json=body | {"name": "Lain"},
+            headers=admin | {"Idempotency-Key": key},
+        )
+        assert (
+            changed.status_code == 409 and changed.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+        )
+        duplicate = await api.post(
+            f"{root}/subjects",
+            json=body | {"name": "ipa terpadu"},
+            headers=admin | {"Idempotency-Key": str(uuid4())},
+        )
+        assert duplicate.json()["error"]["code"] == "SUBJECT_ALREADY_EXISTS"
+        for bad, code in (
+            ({"name": " "}, "NAME_REQUIRED"),
+            ({"cp_subject_id": None}, "CURRICULUM_SUBJECT_REQUIRED"),
+            ({"cp_subject_id": str(cp_draft)}, "CURRICULUM_SUBJECT_REQUIRED"),
+        ):
+            rejected = await api.post(
+                f"{root}/subjects",
+                json=body | bad,
+                headers=admin | {"Idempotency-Key": str(uuid4())},
+            )
+            assert rejected.status_code == 400 and rejected.json()["error"]["code"] == code
+        listed = (await api.get(f"{root}/subjects", headers=admin)).json()
+        created = next(
+            s for s in listed if s["school_subject_id"] == first.json()["school_subject_id"]
+        )
+        assert created["name"] == "IPA Terpadu"
+        assert created["cp_subject_id"] == str(cp_ipa) and created["knowledge_bases"] == []
