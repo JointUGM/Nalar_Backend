@@ -542,7 +542,7 @@ class PgAdministrationRepo:
             "select cs.id,cs.name,cs.phase,cs.cp_version_id as version_id,"
             " coalesce((select jsonb_agg(jsonb_build_object('id',o.id,'element',o.element,"
             "'description',o.description,'ordinal',o.ordinal) order by o.ordinal,o.id)"
-            " from cp_learning_outcomes o where o.cp_subject_id = cs.id and o.grain = 'element'),"
+            " from cp_learning_outcomes o where o.cp_subject_id = cs.id),"
             " '[]') as learning_outcomes"
             " from cp_subjects cs join cp_versions v on v.id = cs.cp_version_id"
             " where cs.id = $2 and v.id = $1 and v.status = 'published'",

@@ -562,7 +562,7 @@ async def test_school_admin_creates_mapped_subject_once_and_reads_cp_elements(
     async with api_client(conn) as api:
         admin = as_user(world.admin_id)
         outcomes = (await api.get(detail, headers=admin)).json()["learning_outcomes"]
-        assert [o["description"] for o in outcomes] == ["Elemen"]
+        assert [o["description"] for o in outcomes] == ["Elemen", "Kalimat"]
         assert (
             await api.get(f"{root}/curriculum-versions/{draft}/subjects/{cp_draft}", headers=admin)
         ).status_code == 404
