@@ -246,7 +246,7 @@ class PgKnowledgeRepo:
         return bool(
             await self._conn.fetchval(
                 "select exists (select 1 from knowledge_bases"
-                " where school_subject_id = $1 and topic_key = $2)",
+                " where school_subject_id = $1 and topic_key = $2 and archived_at is null)",
                 school_subject_id,
                 key,
             )
