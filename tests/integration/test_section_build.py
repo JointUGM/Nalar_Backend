@@ -424,3 +424,68 @@ async def test_cancelled_worker_resumes_committed_extraction_after_lease_expires
     assert len(await ai_concepts(conn, world)) == 1
     assert await conn.fetchval("select attempts from jobs where id = $1", job_id) == 2
     assert await conn.fetchval("select status::text from jobs where id = $1", job_id) == "succeeded"
+
+
+def not_generated(body: BaseModel) -> AiResult[GenerateMisconceptionsOut]:
+    refs = [c.concept_ref for c in body.concepts]  # type: ignore[attr-defined]
+    return AiResult(
+        GenerateMisconceptionsOut.model_validate(
+            {
+                "misconceptions": [],
+                "dropped": [],
+                "failed": [{"concept_ref": r, "error": "invalid output"} for r in refs],
+                "embedding_model": MODEL,
+            }
+        ),
+        [invocation("kb_misconceptions")],
+    )
+
+
+async def build_with_misconception_replies(
+    conn: asyncpg.Connection, world: World, *replies: Any
+) -> tuple[UUID, UUID, ScriptedAiGateway]:
+    storage = FakeStorage()
+    _, section_id = await add_section(conn, world, storage)
+    job_id = await new_job(conn, world, section_id)
+    ai = ScriptedAiGateway()
+    ai.script("chunk_section", chunked())
+    ai.script("extract_concepts", extracted)
+    ai.script("dedupe_concepts", deduped)
+    ai.script("generate_misconceptions", *replies)
+    await handler(conn, ai, storage).execute(section_id, job_id)
+    return section_id, job_id, ai
+
+
+async def test_concepts_left_without_misconceptions_are_asked_again(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    section_id, job_id, ai = await build_with_misconception_replies(
+        conn, world, not_generated, generated
+    )
+    assert [m for m, _ in ai.calls].count("generate_misconceptions") == 2
+    concepts = await ai_concepts(conn, world)
+    assert (
+        await conn.fetchval(
+            "select count(*) from misconceptions where concept_id = $1", concepts[0]["id"]
+        )
+        == 1
+    )
+    assert await conn.fetchval("select status::text from jobs where id = $1", job_id) == "succeeded"
+
+
+async def test_build_fails_when_a_concept_still_has_no_misconceptions(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    section_id, job_id, ai = await build_with_misconception_replies(
+        conn, world, not_generated, not_generated, not_generated
+    )
+    assert [m for m, _ in ai.calls].count("generate_misconceptions") == 3
+    assert (
+        await conn.fetchval(
+            "select build_status::text from material_sections where id = $1", section_id
+        )
+        == "failed"
+    )
+    assert await conn.fetchval("select error_code from jobs where id = $1", job_id) == (
+        "MISCONCEPTIONS_INCOMPLETE"
+    )

@@ -30,6 +30,8 @@ from nalar.application.ports.knowledge import BuildContext, ChunkRow
 from nalar.application.ports.storage import ObjectStorage
 from nalar.application.ports.uow import UnitOfWork
 
+_MISCONCEPTION_ROUNDS = 3  # the first pass plus two re-asks for concepts still empty
+
 
 @dataclass(frozen=True)
 class S1Settings:
@@ -279,9 +281,24 @@ class BuildSectionHandler:
                         )
 
     async def _misconceptions(self, ctx: BuildContext, chunks: list[ChunkRow]) -> None:
+        # Every concept needs at least one misconception. The AI lists concepts it could not
+        # serve in `failed`; re-ask for those, then fail loudly rather than build a gap.
+        for round_ in range(_MISCONCEPTION_ROUNDS):
+            if not await self._generate_misconceptions(ctx, chunks, round_):
+                return
+        async with self._uow:
+            if await self._uow.knowledge.concepts_without_misconceptions(ctx):
+                raise StepFailed("MISCONCEPTIONS_INCOMPLETE")
+
+    async def _generate_misconceptions(
+        self, ctx: BuildContext, chunks: list[ChunkRow], round_: int
+    ) -> bool:
+        """One pass over the concepts that still have none; False when there were none."""
         model = self._settings.embedding_model
         async with self._uow:
             todo = await self._uow.knowledge.concepts_without_misconceptions(ctx)
+            if not todo:
+                return False
             for concept in todo:
                 self._same_model(concept.embedding_model)
             library = {
@@ -311,7 +328,7 @@ class BuildSectionHandler:
             result = (
                 await call_s1(
                     partial(self._ai.generate_misconceptions, body),
-                    f"misconceptions-{ctx.section_id}",
+                    f"misconceptions-{ctx.section_id}-r{round_}",
                     lambda inv: self._record(ctx, inv),
                 )
             ).result
@@ -327,3 +344,4 @@ class BuildSectionHandler:
             async with self._uow:
                 await self._guard()
                 await self._uow.knowledge.insert_misconceptions(ctx, result.misconceptions, model)
+        return True
