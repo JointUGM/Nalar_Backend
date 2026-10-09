@@ -82,6 +82,7 @@ async def archive_mission(
     return Response(status_code=204)
 
 
+@router.delete("/knowledge-bases/{kb_id}", status_code=204, tags=["knowledge-base"])
 @router.post("/knowledge-bases/{kb_id}/archive", status_code=204, tags=["knowledge-base"])
 async def archive_kb(
     kb_id: UUID, user: CurrentUser, handler: FromDishka[ArchiveHandler]

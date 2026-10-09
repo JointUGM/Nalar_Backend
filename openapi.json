@@ -9416,6 +9416,45 @@
       }
     },
     "/api/v1/knowledge-bases/{kb_id}": {
+      "delete": {
+        "operationId": "archive_kb_api_v1_knowledge_bases__kb_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Archive Kb",
+        "tags": [
+          "knowledge-base"
+        ]
+      },
       "get": {
         "operationId": "get_kb_api_v1_knowledge_bases__kb_id__get",
         "parameters": [
