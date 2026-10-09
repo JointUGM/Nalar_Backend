@@ -155,6 +155,25 @@ async def test_archiving_retains_published_reports_and_blocks_new_authoring(
         ).status_code == 200
 
 
+async def test_deleted_topic_leaves_the_list_and_can_be_uploaded_again(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    foreign = await build_world(conn, "Foreign")
+    url = f"/knowledge-bases/{world.kb_id}"
+    listing = f"/schools/{world.school_id}/knowledge-bases"
+    async with api_client(conn) as api:
+        for actor in (foreign.teacher_id, world.student_id):
+            assert (await api.delete(url, headers=as_user(actor))).status_code == 404
+        headers = as_user(world.teacher_id)
+        for _ in range(2):
+            assert (await api.delete(url, headers=headers)).status_code == 204
+        ids = [kb["id"] for kb in (await api.get(listing, headers=headers)).json()["items"]]
+        assert str(world.kb_id) not in ids
+        assert (await api.get(f"{url}/sections", headers=headers)).status_code == 200
+        retry = await api.post(listing, headers=headers, **upload(world, "Gaya dan Gerak"))
+        assert retry.status_code == 202, retry.text
+
+
 async def test_teacher_end_is_scoped_and_queues_evaluation_once(
     conn: asyncpg.Connection, world: World
 ) -> None:
