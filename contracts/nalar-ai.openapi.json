@@ -1859,6 +1859,34 @@
         "title": "Envelope[ParentSummaryOut]",
         "type": "object"
       },
+      "Envelope_ReviseMissionOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ReviseMissionOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[ReviseMissionOut]",
+        "type": "object"
+      },
       "Envelope_SelectTargetsOut_": {
         "properties": {
           "invocations": {
@@ -3521,6 +3549,135 @@
         "title": "RetrievalSource",
         "type": "string"
       },
+      "ReviseMissionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/RevisionBase"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionFeedback"
+            },
+            "maxItems": 8,
+            "title": "Feedback",
+            "type": "array"
+          },
+          "generation_input": {
+            "$ref": "#/components/schemas/GenerateMissionIn"
+          }
+        },
+        "required": [
+          "base",
+          "generation_input"
+        ],
+        "title": "ReviseMissionIn",
+        "type": "object"
+      },
+      "ReviseMissionOut": {
+        "properties": {
+          "changed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Fields",
+            "type": "array"
+          },
+          "effective_scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Effective Scope",
+            "type": "array"
+          },
+          "generation": {
+            "$ref": "#/components/schemas/GenerateMissionOut"
+          }
+        },
+        "required": [
+          "generation",
+          "effective_scope",
+          "changed_fields"
+        ],
+        "title": "ReviseMissionOut",
+        "type": "object"
+      },
+      "RevisionBase": {
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "$ref": "#/components/schemas/GenerateMissionOut"
+          },
+          "learning_objective": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Learning Objective",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_objective",
+          "generation"
+        ],
+        "title": "RevisionBase",
+        "type": "object"
+      },
+      "RevisionFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "enum": [
+              "anchor_problem",
+              "reference_reasoning",
+              "rubric",
+              "bank"
+            ],
+            "title": "Component",
+            "type": "string"
+          },
+          "desired_change": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Desired Change",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue": {
+            "enum": [
+              "too_long",
+              "too_difficult",
+              "unfamiliar_context",
+              "unclear_levels",
+              "repetitive",
+              "gives_hint",
+              "science_concern",
+              "other"
+            ],
+            "title": "Issue",
+            "type": "string"
+          },
+          "question_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Question Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "component",
+          "issue",
+          "desired_change"
+        ],
+        "title": "RevisionFeedback",
+        "type": "object"
+      },
       "RubricDimension": {
         "description": "rubric_dimension (NALAR-Schema.sql).",
         "enum": [
@@ -4946,6 +5103,115 @@
           }
         },
         "summary": "Generate Mission",
+        "tags": [
+          "s2"
+        ]
+      }
+    },
+    "/v1/s2/missions/revise": {
+      "post": {
+        "operationId": "revise_mission_v1_s2_missions_revise_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-service-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviseMissionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ReviseMissionOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "unauthorized: missing or invalid X-Service-Key"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "payload_too_large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "invalid_input, document_unreadable, section_too_large or budget_exceeded"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "internal_error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "ai_output_invalid or model_call_rejected"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "upstream_unavailable"
+          }
+        },
+        "summary": "Revise Mission",
         "tags": [
           "s2"
         ]

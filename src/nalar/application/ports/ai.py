@@ -29,6 +29,8 @@ from nalar.application.ports.ai_contract import (
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    ReviseMissionIn,
+    ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
     WarmIn,
@@ -69,6 +71,10 @@ class AiServiceError(Exception):
 
 
 class AiGateway(Protocol):
+    async def revise_mission(
+        self, body: ReviseMissionIn, request_id: str
+    ) -> AiResult[ReviseMissionOut]: ...
+
     async def select_targets(
         self, body: SelectTargetsIn, request_id: str
     ) -> AiResult[SelectTargetsOut]: ...
