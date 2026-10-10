@@ -1,10 +1,20 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from datetime import datetime
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from nalar.domain.integrity import AnswerFacts, FlagDraft
+from nalar.domain.labels import SessionStatus
 from nalar.domain.telemetry import TurnMetrics
+
+
+@dataclass(frozen=True)
+class ActivityNotice:
+    id: UUID
+    kind: Literal["own_words", "stay_on_page"]
+    message: str
+    created_at: datetime
 
 
 @dataclass(frozen=True)
@@ -16,6 +26,16 @@ class SessionIntegrityInput:
     batches: tuple[tuple[UUID | None, Sequence[dict[str, Any]]], ...]
 
 
+@dataclass(frozen=True)
+class ActivityIntegrityInput:
+    school_id: UUID
+    status: SessionStatus
+    evaluated: bool
+    turns: tuple[tuple[UUID, int, str | None, bool], ...]
+    """(turn_id, turn_index, answer_text, safety_paused) in turn order."""
+    batches: tuple[tuple[UUID | None, Sequence[dict[str, Any]]], ...]
+
+
 class IntegrityRepo(Protocol):
     async def lock_session(self, session_id: UUID) -> bool:
         """Serializes computation snapshots in the current transaction; false if missing."""
@@ -23,6 +43,14 @@ class IntegrityRepo(Protocol):
 
     async def session_input(self, session_id: UUID) -> SessionIntegrityInput | None:
         """None unless the session is terminal and has its evaluation row."""
+        ...
+
+    async def activity_input(self, session_id: UUID) -> ActivityIntegrityInput | None:
+        """Reads session metadata, turns, and telemetry batches without requiring evaluation."""
+        ...
+
+    async def student_activity_notices(self, session_id: UUID) -> list[ActivityNotice]:
+        """Returns safe own activity notices for active session."""
         ...
 
     async def upsert_metrics(self, school_id: UUID, metrics: dict[UUID, TurnMetrics]) -> None: ...

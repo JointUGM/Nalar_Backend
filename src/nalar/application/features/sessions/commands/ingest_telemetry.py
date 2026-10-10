@@ -3,6 +3,8 @@ from datetime import datetime
 from uuid import UUID
 
 from nalar.application.errors import NotFound
+from nalar.application.features.integrity.messages import live_session_flags_message
+from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.application.ports.uow import UnitOfWork
 
 
@@ -24,7 +26,11 @@ class IngestTelemetryHandler:
         async with self._uow:
             if not await self._uow.authz.owns_session(cmd.actor_id, cmd.session_id):
                 raise NotFound()
-            await self._uow.telemetry.insert(
+            inserted = await self._uow.telemetry.insert(
                 cmd.session_id, cmd.client_seq, cmd.turn_index, cmd.events_json, cmd.client_sent_at
             )
+            if inserted:
+                await self._uow.queue.send(
+                    DEFAULT_QUEUE, live_session_flags_message(cmd.session_id)
+                )
         return cmd.client_seq

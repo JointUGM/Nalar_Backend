@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from nalar.application.ports.administration import AdminRow
@@ -17,6 +17,15 @@ class MonitorRun:
 
 
 @dataclass(frozen=True)
+class MonitorFlag:
+    id: UUID
+    flag_type: str
+    severity: str
+    turn_index: int | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
 class MonitorStudent:
     student_id: UUID
     name: str
@@ -27,6 +36,7 @@ class MonitorStudent:
     safety_paused: bool
     session_id: UUID | None = None
     participant_id: UUID | None = None
+    open_flags: tuple[MonitorFlag, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,6 +104,9 @@ class ReportFlag:
     flag_type: str
     severity: str
     status: str
+    turn_index: int | None
+    created_at: datetime
+    evidence: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

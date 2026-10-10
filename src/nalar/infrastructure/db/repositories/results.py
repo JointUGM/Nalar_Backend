@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import UUID
 
+from nalar.application.features.integrity.projections import project_report_flag_evidence
 from nalar.application.ports.administration import AdminRow
 from nalar.application.ports.results import (
     AttentionCounts,
@@ -16,6 +17,7 @@ from nalar.application.ports.results import (
     FlagAttention,
     KbReviewAttention,
     Monitor,
+    MonitorFlag,
     MonitorRun,
     MonitorStudent,
     ReleaseReadyAttention,
@@ -469,6 +471,28 @@ class PgResultsRepo:
         if run is None:
             return None
         rows = await self._conn.fetch(_MONITOR_STUDENTS, publication_id, run["id"])
+        session_ids = [r["session_id"] for r in rows if r["session_id"] is not None]
+        flags_by_session: dict[UUID, list[MonitorFlag]] = defaultdict(list)
+        if session_ids:
+            flag_rows = await self._conn.fetch(
+                "select f.id, f.session_id, f.flag_type::text as flag_type,"
+                "       f.severity::text as severity, t.turn_index, f.created_at"
+                "  from authenticity_flags f"
+                "  left join session_turns t on t.id = f.turn_id"
+                " where f.session_id = any($1::uuid[]) and f.status = 'open'"
+                " order by f.created_at, f.id",
+                session_ids,
+            )
+            for fr in flag_rows:
+                flags_by_session[fr["session_id"]].append(
+                    MonitorFlag(
+                        id=fr["id"],
+                        flag_type=fr["flag_type"],
+                        severity=fr["severity"],
+                        turn_index=fr["turn_index"],
+                        created_at=fr["created_at"],
+                    )
+                )
         students = tuple(
             MonitorStudent(
                 student_id=r["student_id"],
@@ -478,11 +502,13 @@ class PgResultsRepo:
                 status=r["session_status"] or r["participant_status"] or "not_joined",
                 current_turn_index=r["current_turn_index"],
                 deadline_at=r["deadline_at"],
-                open_flag_count=r["open_flag_count"],
+                open_flag_count=len(flags_by_session.get(r["session_id"], [])),
                 safety_paused=r["session_status"] == "paused_safety",
+                open_flags=tuple(flags_by_session.get(r["session_id"], [])),
             )
             for r in rows
         )
+
         return Monitor(
             run=MonitorRun(
                 run["id"], run["mode"], run["status"], run["join_code"], run["started_at"]
@@ -529,12 +555,37 @@ class PgResultsRepo:
             " from session_concept_results where session_id = $1 order by concept_id",
             session_id,
         )
-        flags = await self._conn.fetch(
-            "select id, flag_type::text as flag_type, severity::text as severity,"
-            " status::text as status from authenticity_flags where session_id = $1"
-            " order by created_at",
+        flag_rows = await self._conn.fetch(
+            "select f.id, f.flag_type::text as flag_type, f.severity::text as severity,"
+            "       f.status::text as status, f.created_at, f.evidence, t.turn_index"
+            "  from authenticity_flags f"
+            "  left join session_turns t on t.id = f.turn_id"
+            " where f.session_id = $1"
+            " order by f.created_at, f.id",
             session_id,
         )
+        turn_id_to_index = {t["turn_id"]: t["turn_index"] for t in turns}
+        away_seconds_by_index = {
+            turn_id_to_index[tid]: m.tab_hidden_ms / 1000.0
+            for tid, m in metrics.items()
+            if tid in turn_id_to_index
+        }
+        report_flags = [
+            ReportFlag(
+                id=fr["id"],
+                flag_type=fr["flag_type"],
+                severity=fr["severity"],
+                status=fr["status"],
+                turn_index=fr["turn_index"],
+                created_at=fr["created_at"],
+                evidence=project_report_flag_evidence(
+                    fr["flag_type"],
+                    json.loads(fr["evidence"]) if fr["evidence"] else None,
+                    away_seconds_by_index,
+                ),
+            )
+            for fr in flag_rows
+        ]
         data = dict(head)
         data.pop("evaluation_id")
         mission = ReportMission(
@@ -561,7 +612,7 @@ class PgResultsRepo:
             turns=tuple(report_turns),
             scores=scores,
             concept_results=tuple(ReportConceptResult(**dict(r)) for r in results),
-            flags=tuple(ReportFlag(**dict(f)) for f in flags),
+            flags=tuple(report_flags),
         )
 
     async def class_map_input(self, publication_id: UUID) -> ClassMapInput | None:

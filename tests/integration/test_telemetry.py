@@ -35,6 +35,13 @@ async def test_a_duplicate_client_seq_is_accepted_once(
     )
     assert first.json() == second.json() == {"accepted_client_seq": 1}
     assert len(rows) == 1 and rows[0]["turn_id"] is not None
+    messages = await conn.fetch(
+        "select message from pgmq.q_nalar_default"
+        " where message->>'kind' = 'compute_live_session_flags'"
+        "   and message->>'session_id' = $1",
+        str(world.session_id),
+    )
+    assert len(messages) == 1
 
 
 @pytest.mark.parametrize(

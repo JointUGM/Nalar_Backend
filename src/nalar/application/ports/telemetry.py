@@ -11,6 +11,6 @@ class TelemetryRepo(Protocol):
         turn_index: int | None,
         events_json: str,
         client_sent_at: datetime | None,
-    ) -> None:
-        """NFR-R1: a repeated (session_id, client_seq) is ignored."""
+    ) -> bool:
+        """NFR-R1: repeated (session_id, client_seq) ignored; returns true if inserted."""
         ...

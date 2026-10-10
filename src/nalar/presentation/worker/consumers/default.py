@@ -5,10 +5,16 @@ from uuid import UUID
 from dishka import AsyncContainer
 
 from nalar.application.features.auth.commands.send_password_reset import SendPasswordResetHandler
+from nalar.application.features.integrity.commands.compute_live_session_flags import (
+    ComputeLiveSessionFlagsHandler,
+)
 from nalar.application.features.integrity.commands.compute_session_flags import (
     ComputeSessionFlagsHandler,
 )
-from nalar.application.features.integrity.messages import SESSION_FLAGS_KIND
+from nalar.application.features.integrity.messages import (
+    LIVE_SESSION_FLAGS_KIND,
+    SESSION_FLAGS_KIND,
+)
 from nalar.application.features.missions.commands.build_revision import BuildRevisionHandler
 from nalar.application.features.missions.commands.generate_mission import (
     GENERATION_KIND,
@@ -61,6 +67,11 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             handler = await scope.get(ComputeSessionFlagsHandler)
             await handler.execute(UUID(str(message["session_id"])))
 
+    async def compute_live_session_flags(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(ComputeLiveSessionFlagsHandler)
+            await handler.execute(UUID(str(message["session_id"])))
+
     async def finalize(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(FinalizePublicationHandler)
@@ -80,6 +91,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
         GENERATION_KIND: generate_mission,
         REVISION_KIND: revise_mission,
         SESSION_FLAGS_KIND: compute_session_flags,
+        LIVE_SESSION_FLAGS_KIND: compute_live_session_flags,
         FINALIZE_KIND: finalize,
         ROSTER_KIND: import_roster,
     }

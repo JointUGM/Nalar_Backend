@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from nalar.application.errors import Conflict, NotFound
+from nalar.application.features.integrity.messages import live_session_flags_message
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
+from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.application.ports.uow import UnitOfWork
 
 
@@ -47,7 +49,9 @@ class SubmitAnswerHandler:
                     raise Conflict("TURN_ALREADY_ANSWERED")
                 raise Conflict("TURN_NOT_CURRENT")
             await uow.sessions.touch(cmd.session_id, now)
+            await uow.queue.send(DEFAULT_QUEUE, live_session_flags_message(cmd.session_id))
         # A replay returns above without a second turn step; the state read re-kicks a lost one.
+
         self._background.run_turn_step(cmd.session_id, cmd.turn_index)
         return Accepted(cmd.session_id)
 

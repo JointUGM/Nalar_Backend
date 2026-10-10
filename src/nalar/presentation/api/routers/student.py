@@ -45,6 +45,7 @@ from nalar.presentation.api.schemas.student import (
     PromptOut,
     ReflectionOut,
     StateOut,
+    StudentActivityNoticeOut,
     StudentLobbyOut,
     StudentMissionsOut,
     StudentReflectionOut,
@@ -214,7 +215,9 @@ async def session_state(
         safety_message=state.safety_message,
         reflection_ready=state.reflection_ready,
         server_now=clock.now(),
+        activity_notices=[StudentActivityNoticeOut(**asdict(n)) for n in state.activity_notices],
     )
+
     return conditional_response(body, request, user.id, if_none_match)
 
 

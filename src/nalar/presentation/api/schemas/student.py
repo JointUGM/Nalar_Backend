@@ -104,6 +104,13 @@ class AnswerAccepted(BaseModel):
     next_prompt_url: str
 
 
+class StudentActivityNoticeOut(BaseModel):
+    id: UUID
+    kind: Literal["own_words", "stay_on_page"]
+    message: str
+    created_at: datetime
+
+
 class StateOut(BaseModel):
     status: str
     turn_index: int
@@ -115,6 +122,7 @@ class StateOut(BaseModel):
     safety_message: str | None
     reflection_ready: bool
     server_now: datetime
+    activity_notices: list[StudentActivityNoticeOut] = Field(default_factory=list)
 
 
 class TypingValue(Body):
