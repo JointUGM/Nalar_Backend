@@ -37,6 +37,8 @@ from nalar.application.ports.ai_contract import (
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    ReviseMissionIn,
+    ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
     WarmIn,
@@ -119,6 +121,11 @@ class ScriptedAiGateway:
         self, body: SelectTargetsIn, request_id: str
     ) -> AiResult[SelectTargetsOut]:
         return cast(AiResult[SelectTargetsOut], await self._reply("select_targets", body))
+
+    async def revise_mission(
+        self, body: ReviseMissionIn, request_id: str
+    ) -> AiResult[ReviseMissionOut]:
+        return await self._reply("revise_mission", body)
 
     async def generate_mission(
         self, body: GenerateMissionIn, request_id: str

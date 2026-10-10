@@ -2,7 +2,13 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from nalar.domain.integrity import AnswerFacts, TurnFacts, session_flags, similarity_flags
+from nalar.domain.integrity import (
+    AnswerFacts,
+    TurnFacts,
+    activity_flags,
+    session_flags,
+    similarity_flags,
+)
 from nalar.domain.telemetry import TurnMetrics
 from nalar.infrastructure.config import load_integrity_config
 
@@ -74,6 +80,35 @@ def test_safety_paused_turns_never_flag() -> None:
         turn(2, quality=1, paused=True),
     ]
     assert session_flags(turns, CFG) == []
+
+
+def test_live_paste_requires_an_accepted_answer() -> None:
+    unanswered = TurnFacts(uuid4(), 0, None, None, False, TurnMetrics(chars_pasted=90))
+    assert activity_flags([unanswered], CFG) == []
+    accepted = turn(0, "x" * 150, quality=None, chars_pasted=60)
+    assert [f.flag_type for f in activity_flags([accepted], CFG)] == ["large_paste"]
+
+
+def test_live_tab_signal_includes_unanswered_turns_without_quality() -> None:
+    unanswered = TurnFacts(
+        uuid4(), 0, None, None, False, TurnMetrics(tab_hidden_ms=20000, tab_hidden_events=1)
+    )
+    assert [f.flag_type for f in activity_flags([unanswered], CFG)] == ["tab_switching"]
+
+
+def test_live_activity_excludes_safety_and_quality_signals() -> None:
+    turns = [
+        turn(0, quality=3, chars_pasted=90, tab_hidden_ms=20000, paused=True),
+        turn(1, quality=3),
+        turn(2, quality=1),
+        turn(3, quality=1),
+        turn(4, quality=4, disconnect_events=1),
+    ]
+    assert activity_flags(turns, CFG) == []
+    assert {f.flag_type for f in session_flags(turns, CFG)} == {
+        "inconsistency_gap",
+        "disconnect_pattern",
+    }
 
 
 def test_style_shift_is_never_emitted() -> None:

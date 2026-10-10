@@ -129,6 +129,7 @@ from nalar.application.features.knowledge_base.queries.material_file import (
     MaterialFileQuery,
 )
 from nalar.application.features.knowledge_base.queries.review_queue import ReviewQueueQuery
+from nalar.application.features.missions.commands.build_revision import BuildRevisionHandler
 from nalar.application.features.missions.commands.create_mission import CreateMissionHandler
 from nalar.application.features.missions.commands.create_version import CreateVersionHandler
 from nalar.application.features.missions.commands.generate_mission import (
@@ -136,6 +137,8 @@ from nalar.application.features.missions.commands.generate_mission import (
     GenerateMissionHandler,
 )
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
+from nalar.application.features.missions.commands.revise_mission import ReviseMissionHandler
+from nalar.application.features.missions.queries.get_revision_request import GetRevisionRequestQuery
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import ListMissionsQuery
 from nalar.application.features.missions.queries.list_versions import ListVersionsQuery
@@ -247,6 +250,7 @@ from nalar.application.ports.auth_admin import AuthAdmin
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
 from nalar.application.ports.mailer import Mailer
+from nalar.application.ports.missions import MissionRevisionPolicy
 from nalar.application.ports.national_references import ReferencePdf, ReferencePolicy
 from nalar.application.ports.password_resets import CredentialState
 from nalar.application.ports.queue import QueueConsumer
@@ -576,6 +580,10 @@ class InfrastructureProvider(Provider):
     def readiness(self, container: AsyncContainer) -> ReadinessProbe:
         return PoolAndAiProbe(lambda: container.get(asyncpg.Pool), self._settings.ai_base_url)
 
+    @provide(scope=Scope.APP)
+    def mission_revision_policy(self) -> MissionRevisionPolicy:
+        return MissionRevisionPolicy(self._settings.mission_revision_enabled)
+
     @provide(scope=Scope.REQUEST)
     def unit_of_work(self, pool: asyncpg.Pool) -> UnitOfWork:
         return PgUnitOfWork(pool.acquire)
@@ -714,11 +722,14 @@ class ApplicationProvider(Provider):
         PreferencesQuery,
         SetPreferencesHandler,
         CreateMissionHandler,
+        ReviseMissionHandler,
+        BuildRevisionHandler,
         GenerateMissionHandler,
         BuildMissionHandler,
         CreateVersionHandler,
         ReviewVersionHandler,
         ListMissionsQuery,
+        GetRevisionRequestQuery,
         GetVersionQuery,
         ListVersionsQuery,
         CreateKbHandler,

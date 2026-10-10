@@ -1,3 +1,7 @@
+import json
+from pathlib import Path
+from uuid import uuid4
+
 import asyncpg
 import pytest
 
@@ -8,6 +12,41 @@ from tests.integration.support.factories import (
     create_run,
     publish,
 )
+
+E1_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "supabase/migrations/20261010150534_e1_flag_identity.sql"
+).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("per_turn", [True, False])
+async def test_e1_identity_migration_rejects_duplicates_without_changing_reviews(
+    conn: asyncpg.Connection, per_turn: bool
+) -> None:
+    await conn.execute(
+        "create temporary table authenticity_flags"
+        " (like public.authenticity_flags including defaults)"
+    )
+    session_id = uuid4()
+    turn_id = uuid4() if per_turn else None
+    for status in ("open", "cleared"):
+        await conn.execute(
+            "insert into authenticity_flags"
+            " (school_id, session_id, turn_id, flag_type, severity, evidence, status, reviewed_at)"
+            " values ($1, $2, $3, 'large_paste', 'medium', '{}'::jsonb,"
+            " $4::flag_status, case when $4 = 'cleared' then now() else null end)",
+            uuid4(),
+            session_id,
+            turn_id,
+            status,
+        )
+    before = await conn.fetch("select * from authenticity_flags order by id")
+    with pytest.raises(asyncpg.UniqueViolationError, match="Duplicate E1 flag identity") as caught:
+        async with conn.transaction():
+            await conn.execute(E1_IDENTITY_MIGRATION)
+    detail = json.loads(caught.value.detail or "{}")
+    assert detail["session_id"] == str(session_id)
+    assert set(detail["flag_ids"]) == {str(row["id"]) for row in before}
+    assert await conn.fetch("select * from authenticity_flags order by id") == before
 
 
 async def test_live_run_can_be_scheduled_without_a_join_code(

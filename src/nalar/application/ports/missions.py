@@ -47,6 +47,9 @@ class VersionDraft:
     live_warmup: Mapping[str, Any] | None
     max_turns: int
     max_duration_minutes: int
+    learning_objective: str | None = None
+    title: str | None = None
+    base_version_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +61,22 @@ class VersionRecord:
     draft: VersionDraft
     created_by: UUID
     reviewed_at: datetime | None
+    base_version_number: int | None = None
+    revision_job_id: UUID | None = None
+    revision_feedback: tuple[Mapping[str, Any], ...] = ()
+    revision_changed_fields: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class MissionRevisionPolicy:
+    enabled: bool = False
+
+
+@dataclass(frozen=True)
+class RevisionRequestRecord:
+    job_id: UUID
+    request_hash: str
+    request: Mapping[str, Any]
 
 
 @dataclass(frozen=True)
@@ -89,6 +108,20 @@ class VersionHistoryEntry:
 
 
 class MissionsRepo(Protocol):
+    async def revision_by_key(
+        self, actor_id: UUID, mission_id: UUID, key: UUID
+    ) -> RevisionRequestRecord | None: ...
+
+    async def revision_request(self, job_id: UUID) -> RevisionRequestRecord | None: ...
+
+    async def create_revision_request(
+        self, mission: MissionRef, actor_id: UUID, key: UUID, record: RevisionRequestRecord
+    ) -> None: ...
+
+    async def version_by_id(self, mission_id: UUID, version_id: UUID) -> VersionRecord | None: ...
+
+    async def latest_version_id(self, mission_id: UUID) -> UUID | None: ...
+
     async def version_history(
         self, mission_id: UUID, include_drafts: bool
     ) -> list[VersionHistoryEntry]: ...

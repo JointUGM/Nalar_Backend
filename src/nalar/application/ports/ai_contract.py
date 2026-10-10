@@ -606,6 +606,35 @@ class RetrievalSource(StrEnum):
     concept = "concept"
 
 
+class Component(StrEnum):
+    anchor_problem = "anchor_problem"
+    reference_reasoning = "reference_reasoning"
+    rubric = "rubric"
+    bank = "bank"
+
+
+class Issue(StrEnum):
+    too_long = "too_long"
+    too_difficult = "too_difficult"
+    unfamiliar_context = "unfamiliar_context"
+    unclear_levels = "unclear_levels"
+    repetitive = "repetitive"
+    gives_hint = "gives_hint"
+    science_concern = "science_concern"
+    other = "other"
+
+
+class RevisionFeedback(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    component: Annotated[Component, Field(title="Component")]
+    desired_change: Annotated[str, Field(max_length=1000, min_length=1, title="Desired Change")]
+    id: Annotated[UUID, Field(title="Id")]
+    issue: Annotated[Issue, Field(title="Issue")]
+    question_ids: Annotated[list[str] | None, Field(max_length=200, title="Question Ids")] = None
+
+
 class RubricDimension(StrEnum):
     claim = "claim"
     evidence = "evidence"
@@ -987,6 +1016,22 @@ class RetrievalRefOut(BaseModel):
     source: RetrievalSource
 
 
+class ReviseMissionOut(BaseModel):
+    changed_fields: Annotated[list[str], Field(title="Changed Fields")]
+    effective_scope: Annotated[list[str], Field(title="Effective Scope")]
+    generation: GenerateMissionOut
+
+
+class RevisionBase(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    generation: GenerateMissionOut
+    learning_objective: Annotated[
+        str, Field(max_length=1000, min_length=1, title="Learning Objective")
+    ]
+
+
 class RubricScoreOut(BaseModel):
     dimension: RubricDimension
     evidence: Annotated[
@@ -1061,6 +1106,15 @@ class NextTurnOut(BaseModel):
     end_reason: EndReason | None
     probe: ProbeOut | None
     safety_message: Annotated[str | None, Field(title="Safety Message")]
+
+
+class ReviseMissionIn(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    base: RevisionBase
+    feedback: Annotated[list[RevisionFeedback] | None, Field(max_length=8, title="Feedback")] = None
+    generation_input: GenerateMissionIn
 
 
 class EnvelopeAlignCpOut(BaseModel):
@@ -1138,6 +1192,12 @@ class EnvelopeNextTurnOut(BaseModel):
 class EnvelopeParentSummaryOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: ParentSummaryOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
+class EnvelopeReviseMissionOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: ReviseMissionOut
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 

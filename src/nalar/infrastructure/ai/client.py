@@ -33,6 +33,8 @@ from nalar.application.ports.ai_contract import (
     NextTurnOut,
     ParentSummaryIn,
     ParentSummaryOut,
+    ReviseMissionIn,
+    ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
     WarmIn,
@@ -65,12 +67,20 @@ class AiTimeouts:
     s1_step_s: float
     s2_select_s: float = 100.0
     s2_generate_s: float = 500.0
+    s2_revise_s: float = 190.0
 
 
 class AiServiceClient:
     def __init__(self, http: httpx.AsyncClient, timeouts: AiTimeouts) -> None:
         self._http = http
         self._timeouts = timeouts
+
+    async def revise_mission(
+        self, body: ReviseMissionIn, request_id: str
+    ) -> AiResult[ReviseMissionOut]:
+        return await self._post(
+            "/v1/s2/missions/revise", body, ReviseMissionOut, self._timeouts.s2_revise_s, request_id
+        )
 
     async def select_targets(
         self, body: SelectTargetsIn, request_id: str

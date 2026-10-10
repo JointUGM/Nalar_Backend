@@ -9,10 +9,12 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
     ComputeSessionFlagsHandler,
 )
 from nalar.application.features.integrity.messages import SESSION_FLAGS_KIND
+from nalar.application.features.missions.commands.build_revision import BuildRevisionHandler
 from nalar.application.features.missions.commands.generate_mission import (
     GENERATION_KIND,
     BuildMissionHandler,
 )
+from nalar.application.features.missions.commands.revise_mission import REVISION_KIND
 from nalar.application.features.onboarding.commands.send_invitation import (
     SendAccountInvitationHandler,
 )
@@ -44,6 +46,11 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
             handler = await scope.get(DeliverDigestHandler)
             await handler.execute(UUID(str(message["notification_id"])))
 
+    async def revise_mission(message: dict[str, Any]) -> None:
+        async with container() as scope:
+            handler = await scope.get(BuildRevisionHandler)
+            await handler.execute(UUID(str(message["mission_id"])), UUID(str(message["job_id"])))
+
     async def generate_mission(message: dict[str, Any]) -> None:
         async with container() as scope:
             handler = await scope.get(BuildMissionHandler)
@@ -71,6 +78,7 @@ def default_handlers(container: AsyncContainer) -> Mapping[str, Handler]:
         ACCOUNT_INVITATION_KIND: send_invitation,
         DIGEST_DELIVERY_KIND: deliver_digest,
         GENERATION_KIND: generate_mission,
+        REVISION_KIND: revise_mission,
         SESSION_FLAGS_KIND: compute_session_flags,
         FINALIZE_KIND: finalize,
         ROSTER_KIND: import_roster,

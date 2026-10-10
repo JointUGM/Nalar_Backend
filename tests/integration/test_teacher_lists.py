@@ -150,7 +150,7 @@ async def test_roster_counts_latest_attempt_without_child_join_fanout(
         world.concept_ids[1],
     )
     await add_flag(conn, world, world.session_id)
-    await add_flag(conn, world, world.session_id)
+    await add_flag(conn, world, world.session_id, flag_type="tab_switching")
     headers = as_user(world.teacher_id)
     url = f"/teacher/classes/{world.class_id}/students"
     async with api_client(conn) as api:
@@ -291,7 +291,10 @@ async def test_attention_pages_keep_full_counts_and_remove_resolved_items(
         await conn.fetchval("select safety_paused_at from sessions where id = $1", world.session_id)
         == paused_at
     )
-    flags = [await add_flag(conn, world, world.session_id) for _ in range(2)]
+    flags = [
+        await add_flag(conn, world, world.session_id, flag_type=kind)
+        for kind in ("large_paste", "tab_switching")
+    ]
     concepts = [
         await create_concept(conn, world.school_id, world.kb_id, "pending") for _ in range(2)
     ]

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 from nalar.application.errors import Forbidden, NotFound, Unprocessable
@@ -49,6 +49,13 @@ class CreateVersionHandler:
         d = cmd.draft
         async with self._uow:
             mission = await require_creator(self._uow, cmd.actor_id, cmd.mission_id)
+            if d.base_version_id is not None:
+                base = await self._uow.missions.version_by_id(mission.id, d.base_version_id)
+                if base is None:
+                    raise NotFound()
+                d = replace(
+                    d, learning_objective=base.draft.learning_objective, title=base.draft.title
+                )
             problems = await self._uow.missions.item_problems(
                 mission.knowledge_base_id,
                 mission.school_id,

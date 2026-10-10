@@ -1256,6 +1256,16 @@
         "title": "ClosedOut",
         "type": "object"
       },
+      "Component": {
+        "enum": [
+          "anchor_problem",
+          "reference_reasoning",
+          "rubric",
+          "bank"
+        ],
+        "title": "Component",
+        "type": "string"
+      },
       "ConceptCountOut": {
         "properties": {
           "concept_id": {
@@ -2451,6 +2461,20 @@
         "title": "InvitationsQueuedOut",
         "type": "object"
       },
+      "Issue": {
+        "enum": [
+          "too_long",
+          "too_difficult",
+          "unfamiliar_context",
+          "unclear_levels",
+          "repetitive",
+          "gives_hint",
+          "science_concern",
+          "other"
+        ],
+        "title": "Issue",
+        "type": "string"
+      },
       "ItemText": {
         "maxLength": 1000,
         "minLength": 1,
@@ -3622,6 +3646,142 @@
           "next_cursor"
         ],
         "title": "MissionPageOut",
+        "type": "object"
+      },
+      "MissionRevisionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version_id": {
+            "format": "uuid",
+            "title": "Base Version Id",
+            "type": "string"
+          },
+          "expected_latest_version_id": {
+            "format": "uuid",
+            "title": "Expected Latest Version Id",
+            "type": "string"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionFeedback"
+            },
+            "maxItems": 8,
+            "title": "Feedback",
+            "type": "array"
+          },
+          "learning_objective": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learning Objective"
+          },
+          "target_concept_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 3,
+                "minItems": 2,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Concept Ids"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "base_version_id",
+          "expected_latest_version_id"
+        ],
+        "title": "MissionRevisionIn",
+        "type": "object"
+      },
+      "MissionRevisionQueuedOut": {
+        "properties": {
+          "base_version_id": {
+            "format": "uuid",
+            "title": "Base Version Id",
+            "type": "string"
+          },
+          "effective_scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Effective Scope",
+            "type": "array"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "base_version_id",
+          "effective_scope"
+        ],
+        "title": "MissionRevisionQueuedOut",
+        "type": "object"
+      },
+      "MissionRevisionRequestOut": {
+        "properties": {
+          "effective_scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Effective Scope",
+            "type": "array"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/MissionRevisionIn"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "intent",
+          "effective_scope"
+        ],
+        "title": "MissionRevisionRequestOut",
         "type": "object"
       },
       "MissionSummaryOut": {
@@ -6410,6 +6570,51 @@
         "title": "ReviewQueueOut",
         "type": "object"
       },
+      "RevisionFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "$ref": "#/components/schemas/Component"
+          },
+          "desired_change": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Desired Change",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "issue": {
+            "$ref": "#/components/schemas/Issue"
+          },
+          "question_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Ids"
+          }
+        },
+        "required": [
+          "component",
+          "desired_change",
+          "id",
+          "issue"
+        ],
+        "title": "RevisionFeedback",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "school_admin",
@@ -8553,13 +8758,44 @@
             "title": "Answer Terms",
             "type": "array"
           },
+          "base_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Version Id"
+          },
+          "base_version_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Version Number"
+          },
           "can_edit": {
             "title": "Can Edit",
+            "type": "boolean"
+          },
+          "can_revise_with_ai": {
+            "title": "Can Revise With Ai",
             "type": "boolean"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
+            "type": "string"
+          },
+          "learning_objective": {
+            "title": "Learning Objective",
             "type": "string"
           },
           "live_warmup": {
@@ -8602,6 +8838,32 @@
             "title": "Reference Reasoning",
             "type": "string"
           },
+          "revision_changed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Revision Changed Fields",
+            "type": "array"
+          },
+          "revision_feedback": {
+            "items": {
+              "$ref": "#/components/schemas/RevisionFeedback"
+            },
+            "title": "Revision Feedback",
+            "type": "array"
+          },
+          "revision_job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Job Id"
+          },
           "rubric": {
             "additionalProperties": {
               "items": {
@@ -8632,6 +8894,10 @@
             "title": "Target Concept Ids",
             "type": "array"
           },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
           "version_number": {
             "title": "Version Number",
             "type": "integer"
@@ -8652,7 +8918,15 @@
           "live_warmup",
           "max_turns",
           "max_duration_minutes",
-          "can_edit"
+          "can_edit",
+          "learning_objective",
+          "title",
+          "base_version_id",
+          "base_version_number",
+          "revision_job_id",
+          "revision_feedback",
+          "revision_changed_fields",
+          "can_revise_with_ai"
         ],
         "title": "VersionOut",
         "type": "object"
@@ -10488,6 +10762,132 @@
           }
         ],
         "summary": "Generate Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/revise": {
+      "post": {
+        "operationId": "revise_mission_api_v1_missions__mission_id__revise_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissionRevisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionRevisionQueuedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Revise Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/revisions/{job_id}": {
+      "get": {
+        "operationId": "get_revision_request_api_v1_missions__mission_id__revisions__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissionRevisionRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Get Revision Request",
         "tags": [
           "missions"
         ]
