@@ -22,6 +22,10 @@ async def get_job(job_id: UUID, user: CurrentUser, query: FromDishka[GetJobQuery
         error_code=job.error_code,
         updated_at=job.updated_at,
     )
-    if job.kind == "mission_generate" and job.status == "succeeded" and job.result:
+    if (
+        job.kind in ("mission_generate", "mission_revise")
+        and job.status == "succeeded"
+        and job.result
+    ):
         result.generation_result = MissionGenerationResultOut.model_validate(job.result)
     return result

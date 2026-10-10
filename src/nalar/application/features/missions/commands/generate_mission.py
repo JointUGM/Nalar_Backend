@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from nalar.application.errors import AppError, NotFound, Unprocessable
+from nalar.application.errors import AppError, Conflict, NotFound, Unprocessable
 from nalar.application.features.missions.commands.create_version import require_creator
 from nalar.application.ports.ai import AiGateway, AiResult, AiServiceError
 from nalar.application.ports.ai_contract import (
@@ -50,6 +50,9 @@ class GenerateMissionHandler:
                 raise NotFound()
             existing = await self._uow.missions.active_generation_job(mission_id)
             if existing is not None:
+                active = await self._uow.jobs.get(existing)
+                if active is not None and active.kind != GENERATION_KIND:
+                    raise Conflict("REVISION_IN_PROGRESS")
                 return GenerationQueued(existing)
             catalog = await self._uow.missions.generation_catalog(mission)
             if not 2 <= len(catalog.concepts) <= 200:

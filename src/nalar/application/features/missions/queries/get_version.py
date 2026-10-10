@@ -9,6 +9,10 @@ class GetVersionQuery:
     def __init__(self, uow: UnitOfWork) -> None:
         self._uow = uow
 
+    async def is_creator(self, actor_id: UUID, mission_id: UUID) -> bool:
+        async with self._uow:
+            return await self._uow.authz.is_mission_creator(actor_id, mission_id)
+
     async def execute(
         self, actor_id: UUID, mission_id: UUID, number: int
     ) -> tuple[VersionRecord, bool]:

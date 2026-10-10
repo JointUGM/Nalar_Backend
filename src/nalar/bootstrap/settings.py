@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     material_url_expiry_s: int = Field(default=300, ge=30, le=900)
+    mission_revision_enabled: bool = False
     client_events_per_minute: int = Field(default=60, ge=1, le=600)
     client_event_max_age_s: int = Field(default=86400, ge=60, le=604800)
     client_event_future_skew_s: int = Field(default=300, ge=0, le=900)

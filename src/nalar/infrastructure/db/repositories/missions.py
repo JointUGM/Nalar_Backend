@@ -14,6 +14,7 @@ from nalar.application.ports.missions import (
     GenerationCatalog,
     MissionRef,
     MissionSummary,
+    RevisionRequestRecord,
     VersionDraft,
     VersionHistoryEntry,
     VersionRecord,
@@ -54,6 +55,64 @@ _MISSION_PAGE = """
 
 
 class PgMissionsRepo:
+    async def revision_by_key(
+        self, actor_id: UUID, mission_id: UUID, key: UUID
+    ) -> RevisionRequestRecord | None:
+        row = await self._conn.fetchrow(
+            "select job_id, request_hash, request from mission_revision_requests"
+            " where requested_by=$1 and mission_id=$2 and idempotency_key=$3",
+            actor_id,
+            mission_id,
+            key,
+        )
+        return (
+            RevisionRequestRecord(row["job_id"], row["request_hash"], json.loads(row["request"]))
+            if row
+            else None
+        )
+
+    async def revision_request(self, job_id: UUID) -> RevisionRequestRecord | None:
+        row = await self._conn.fetchrow(
+            "select job_id, request_hash, request from mission_revision_requests where job_id=$1",
+            job_id,
+        )
+        return (
+            RevisionRequestRecord(row["job_id"], row["request_hash"], json.loads(row["request"]))
+            if row
+            else None
+        )
+
+    async def create_revision_request(
+        self, mission: MissionRef, actor_id: UUID, key: UUID, record: RevisionRequestRecord
+    ) -> None:
+        await self._conn.execute(
+            "insert into mission_revision_requests(job_id,school_id,mission_id,requested_by,"
+            "idempotency_key,request_hash,request) values($1,$2,$3,$4,$5,$6,$7::jsonb)",
+            record.job_id,
+            mission.school_id,
+            mission.id,
+            actor_id,
+            key,
+            record.request_hash,
+            json.dumps(dict(record.request), default=str),
+        )
+
+    async def latest_version_id(self, mission_id: UUID) -> UUID | None:
+        result: UUID | None = await self._conn.fetchval(
+            "select id from mission_versions where mission_id=$1"
+            " order by version_number desc limit 1",
+            mission_id,
+        )
+        return result
+
+    async def version_by_id(self, mission_id: UUID, version_id: UUID) -> VersionRecord | None:
+        number = await self._conn.fetchval(
+            "select version_number from mission_versions where mission_id=$1 and id=$2",
+            mission_id,
+            version_id,
+        )
+        return await self.version(mission_id, number) if number is not None else None
+
     async def version_history(
         self, mission_id: UUID, include_drafts: bool
     ) -> list[VersionHistoryEntry]:
@@ -78,7 +137,7 @@ class PgMissionsRepo:
         await self._conn.execute("select id from missions where id = $1 for update", mission_id)
         job_id: UUID | None = await self._conn.fetchval(
             "select id from jobs where entity_id = $1 and entity_type = 'missions'"
-            " and kind = 'mission_generate' and status in ('queued', 'running')"
+            " and kind in ('mission_generate','mission_revise') and status in ('queued', 'running')"
             " order by created_at desc limit 1",
             mission_id,
         )
@@ -141,7 +200,7 @@ class PgMissionsRepo:
     ) -> int | None:
         attempt: int | None = await self._conn.fetchval(
             "update jobs set status = 'running', attempts = attempts + 1 where id = $1"
-            " and kind = 'mission_generate' and (status = 'queued'"
+            " and kind in ('mission_generate','mission_revise') and (status = 'queued'"
             " or (status = 'running' and updated_at < $2)) returning attempts",
             job_id,
             now - timedelta(seconds=stale_after_s),
@@ -262,9 +321,10 @@ class PgMissionsRepo:
         version_id: UUID = await self._conn.fetchval(
             "insert into mission_versions (school_id, mission_id, version_number, anchor_problem,"
             " rubric, probe_plan, max_turns, max_duration_minutes, created_by, reference_reasoning,"
-            " question_bank, answer_terms, live_warmup, source_chunk_ids)"
+            " question_bank, answer_terms, live_warmup, source_chunk_ids,"
+            " learning_objective_snapshot, title_snapshot, base_version_id)"
             " values ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9, $10, $11::jsonb, $12,"
-            " $13::jsonb, $14) returning id",
+            " $13::jsonb, $14, $15, $16, $17) returning id",
             mission.school_id,
             mission.id,
             number,
@@ -279,6 +339,9 @@ class PgMissionsRepo:
             list(draft.answer_terms),
             json.dumps(draft.live_warmup) if draft.live_warmup is not None else None,
             list(draft.source_chunk_ids),
+            draft.learning_objective,
+            draft.title,
+            draft.base_version_id,
         )
         await self._conn.executemany(
             "insert into mission_version_concepts (mission_version_id, concept_id) values ($1, $2)",
@@ -295,29 +358,48 @@ class PgMissionsRepo:
         row = await self._conn.fetchrow(
             """
             select mv.*,
+                   coalesce(mv.learning_objective_snapshot, legacy.learning_objective,
+                            mi.learning_objective)
+                   as effective_objective,
+                   coalesce(mv.title_snapshot, legacy.title, mi.title) as effective_title,
+                   parent.version_number as base_version_number,
+                   rr.job_id as revision_job_id,
+                   rr.request->'intent'->'feedback' as revision_feedback,
+                   j.result->'changed_fields' as revision_changed_fields,
                    array(select concept_id from mission_version_concepts
                           where mission_version_id = mv.id) as target_concept_ids,
                    array(select misconception_id from mission_version_misconceptions
                           where mission_version_id = mv.id) as misconception_ids
-              from mission_versions mv where mv.mission_id = $1 and mv.version_number = $2
+              from mission_versions mv join missions mi on mi.id=mv.mission_id
+              left join mission_legacy_metadata legacy on legacy.version_id=mv.id
+              left join mission_versions parent on parent.id=mv.base_version_id
+              left join mission_revision_requests rr on rr.job_id=mv.generation_job_id
+              left join jobs j on j.id=rr.job_id
+              where mv.mission_id = $1 and mv.version_number = $2
             """,
             mission_id,
             number,
         )
         if row is None:
             return None
+        frozen = json.loads(row["context_pack"]) if row["context_pack"] else {}
         draft = VersionDraft(
             anchor_problem=row["anchor_problem"],
             rubric=json.loads(row["rubric"]),
             target_concept_ids=tuple(row["target_concept_ids"]),
             misconception_ids=tuple(row["misconception_ids"]),
-            question_bank=tuple(json.loads(row["question_bank"])),
-            answer_terms=tuple(row["answer_terms"]),
-            reference_reasoning=row["reference_reasoning"] or "",
+            question_bank=tuple(
+                json.loads(row["question_bank"]) or frozen.get("question_bank", [])
+            ),
+            answer_terms=tuple(row["answer_terms"] or frozen.get("answer_terms", [])),
+            reference_reasoning=row["reference_reasoning"] or frozen.get("reference_reasoning", ""),
             source_chunk_ids=tuple(row["source_chunk_ids"]),
             live_warmup=json.loads(row["live_warmup"]) if row["live_warmup"] else None,
             max_turns=row["max_turns"],
             max_duration_minutes=row["max_duration_minutes"],
+            learning_objective=row["effective_objective"],
+            title=row["effective_title"],
+            base_version_id=row["base_version_id"],
         )
         return VersionRecord(
             id=row["id"],
@@ -327,6 +409,14 @@ class PgMissionsRepo:
             draft=draft,
             created_by=row["created_by"],
             reviewed_at=row["reviewed_at"],
+            base_version_number=row["base_version_number"],
+            revision_job_id=row["revision_job_id"],
+            revision_feedback=tuple(json.loads(row["revision_feedback"]))
+            if row["revision_feedback"]
+            else (),
+            revision_changed_fields=tuple(json.loads(row["revision_changed_fields"]))
+            if row["revision_changed_fields"]
+            else (),
         )
 
     async def version_items(

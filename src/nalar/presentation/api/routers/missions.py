@@ -15,19 +15,25 @@ from nalar.application.features.missions.commands.create_version import (
 )
 from nalar.application.features.missions.commands.generate_mission import GenerateMissionHandler
 from nalar.application.features.missions.commands.review_version import ReviewVersionHandler
+from nalar.application.features.missions.commands.revise_mission import ReviseMissionHandler
+from nalar.application.features.missions.queries.get_revision_request import GetRevisionRequestQuery
 from nalar.application.features.missions.queries.get_version import GetVersionQuery
 from nalar.application.features.missions.queries.list_missions import (
     ListMissions,
     ListMissionsQuery,
 )
 from nalar.application.features.missions.queries.list_versions import ListVersionsQuery
-from nalar.application.ports.missions import VersionDraft
+from nalar.application.ports.ai_contract import RevisionFeedback
+from nalar.application.ports.missions import MissionRevisionPolicy, VersionDraft
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.missions import (
     MissionCreatedOut,
     MissionGenerationQueuedOut,
     MissionIn,
     MissionPageOut,
+    MissionRevisionIn,
+    MissionRevisionQueuedOut,
+    MissionRevisionRequestOut,
     MissionSummaryOut,
     VersionCreatedOut,
     VersionHistoryOut,
@@ -105,6 +111,40 @@ async def list_missions(
     )
 
 
+@router.post(
+    "/missions/{mission_id}/revise", status_code=202, response_model=MissionRevisionQueuedOut
+)
+async def revise_mission(
+    mission_id: UUID,
+    body: MissionRevisionIn,
+    user: CurrentUser,
+    handler: FromDishka[ReviseMissionHandler],
+    idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+) -> MissionRevisionQueuedOut:
+    result = await handler.execute(
+        user.id, mission_id, body.model_dump(mode="json", exclude_unset=True), idempotency_key
+    )
+    return MissionRevisionQueuedOut(
+        job_id=result.job_id,
+        status=result.status,
+        base_version_id=result.base_version_id,
+        effective_scope=list(result.effective_scope),
+    )
+
+
+@router.get("/missions/{mission_id}/revisions/{job_id}", response_model=MissionRevisionRequestOut)
+async def get_revision_request(
+    mission_id: UUID, job_id: UUID, user: CurrentUser, query: FromDishka[GetRevisionRequestQuery]
+) -> MissionRevisionRequestOut:
+    record, status = await query.execute(user.id, mission_id, job_id)
+    return MissionRevisionRequestOut(
+        job_id=job_id,
+        status=status,
+        intent=MissionRevisionIn.model_validate(record.request["intent"]),
+        effective_scope=list(record.request["scope"]),
+    )
+
+
 @router.post("/missions/{mission_id}/versions", status_code=201, response_model=VersionCreatedOut)
 async def create_version(
     mission_id: UUID, body: VersionIn, user: CurrentUser, handler: FromDishka[CreateVersionHandler]
@@ -121,6 +161,7 @@ async def create_version(
         live_warmup=body.live_warmup.model_dump() if body.live_warmup else None,
         max_turns=body.max_turns,
         max_duration_minutes=body.max_duration_minutes,
+        base_version_id=body.base_version_id,
     )
     done = await handler.execute(CreateVersion(user.id, mission_id, draft))
     return VersionCreatedOut(version_id=done.version_id, version_number=done.version_number)
@@ -128,7 +169,11 @@ async def create_version(
 
 @router.get("/missions/{mission_id}/versions/{number}", response_model=VersionOut)
 async def get_version(
-    mission_id: UUID, number: int, user: CurrentUser, query: FromDishka[GetVersionQuery]
+    mission_id: UUID,
+    number: int,
+    user: CurrentUser,
+    query: FromDishka[GetVersionQuery],
+    policy: FromDishka[MissionRevisionPolicy],
 ) -> VersionOut:
     v, can_edit = await query.execute(user.id, mission_id, number)
     d = v.draft
@@ -148,6 +193,14 @@ async def get_version(
         max_turns=d.max_turns,
         max_duration_minutes=d.max_duration_minutes,
         can_edit=can_edit,
+        learning_objective=d.learning_objective or "",
+        title=d.title or "",
+        base_version_id=d.base_version_id,
+        base_version_number=v.base_version_number,
+        revision_job_id=v.revision_job_id,
+        revision_feedback=[RevisionFeedback.model_validate(f) for f in v.revision_feedback],
+        revision_changed_fields=list(v.revision_changed_fields),
+        can_revise_with_ai=policy.enabled and await query.is_creator(user.id, mission_id),
     )
 
 

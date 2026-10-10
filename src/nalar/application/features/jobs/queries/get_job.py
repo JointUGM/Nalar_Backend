@@ -26,7 +26,7 @@ class GetJobQuery:
             elif job.kind in (EXTRACT_REFERENCE, INDEX_REFERENCE, DRAFT_REFERENCE):
                 if not await self._uow.authz.is_platform_admin(actor_id):
                     raise NotFound()
-            elif job.kind == "mission_generate":
+            elif job.kind in ("mission_generate", "mission_revise"):
                 if not await self._uow.authz.is_mission_creator(actor_id, job.entity_id):
                     raise NotFound()
             elif job.school_id is None or not await self._uow.authz.is_school_teacher(
