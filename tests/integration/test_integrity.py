@@ -6,6 +6,9 @@ import asyncpg
 import pytest
 
 from nalar.application.features.evaluation.commands.evaluate_session import EvaluateSessionHandler
+from nalar.application.features.integrity.commands.compute_live_session_flags import (
+    ComputeLiveSessionFlagsHandler,
+)
 from nalar.application.features.integrity.commands.compute_publication_similarity import (
     ComputePublicationSimilarityHandler,
 )
@@ -240,3 +243,79 @@ async def test_computation_lock_keeps_later_metrics_from_an_older_snapshot(
             await asyncio.gather(task, return_exceptions=True)
         async with pool.acquire() as cleanup:
             await cleanup.execute("delete from sessions where id = $1", world.session_id)
+
+
+async def test_live_paste_detection_invariants_across_arrival_order(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    handler = ComputeLiveSessionFlagsHandler(uow_on(conn), load_integrity_config())
+
+    # Case A: telemetry before answer
+    await paste_on_anchor(conn, world, world.session_id)
+    assert await handler.execute(world.session_id) == 0
+    await conn.execute(
+        "update session_turns set answer_text = $1 where session_id = $2 and turn_index = 0",
+        COPIED,
+        world.session_id,
+    )
+    assert await handler.execute(world.session_id) == 1
+    assert await handler.execute(world.session_id) == 0
+
+    # Case B: answer before telemetry
+    other_student = await create_student(conn, world.school_id, world.class_id, world.year_id)
+    second_session = await create_session(
+        conn, world.school_id, world.publication_id, world.run_id, other_student
+    )
+    await conn.execute(
+        "update session_turns set answer_text = $1 where session_id = $2 and turn_index = 0",
+        COPIED,
+        second_session,
+    )
+    assert await handler.execute(second_session) == 0
+    await paste_on_anchor(conn, world, second_session)
+    assert await handler.execute(second_session) == 1
+    assert await handler.execute(second_session) == 0
+
+    flags = await conn.fetch(
+        "select session_id, flag_type::text from authenticity_flags where session_id in ($1, $2)",
+        world.session_id,
+        second_session,
+    )
+    assert len(flags) == 2
+    assert all(f["flag_type"] == "large_paste" for f in flags)
+
+
+async def test_live_tab_switching_flag_unanswered(conn: asyncpg.Connection, world: World) -> None:
+    await conn.execute(
+        "insert into telemetry_batches (school_id, session_id, turn_id, client_seq, events)"
+        " select $1, $2, t.id, 1, $3::jsonb from session_turns t"
+        " where t.session_id = $2 and t.turn_index = 0",
+        world.school_id,
+        world.session_id,
+        json.dumps([{"type": "visibility_hidden", "at": AT, "value": 20000}]),
+    )
+    handler = ComputeLiveSessionFlagsHandler(uow_on(conn), load_integrity_config())
+    assert await handler.execute(world.session_id) == 1
+    assert await handler.execute(world.session_id) == 0
+
+    flag = await conn.fetchrow(
+        "select flag_type::text from authenticity_flags where session_id = $1",
+        world.session_id,
+    )
+    assert flag is not None and flag["flag_type"] == "tab_switching"
+
+
+async def test_live_safety_paused_session_is_ignored(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    await conn.execute(
+        "update sessions set status = 'paused_safety' where id = $1",
+        world.session_id,
+    )
+    await paste_on_anchor(conn, world, world.session_id)
+    handler = ComputeLiveSessionFlagsHandler(uow_on(conn), load_integrity_config())
+    assert await handler.execute(world.session_id) == 0
+    flags = await conn.fetch(
+        "select id from authenticity_flags where session_id = $1", world.session_id
+    )
+    assert len(flags) == 0

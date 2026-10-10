@@ -11,6 +11,7 @@ _INSERT = """
            $2, $5, $4::jsonb
       from sessions s where s.id = $1
     on conflict (session_id, client_seq) do nothing
+    returning id
 """
 
 
@@ -25,7 +26,8 @@ class PgTelemetryRepo:
         turn_index: int | None,
         events_json: str,
         client_sent_at: datetime | None,
-    ) -> None:
-        await self._conn.execute(
+    ) -> bool:
+        row = await self._conn.fetchval(
             _INSERT, session_id, client_seq, turn_index, events_json, client_sent_at
         )
+        return row is not None

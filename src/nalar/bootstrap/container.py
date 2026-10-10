@@ -96,6 +96,9 @@ from nalar.application.features.evaluation.commands.evaluate_session import (
     EvaluateSessionHandler,
 )
 from nalar.application.features.identity.queries.me import MeQuery
+from nalar.application.features.integrity.commands.compute_live_session_flags import (
+    ComputeLiveSessionFlagsHandler,
+)
 from nalar.application.features.integrity.commands.compute_publication_similarity import (
     ComputePublicationSimilarityHandler,
 )
@@ -710,6 +713,7 @@ class ApplicationProvider(Provider):
         SafetyActionHandler,
         OverrideScoreHandler,
         ReviewFlagHandler,
+        ComputeLiveSessionFlagsHandler,
         ComputeSessionFlagsHandler,
         ComputePublicationSimilarityHandler,
         ReleasePreviewQuery,

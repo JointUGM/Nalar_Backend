@@ -2,8 +2,9 @@ import json
 from collections.abc import Sequence
 from uuid import UUID
 
-from nalar.application.ports.integrity import SessionIntegrityInput
+from nalar.application.ports.integrity import ActivityIntegrityInput, SessionIntegrityInput
 from nalar.domain.integrity import AnswerFacts, FlagDraft
+from nalar.domain.labels import SessionStatus
 from nalar.domain.telemetry import TurnMetrics
 from nalar.infrastructure.db.pool import DbConnection
 
@@ -51,7 +52,37 @@ class PgIntegrityRepo:
             batches=tuple((b["turn_id"], json.loads(b["events"])) for b in batches),
         )
 
+    async def activity_input(self, session_id: UUID) -> ActivityIntegrityInput | None:
+        head = await self._conn.fetchrow(
+            "select s.school_id, s.status,"
+            "  exists(select 1 from session_evaluations e where e.session_id = s.id) as evaluated"
+            " from sessions s where s.id = $1",
+            session_id,
+        )
+        if head is None:
+            return None
+        turns = await self._conn.fetch(
+            "select id, turn_index, answer_text, safety_paused from session_turns"
+            " where session_id = $1 order by turn_index",
+            session_id,
+        )
+        batches = await self._conn.fetch(
+            "select turn_id, events from telemetry_batches"
+            " where session_id = $1 order by client_seq",
+            session_id,
+        )
+        return ActivityIntegrityInput(
+            school_id=head["school_id"],
+            status=SessionStatus(head["status"]),
+            evaluated=head["evaluated"],
+            turns=tuple(
+                (t["id"], t["turn_index"], t["answer_text"], t["safety_paused"]) for t in turns
+            ),
+            batches=tuple((b["turn_id"], json.loads(b["events"])) for b in batches),
+        )
+
     async def upsert_metrics(self, school_id: UUID, metrics: dict[UUID, TurnMetrics]) -> None:
+
         await self._conn.executemany(
             "insert into turn_metrics (turn_id, school_id, typing_duration_ms, chars_typed,"
             " chars_pasted, paste_events, tab_hidden_events, tab_hidden_ms, disconnect_events)"
