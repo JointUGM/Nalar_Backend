@@ -1,7 +1,9 @@
+import asyncio
 import json
 from uuid import UUID, uuid4
 
 import asyncpg
+import pytest
 
 from nalar.application.features.evaluation.commands.evaluate_session import EvaluateSessionHandler
 from nalar.application.features.integrity.commands.compute_publication_similarity import (
@@ -11,9 +13,15 @@ from nalar.application.features.integrity.commands.compute_session_flags import 
     ComputeSessionFlagsHandler,
 )
 from nalar.application.ports.ai import AiServiceError
+from nalar.domain.integrity import FlagDraft
+from nalar.domain.telemetry import metrics_by_turn
 from nalar.infrastructure.config import load_integrity_config
+from nalar.infrastructure.db.pool import DbConnection
+from nalar.infrastructure.db.repositories.integrity import PgIntegrityRepo
+from nalar.infrastructure.db.uow import PgUnitOfWork
 from tests.integration.support.factories import (
     World,
+    build_world,
     create_session,
     create_student,
     evaluate,
@@ -26,7 +34,7 @@ AT = "2026-10-08T02:00:00Z"
 COPIED = "Kelereng berhenti karena gaya gesek antara kelereng dan lantai yang kasar"
 
 
-async def paste_on_anchor(conn: asyncpg.Connection, world: World, session_id: UUID) -> None:
+async def paste_on_anchor(conn: DbConnection, world: World, session_id: UUID) -> None:
     await conn.execute(
         "insert into telemetry_batches (school_id, session_id, turn_id, client_seq, events)"
         " select $1, $2, t.id, 1, $3::jsonb from session_turns t"
@@ -102,3 +110,133 @@ async def test_similarity_flags_both_students_once(conn: asyncpg.Connection, wor
 async def test_missing_session_is_a_no_op(conn: asyncpg.Connection) -> None:
     handler = ComputeSessionFlagsHandler(uow_on(conn), load_integrity_config())
     assert await handler.execute(uuid4()) == 0
+
+
+@pytest.mark.parametrize("per_turn", [True, False])
+async def test_racing_flag_inserts_preserve_one_identity_and_its_review(
+    pool: asyncpg.Pool, per_turn: bool
+) -> None:
+    async with pool.acquire() as setup, setup.transaction():
+        world = await build_world(setup)
+        turn_id = await setup.fetchval(
+            "select id from session_turns where session_id = $1 and turn_index = 0",
+            world.session_id,
+        )
+    draft = FlagDraft(
+        "large_paste" if per_turn else "tab_switching",
+        "medium",
+        turn_id if per_turn else None,
+        {"config_version": 1},
+    )
+    task: asyncio.Task[int] | None = None
+    try:
+        async with pool.acquire() as first, pool.acquire() as second:
+            attempting = asyncio.Event()
+
+            async def racing_insert() -> int:
+                async with second.transaction():
+                    attempting.set()
+                    return await PgIntegrityRepo(second).insert_flags(
+                        world.school_id, world.session_id, [draft]
+                    )
+
+            async with first.transaction():
+                assert (
+                    await PgIntegrityRepo(first).insert_flags(
+                        world.school_id, world.session_id, [draft]
+                    )
+                    == 1
+                )
+                task = asyncio.create_task(racing_insert())
+                await attempting.wait()
+                with pytest.raises(TimeoutError):
+                    await asyncio.wait_for(asyncio.shield(task), 0.2)
+            assert await asyncio.wait_for(task, 5) == 0
+            assert (
+                await first.fetchval(
+                    "select count(*) from authenticity_flags where session_id = $1",
+                    world.session_id,
+                )
+                == 1
+            )
+            await first.execute(
+                "update authenticity_flags set status = 'cleared', reviewed_by = $2,"
+                " reviewed_at = now(), review_note = 'Sudah ditinjau' where session_id = $1",
+                world.session_id,
+                world.teacher_id,
+            )
+            before = await first.fetchrow(
+                "select * from authenticity_flags where session_id = $1", world.session_id
+            )
+            changed = FlagDraft(
+                draft.flag_type, draft.severity, draft.turn_id, {"config_version": 2}
+            )
+            assert (
+                await PgIntegrityRepo(first).insert_flags(
+                    world.school_id, world.session_id, [changed]
+                )
+                == 0
+            )
+            assert (
+                await first.fetchrow(
+                    "select * from authenticity_flags where session_id = $1", world.session_id
+                )
+                == before
+            )
+    finally:
+        if task is not None and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        async with pool.acquire() as cleanup:
+            await cleanup.execute("delete from sessions where id = $1", world.session_id)
+
+
+async def test_computation_lock_keeps_later_metrics_from_an_older_snapshot(
+    pool: asyncpg.Pool,
+) -> None:
+    async with pool.acquire() as setup, setup.transaction():
+        world = await build_world(setup)
+        await finish_session(setup, world, world.session_id, answer=COPIED)
+        await evaluate(setup, world, world.session_id)
+        await paste_on_anchor(setup, world, world.session_id)
+    task: asyncio.Task[int] | None = None
+    try:
+        async with pool.acquire() as first, pool.acquire() as writer:
+            async with first.transaction():
+                repo = PgIntegrityRepo(first)
+                assert await repo.lock_session(world.session_id)
+                data = await repo.session_input(world.session_id)
+                assert data is not None
+                before = metrics_by_turn(data.batches)
+                turn_id = data.turns[0][0]
+                task = asyncio.create_task(
+                    ComputeSessionFlagsHandler(
+                        PgUnitOfWork(pool.acquire), load_integrity_config()
+                    ).execute(world.session_id)
+                )
+                with pytest.raises(TimeoutError):
+                    await asyncio.wait_for(asyncio.shield(task), 0.2)
+                async with writer.transaction():
+                    await writer.execute(
+                        "insert into telemetry_batches"
+                        " (school_id, session_id, turn_id, client_seq, events)"
+                        " values ($1, $2, $3, 2, $4::jsonb)",
+                        world.school_id,
+                        world.session_id,
+                        turn_id,
+                        json.dumps([{"type": "paste", "at": AT, "value": 30}]),
+                    )
+                await repo.upsert_metrics(world.school_id, before)
+            assert await asyncio.wait_for(task, 5) == 1
+            assert (
+                await first.fetchval(
+                    "select chars_pasted from turn_metrics where turn_id = $1", turn_id
+                )
+                == 100
+            )
+    finally:
+        if task is not None and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+        async with pool.acquire() as cleanup:
+            await cleanup.execute("delete from sessions where id = $1", world.session_id)

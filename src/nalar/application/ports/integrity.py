@@ -17,6 +17,10 @@ class SessionIntegrityInput:
 
 
 class IntegrityRepo(Protocol):
+    async def lock_session(self, session_id: UUID) -> bool:
+        """Serializes computation snapshots in the current transaction; false if missing."""
+        ...
+
     async def session_input(self, session_id: UUID) -> SessionIntegrityInput | None:
         """None unless the session is terminal and has its evaluation row."""
         ...

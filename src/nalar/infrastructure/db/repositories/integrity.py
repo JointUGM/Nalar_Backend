@@ -14,6 +14,14 @@ class PgIntegrityRepo:
     def __init__(self, conn: DbConnection) -> None:
         self._conn = conn
 
+    async def lock_session(self, session_id: UUID) -> bool:
+        return (
+            await self._conn.fetchval(
+                "select id from sessions where id = $1 for no key update", session_id
+            )
+            is not None
+        )
+
     async def session_input(self, session_id: UUID) -> SessionIntegrityInput | None:
         head = await self._conn.fetchrow(
             "select s.school_id, e.turn_quality from sessions s"
@@ -75,13 +83,12 @@ class PgIntegrityRepo:
     ) -> int:
         added = 0
         for f in flags:
-            # NFR-R3: the duplicate check lives in the statement, so a re-run adds nothing.
+            # NFR-R3: the unique identity also fences concurrent live/final jobs.
             row = await self._conn.fetchval(
                 "insert into authenticity_flags"
                 " (school_id, session_id, turn_id, flag_type, severity, evidence)"
-                " select $1, $2, $3, $4::flag_type, $5::flag_severity, $6::jsonb"
-                " where not exists (select 1 from authenticity_flags where session_id = $2"
-                "   and flag_type = $4::flag_type and turn_id is not distinct from $3)"
+                " values ($1, $2, $3, $4::flag_type, $5::flag_severity, $6::jsonb)"
+                " on conflict on constraint authenticity_flags_identity do nothing"
                 " returning id",
                 school_id,
                 session_id,

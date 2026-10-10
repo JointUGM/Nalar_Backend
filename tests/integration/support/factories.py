@@ -409,12 +409,15 @@ async def add_score(conn: DbConnection, world: "World", session_id: UUID) -> UUI
     return score_id
 
 
-async def add_flag(conn: DbConnection, world: "World", session_id: UUID) -> UUID:
+async def add_flag(
+    conn: DbConnection, world: "World", session_id: UUID, flag_type: str = "large_paste"
+) -> UUID:
     flag_id: UUID = await conn.fetchval(
         "insert into authenticity_flags (school_id, session_id, flag_type, severity, evidence)"
-        " values ($1, $2, 'large_paste', 'medium', '{}'::jsonb) returning id",
+        " values ($1, $2, $3::flag_type, 'medium', '{}'::jsonb) returning id",
         world.school_id,
         session_id,
+        flag_type,
     )
     return flag_id
 

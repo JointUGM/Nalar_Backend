@@ -14,6 +14,8 @@ class ComputeSessionFlagsHandler:
 
     async def execute(self, session_id: UUID) -> int:
         async with self._uow:
+            if not await self._uow.integrity.lock_session(session_id):
+                return 0
             data = await self._uow.integrity.session_input(session_id)
             if data is None:
                 return 0

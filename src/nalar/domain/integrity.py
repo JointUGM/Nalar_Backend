@@ -55,8 +55,8 @@ class AnswerFacts:
     answer: str
 
 
-def session_flags(turns: Sequence[TurnFacts], cfg: IntegrityConfig) -> list[FlagDraft]:
-    """E1 per-session rules. No style_shift (D-S26-6); safety-paused turns skipped (D-S26-9)."""
+def activity_flags(turns: Sequence[TurnFacts], cfg: IntegrityConfig) -> list[FlagDraft]:
+    """Telemetry-only E1 rules; paste requires an accepted answer, tab activity does not."""
     live = sorted((t for t in turns if not t.safety_paused), key=lambda t: t.turn_index)
     answered = [t for t in live if t.answer]
 
@@ -91,6 +91,19 @@ def session_flags(turns: Sequence[TurnFacts], cfg: IntegrityConfig) -> list[Flag
                 hidden_events=hidden_events,
             )
         )
+
+    return flags
+
+
+def session_flags(turns: Sequence[TurnFacts], cfg: IntegrityConfig) -> list[FlagDraft]:
+    """E1 per-session rules. No style_shift (D-S26-6); safety-paused turns skipped (D-S26-9)."""
+    live = sorted((t for t in turns if not t.safety_paused), key=lambda t: t.turn_index)
+    answered = [t for t in live if t.answer]
+
+    def draft(flag_type: str, severity: str, turn_id: UUID | None, **evidence: Any) -> FlagDraft:
+        return FlagDraft(flag_type, severity, turn_id, {"config_version": cfg.version, **evidence})
+
+    flags = activity_flags(turns, cfg)
 
     scored = [t for t in answered if t.quality is not None]
     if (
