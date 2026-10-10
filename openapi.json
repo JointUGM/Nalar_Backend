@@ -1516,6 +1516,25 @@
         "title": "CountsOut",
         "type": "object"
       },
+      "CrossStudentSimilarityEvidenceOut": {
+        "properties": {
+          "kind": {
+            "const": "cross_student_similarity",
+            "default": "cross_student_similarity",
+            "title": "Kind",
+            "type": "string"
+          },
+          "similarity_score": {
+            "title": "Similarity Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "similarity_score"
+        ],
+        "title": "CrossStudentSimilarityEvidenceOut",
+        "type": "object"
+      },
       "CurriculumCreatedOut": {
         "properties": {
           "curriculum_version_id": {
@@ -1900,6 +1919,30 @@
         "title": "DashboardWeekOut",
         "type": "object"
       },
+      "DisconnectPatternEvidenceOut": {
+        "properties": {
+          "disconnect_count": {
+            "title": "Disconnect Count",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "disconnect_pattern",
+            "default": "disconnect_pattern",
+            "title": "Kind",
+            "type": "string"
+          },
+          "quality_jump": {
+            "title": "Quality Jump",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "quality_jump",
+          "disconnect_count"
+        ],
+        "title": "DisconnectPatternEvidenceOut",
+        "type": "object"
+      },
       "DraftCurriculumOut": {
         "properties": {
           "decree_code": {
@@ -2178,6 +2221,28 @@
           "final_level"
         ],
         "title": "HistoryScoreOut",
+        "type": "object"
+      },
+      "InconsistencyGapEvidenceOut": {
+        "properties": {
+          "kind": {
+            "const": "inconsistency_gap",
+            "default": "inconsistency_gap",
+            "title": "Kind",
+            "type": "string"
+          },
+          "quality_levels": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Quality Levels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "quality_levels"
+        ],
+        "title": "InconsistencyGapEvidenceOut",
         "type": "object"
       },
       "InsightOut": {
@@ -2865,6 +2930,30 @@
         "maxLength": 200,
         "minLength": 1,
         "type": "string"
+      },
+      "LargePasteEvidenceOut": {
+        "properties": {
+          "answer_chars": {
+            "title": "Answer Chars",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "large_paste",
+            "default": "large_paste",
+            "title": "Kind",
+            "type": "string"
+          },
+          "paste_chars": {
+            "title": "Paste Chars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "paste_chars",
+          "answer_chars"
+        ],
+        "title": "LargePasteEvidenceOut",
+        "type": "object"
       },
       "LearningOutcomeIn": {
         "additionalProperties": false,
@@ -3843,6 +3932,48 @@
         "title": "MissionSummaryOut",
         "type": "object"
       },
+      "MonitorFlagOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "flag_type": {
+            "title": "Flag Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "turn_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Index"
+          }
+        },
+        "required": [
+          "id",
+          "flag_type",
+          "severity",
+          "turn_index",
+          "created_at"
+        ],
+        "title": "MonitorFlagOut",
+        "type": "object"
+      },
       "MonitorOut": {
         "properties": {
           "run": {
@@ -3959,6 +4090,13 @@
           "open_flag_count": {
             "title": "Open Flag Count",
             "type": "integer"
+          },
+          "open_flags": {
+            "items": {
+              "$ref": "#/components/schemas/MonitorFlagOut"
+            },
+            "title": "Open Flags",
+            "type": "array"
           },
           "participant_id": {
             "anyOf": [
@@ -6090,6 +6228,48 @@
       },
       "ReportFlagOut": {
         "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "cross_student_similarity": "#/components/schemas/CrossStudentSimilarityEvidenceOut",
+                    "disconnect_pattern": "#/components/schemas/DisconnectPatternEvidenceOut",
+                    "inconsistency_gap": "#/components/schemas/InconsistencyGapEvidenceOut",
+                    "large_paste": "#/components/schemas/LargePasteEvidenceOut",
+                    "tab_switching": "#/components/schemas/TabSwitchingEvidenceOut"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/LargePasteEvidenceOut"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TabSwitchingEvidenceOut"
+                  },
+                  {
+                    "$ref": "#/components/schemas/InconsistencyGapEvidenceOut"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DisconnectPatternEvidenceOut"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CrossStudentSimilarityEvidenceOut"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
           "flag_type": {
             "title": "Flag Type",
             "type": "string"
@@ -6106,13 +6286,25 @@
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "turn_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Index"
           }
         },
         "required": [
           "id",
           "flag_type",
           "severity",
-          "status"
+          "status",
+          "created_at"
         ],
         "title": "ReportFlagOut",
         "type": "object"
@@ -7741,6 +7933,13 @@
       },
       "StateOut": {
         "properties": {
+          "activity_notices": {
+            "items": {
+              "$ref": "#/components/schemas/StudentActivityNoticeOut"
+            },
+            "title": "Activity Notices",
+            "type": "array"
+          },
           "deadline_at": {
             "format": "date-time",
             "title": "Deadline At",
@@ -7811,6 +8010,40 @@
           "server_now"
         ],
         "title": "StateOut",
+        "type": "object"
+      },
+      "StudentActivityNoticeOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "own_words",
+              "stay_on_page"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "message",
+          "created_at"
+        ],
+        "title": "StudentActivityNoticeOut",
         "type": "object"
       },
       "StudentConceptCountsOut": {
@@ -8324,6 +8557,59 @@
           "summary_text"
         ],
         "title": "SummaryPreviewOut",
+        "type": "object"
+      },
+      "TabAwaySecondsOut": {
+        "properties": {
+          "seconds": {
+            "title": "Seconds",
+            "type": "number"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_index",
+          "seconds"
+        ],
+        "title": "TabAwaySecondsOut",
+        "type": "object"
+      },
+      "TabSwitchingEvidenceOut": {
+        "properties": {
+          "away_events": {
+            "title": "Away Events",
+            "type": "integer"
+          },
+          "away_seconds_by_turn": {
+            "items": {
+              "$ref": "#/components/schemas/TabAwaySecondsOut"
+            },
+            "title": "Away Seconds By Turn",
+            "type": "array"
+          },
+          "kind": {
+            "const": "tab_switching",
+            "default": "tab_switching",
+            "title": "Kind",
+            "type": "string"
+          },
+          "turn_indices": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Turn Indices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "turn_indices",
+          "away_events",
+          "away_seconds_by_turn"
+        ],
+        "title": "TabSwitchingEvidenceOut",
         "type": "object"
       },
       "TeacherDashboardOut": {

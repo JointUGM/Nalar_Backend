@@ -2,7 +2,12 @@ import json
 from collections.abc import Sequence
 from uuid import UUID
 
-from nalar.application.ports.integrity import ActivityIntegrityInput, SessionIntegrityInput
+from nalar.application.features.integrity.projections import project_student_activity_notices
+from nalar.application.ports.integrity import (
+    ActivityIntegrityInput,
+    ActivityNotice,
+    SessionIntegrityInput,
+)
 from nalar.domain.integrity import AnswerFacts, FlagDraft
 from nalar.domain.labels import SessionStatus
 from nalar.domain.telemetry import TurnMetrics
@@ -80,6 +85,18 @@ class PgIntegrityRepo:
             ),
             batches=tuple((b["turn_id"], json.loads(b["events"])) for b in batches),
         )
+
+    async def student_activity_notices(self, session_id: UUID) -> list[ActivityNotice]:
+        rows = await self._conn.fetch(
+            "select id, flag_type::text as flag_type, created_at"
+            "  from authenticity_flags"
+            " where session_id = $1 and status = 'open'"
+            "   and flag_type in ('large_paste', 'tab_switching')"
+            " order by created_at desc, id desc",
+            session_id,
+        )
+        projected = project_student_activity_notices([dict(r) for r in rows])
+        return [ActivityNotice(**p) for p in projected]
 
     async def upsert_metrics(self, school_id: UUID, metrics: dict[UUID, TurnMetrics]) -> None:
 

@@ -1,11 +1,20 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol
+from datetime import datetime
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from nalar.domain.integrity import AnswerFacts, FlagDraft
 from nalar.domain.labels import SessionStatus
 from nalar.domain.telemetry import TurnMetrics
+
+
+@dataclass(frozen=True)
+class ActivityNotice:
+    id: UUID
+    kind: Literal["own_words", "stay_on_page"]
+    message: str
+    created_at: datetime
 
 
 @dataclass(frozen=True)
@@ -38,6 +47,10 @@ class IntegrityRepo(Protocol):
 
     async def activity_input(self, session_id: UUID) -> ActivityIntegrityInput | None:
         """Reads session metadata, turns, and telemetry batches without requiring evaluation."""
+        ...
+
+    async def student_activity_notices(self, session_id: UUID) -> list[ActivityNotice]:
+        """Returns safe own activity notices for active session."""
         ...
 
     async def upsert_metrics(self, school_id: UUID, metrics: dict[UUID, TurnMetrics]) -> None: ...

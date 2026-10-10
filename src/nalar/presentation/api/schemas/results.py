@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -15,6 +15,14 @@ class MonitorRunOut(BaseModel):
     started_at: datetime | None
 
 
+class MonitorFlagOut(BaseModel):
+    id: UUID
+    flag_type: str
+    severity: str
+    turn_index: int | None
+    created_at: datetime
+
+
 class MonitorStudentOut(BaseModel):
     student_id: UUID
     participant_id: UUID | None
@@ -26,6 +34,7 @@ class MonitorStudentOut(BaseModel):
     deadline_at: datetime | None
     open_flag_count: int
     safety_paused: bool
+    open_flags: list[MonitorFlagOut] = Field(default_factory=list)
 
 
 class MonitorOut(BaseModel):
@@ -147,11 +156,58 @@ class ReportConceptResultOut(BaseModel):
     resolved_in_session: bool
 
 
+class LargePasteEvidenceOut(BaseModel):
+    kind: Literal["large_paste"] = "large_paste"
+    paste_chars: int
+    answer_chars: int
+
+
+class TabAwaySecondsOut(BaseModel):
+    turn_index: int
+    seconds: float
+
+
+class TabSwitchingEvidenceOut(BaseModel):
+    kind: Literal["tab_switching"] = "tab_switching"
+    turn_indices: list[int]
+    away_events: int
+    away_seconds_by_turn: list[TabAwaySecondsOut]
+
+
+class InconsistencyGapEvidenceOut(BaseModel):
+    kind: Literal["inconsistency_gap"] = "inconsistency_gap"
+    quality_levels: list[int]
+
+
+class DisconnectPatternEvidenceOut(BaseModel):
+    kind: Literal["disconnect_pattern"] = "disconnect_pattern"
+    quality_jump: int
+    disconnect_count: int
+
+
+class CrossStudentSimilarityEvidenceOut(BaseModel):
+    kind: Literal["cross_student_similarity"] = "cross_student_similarity"
+    similarity_score: float
+
+
+ReportFlagEvidenceOut = Annotated[
+    LargePasteEvidenceOut
+    | TabSwitchingEvidenceOut
+    | InconsistencyGapEvidenceOut
+    | DisconnectPatternEvidenceOut
+    | CrossStudentSimilarityEvidenceOut,
+    Field(discriminator="kind"),
+]
+
+
 class ReportFlagOut(BaseModel):
     id: UUID
     flag_type: str
     severity: str
     status: str
+    turn_index: int | None = None
+    created_at: datetime
+    evidence: ReportFlagEvidenceOut | None = None
 
 
 class ReportMissionOut(BaseModel):

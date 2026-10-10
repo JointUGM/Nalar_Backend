@@ -29,6 +29,7 @@ from nalar.presentation.api.schemas.results import (
     InsightOut,
     MisconceptionCountOut,
     MisconceptionStudentOut,
+    MonitorFlagOut,
     MonitorOut,
     MonitorRunOut,
     MonitorStudentOut,
@@ -68,7 +69,12 @@ async def monitor(
         run=MonitorRunOut(**asdict(found.run)),
         waiting_count=found.waiting_count,
         students=[
-            MonitorStudentOut(**asdict(s), max_turns=found.max_turns) for s in found.students
+            MonitorStudentOut(
+                **{k: v for k, v in asdict(s).items() if k != "open_flags"},
+                max_turns=found.max_turns,
+                open_flags=[MonitorFlagOut(**asdict(f)) for f in s.open_flags],
+            )
+            for s in found.students
         ],
         server_now=clock.now(),
     )

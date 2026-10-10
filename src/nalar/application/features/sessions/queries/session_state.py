@@ -7,6 +7,7 @@ from nalar.application.features.evaluation.messages import evaluation_message
 from nalar.application.features.sessions.timing import TurnTiming
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
+from nalar.application.ports.integrity import ActivityNotice
 from nalar.application.ports.queue import EVAL_QUEUE
 from nalar.application.ports.sessions import StateView
 from nalar.application.ports.uow import UnitOfWork
@@ -32,6 +33,7 @@ class StudentState:
     prompt: Prompt | None
     safety_message: str | None
     reflection_ready: bool
+    activity_notices: tuple[ActivityNotice, ...] = ()
 
 
 class SessionStateQuery:
@@ -56,16 +58,22 @@ class SessionStateQuery:
                 if await self._uow.sessions.time_out(session_id, now):
                     await self._uow.queue.send(EVAL_QUEUE, evaluation_message(session_id))
                 view = await self._uow.sessions.state_view(session_id) or view
+            if view.status is SessionStatus.in_progress:
+                notices = await self._uow.integrity.student_activity_notices(session_id)
+            else:
+                notices = []
         if (
             view.status is SessionStatus.in_progress
             and view.latest_answered_at is not None
             and now - view.latest_answered_at >= self._timing.recovery_after
         ):
             self._background.run_turn_step(session_id, view.latest_turn_index)
-        return _student_state(view)
+        return _student_state(view, tuple(notices))
 
 
-def _student_state(view: StateView) -> StudentState:
+def _student_state(
+    view: StateView, activity_notices: tuple[ActivityNotice, ...] = ()
+) -> StudentState:
     prompt, message = None, None
     if view.status is SessionStatus.in_progress:
         status = "processing" if view.latest_answered_at else "awaiting_answer"
@@ -85,4 +93,5 @@ def _student_state(view: StateView) -> StudentState:
         prompt=prompt,
         safety_message=message,
         reflection_ready=view.reflection_ready,
+        activity_notices=activity_notices,
     )
