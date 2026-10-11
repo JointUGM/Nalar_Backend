@@ -2703,6 +2703,18 @@
       },
       "KbDetailOut": {
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "can_edit": {
             "title": "Can Edit",
             "type": "boolean"
@@ -2751,6 +2763,7 @@
           }
         },
         "required": [
+          "archived_at",
           "id",
           "topic_title",
           "owner_teacher_id",
@@ -2859,6 +2872,18 @@
             "title": "Approved Concept Count",
             "type": "integer"
           },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "built_section_count": {
             "title": "Built Section Count",
             "type": "integer"
@@ -2911,6 +2936,7 @@
           }
         },
         "required": [
+          "archived_at",
           "owner_name",
           "id",
           "topic_key",
@@ -3875,6 +3901,18 @@
       },
       "MissionSummaryOut": {
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "can_edit": {
             "title": "Can Edit",
             "type": "boolean"
@@ -3921,6 +3959,7 @@
           }
         },
         "required": [
+          "archived_at",
           "created_by_name",
           "id",
           "title",
@@ -9044,6 +9083,18 @@
             "title": "Answer Terms",
             "type": "array"
           },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "base_version_id": {
             "anyOf": [
               {
@@ -9190,6 +9241,7 @@
           }
         },
         "required": [
+          "archived_at",
           "id",
           "version_number",
           "status",

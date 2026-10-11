@@ -128,6 +128,7 @@ class VersionReviewedOut(BaseModel):
 
 
 class VersionOut(BaseModel):
+    archived_at: datetime | None
     id: UUID
     version_number: int
     status: str
@@ -160,6 +161,7 @@ class VersionSummaryOut(BaseModel):
 
 
 class MissionSummaryOut(BaseModel):
+    archived_at: datetime | None
     created_by_name: str | None
     id: UUID
     title: str

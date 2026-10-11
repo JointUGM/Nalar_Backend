@@ -18,4 +18,4 @@ class GetKbQuery:
             detail = await self._uow.knowledge.kb_detail(kb_id, approved_only=not owner)
         if detail is None:
             raise NotFound()
-        return detail, owner
+        return detail, owner and detail.archived_at is None

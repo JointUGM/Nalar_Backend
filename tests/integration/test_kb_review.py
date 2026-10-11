@@ -15,6 +15,9 @@ from nalar.infrastructure.db.uow import PgUnitOfWork
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import (
     World,
+    add_section,
+    assign_teacher,
+    build_world,
     create_concept,
     create_knowledge_base,
     create_misconception,
@@ -22,9 +25,79 @@ from tests.integration.support.factories import (
     create_subject,
     create_teacher,
 )
-from tests.unit.application.fakes import FakeClock, ScriptedAiGateway, invocation, vector
+from tests.unit.application.fakes import (
+    FakeClock,
+    FakeStorage,
+    ScriptedAiGateway,
+    invocation,
+    vector,
+)
 
 MODEL = Settings().embedding_model
+
+
+async def test_archived_kb_retains_owner_review_and_material_reads_without_allowing_writes(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    concept, misconception = await pending_pair(conn, world)
+    colleague = await create_teacher(conn, world.school_id)
+    await assign_teacher(conn, world.school_id, world.class_id, world.subject_id, colleague)
+    other = await build_world(conn)
+    storage = FakeStorage()
+    material, section = await add_section(conn, world, storage)
+    async with api_client(conn, storage=storage) as api:
+        headers = as_user(world.teacher_id)
+        active = await api.get(f"/knowledge-bases/{world.kb_id}", headers=headers)
+        assert active.json()["archived_at"] is None
+        assert active.json()["can_edit"]
+        assert (
+            await api.post(f"/knowledge-bases/{world.kb_id}/archive", headers=headers)
+        ).status_code == 204
+        detail = await api.get(f"/knowledge-bases/{world.kb_id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["archived_at"] is not None
+        assert not detail.json()["can_edit"]
+        assert str(concept) in {c["id"] for c in detail.json()["concepts"]}
+        assert str(misconception) in {m["id"] for m in detail.json()["misconceptions"]}
+        listing = await api.get(
+            f"/schools/{world.school_id}/knowledge-bases",
+            params={"status": "archived"},
+            headers=headers,
+        )
+        assert listing.json()["items"][0]["archived_at"] == detail.json()["archived_at"]
+        assert not listing.json()["items"][0]["can_edit"]
+        read = await api.get(f"/knowledge-bases/{world.kb_id}", headers=as_user(colleague))
+        assert read.status_code == 200, read.text
+        assert all(c["review_status"] == "approved" for c in read.json()["concepts"])
+        assert all(m["review_status"] == "approved" for m in read.json()["misconceptions"])
+        queue = await api.get(f"/knowledge-bases/{world.kb_id}/review-queue", headers=headers)
+        assert queue.status_code == 200, queue.text
+        assert queue.json()["pending_concepts"] == 1
+        sections = await api.get(f"/knowledge-bases/{world.kb_id}/sections", headers=headers)
+        assert sections.status_code == 200, sections.text
+        assert sections.json()["items"][0]["id"] == str(section)
+        file_path = f"/knowledge-bases/{world.kb_id}/materials/{material}/file"
+        assert (await api.get(file_path, headers=as_user(colleague))).status_code == 200
+        for path in (
+            f"/knowledge-bases/{world.kb_id}",
+            f"/knowledge-bases/{world.kb_id}/sections",
+            file_path,
+        ):
+            assert (await api.get(path, headers=as_user(other.teacher_id))).status_code == 404
+        for path, body in (
+            (f"/concepts/{concept}/review", {"review_status": "approved"}),
+            (f"/misconceptions/{misconception}/review", {"review_status": "approved"}),
+            (f"/knowledge-bases/{world.kb_id}/sections/{section}/build", {}),
+            (f"/knowledge-bases/{world.kb_id}/concepts/{world.concept_id}/archive", {}),
+        ):
+            rejected = await api.post(path, json=body, headers=headers)
+            assert rejected.status_code == 409, rejected.text
+            assert rejected.json()["error"]["code"] == "KNOWLEDGE_BASE_ARCHIVED"
+        deleted = await api.delete(
+            f"/knowledge-bases/{world.kb_id}/materials/{material}", headers=headers
+        )
+        assert deleted.status_code == 409, deleted.text
+        assert deleted.json()["error"]["code"] == "KNOWLEDGE_BASE_ARCHIVED"
 
 
 async def pending_pair(conn: asyncpg.Connection, world: World) -> tuple[UUID, UUID]:
