@@ -56,7 +56,7 @@ _KB_PAGE = """
            (select count(*) from concepts c where c.knowledge_base_id = kb.id
              and c.review_status = 'approved' and c.archived_at is null)::int
                as approved_concept_count,
-           kb.created_at, pr.full_name as owner_name
+           kb.created_at, pr.full_name as owner_name, kb.archived_at
       from knowledge_bases kb
       left join profiles pr on pr.id = kb.owner_teacher_id
      where kb.school_id = $2
@@ -361,7 +361,7 @@ class PgKnowledgeRepo:
 
     async def kb_detail(self, kb_id: UUID, approved_only: bool) -> KbDetail | None:
         head = await self._conn.fetchrow(
-            "select id, school_id, topic_title, owner_teacher_id from knowledge_bases"
+            "select id, school_id, topic_title, owner_teacher_id, archived_at from knowledge_bases"
             " where id = $1",
             kb_id,
         )
@@ -407,6 +407,7 @@ class PgKnowledgeRepo:
             id=head["id"],
             topic_title=head["topic_title"],
             owner_teacher_id=head["owner_teacher_id"],
+            archived_at=head["archived_at"],
             materials=tuple(
                 MaterialView(
                     m["id"],
@@ -956,6 +957,8 @@ class PgKnowledgeRepo:
         item_id: UUID | None,
         now: datetime,
     ) -> UUID:
+        if kind != "kb":
+            await self.require_active(kb_id)
         school_id: UUID | None = await self._conn.fetchval(
             "select school_id from knowledge_bases where id = $1 for update", kb_id
         )

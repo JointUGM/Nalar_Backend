@@ -103,7 +103,8 @@ async def list_missions(
                 latest_version=VersionSummaryOut(**asdict(m.latest_version))
                 if m.latest_version
                 else None,
-                can_edit=m.created_by == user.id,
+                archived_at=m.archived_at,
+                can_edit=m.created_by == user.id and m.archived_at is None,
             )
             for m in page.items
         ],
@@ -179,6 +180,7 @@ async def get_version(
     d = v.draft
     return VersionOut(
         id=v.id,
+        archived_at=v.archived_at,
         version_number=v.version_number,
         status=v.status,
         anchor_problem=d.anchor_problem,
@@ -200,7 +202,9 @@ async def get_version(
         revision_job_id=v.revision_job_id,
         revision_feedback=[RevisionFeedback.model_validate(f) for f in v.revision_feedback],
         revision_changed_fields=list(v.revision_changed_fields),
-        can_revise_with_ai=policy.enabled and await query.is_creator(user.id, mission_id),
+        can_revise_with_ai=(
+            policy.enabled and v.archived_at is None and await query.is_creator(user.id, mission_id)
+        ),
     )
 
 

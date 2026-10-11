@@ -28,4 +28,4 @@ class GetVersionQuery:
             version = await self._uow.missions.version(mission_id, number) if reader else None
         if version is None or (not creator and version.status == "draft"):
             raise NotFound()
-        return version, creator and version.status == "draft"
+        return version, creator and version.status == "draft" and version.archived_at is None

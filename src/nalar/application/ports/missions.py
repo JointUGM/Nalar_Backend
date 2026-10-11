@@ -25,6 +25,7 @@ class MissionRef:
     knowledge_base_id: UUID
     school_subject_id: UUID
     created_by: UUID
+    archived_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,7 @@ class VersionRecord:
     revision_job_id: UUID | None = None
     revision_feedback: tuple[Mapping[str, Any], ...] = ()
     revision_changed_fields: tuple[str, ...] = ()
+    archived_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,7 @@ class MissionSummary:
     latest_version: VersionSummary | None
     created_at: datetime
     created_by_name: str | None = None
+    archived_at: datetime | None = None
 
 
 @dataclass(frozen=True)

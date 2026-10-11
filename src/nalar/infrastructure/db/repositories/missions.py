@@ -27,7 +27,8 @@ from nalar.infrastructure.db.pool import DbConnection
 _MISSION_PAGE = """
     select mi.id, mi.title, mi.knowledge_base_id, mi.created_by, mi.created_at,
            v.id as version_id, v.version_number, v.reviewed_at, v.locked_at,
-           pr.full_name as created_by_name
+           pr.full_name as created_by_name,
+           least(mi.archived_at, kb.archived_at) as archived_at
       from missions mi
       left join profiles pr on pr.id = mi.created_by
       join knowledge_bases kb on kb.id = mi.knowledge_base_id
@@ -36,9 +37,10 @@ _MISSION_PAGE = """
               from mission_versions mv
              where mv.mission_id = mi.id and (mi.created_by = $1 or mv.reviewed_at is not null)
              order by mv.version_number desc limit 1) v on true
-     where mi.school_id = $2 and kb.archived_at is null
-       and (($8 = 'archived' and mi.archived_at is not null)
-            or ($8 is distinct from 'archived' and mi.archived_at is null))
+     where mi.school_id = $2
+       and (($8 = 'archived' and (mi.archived_at is not null or kb.archived_at is not null))
+            or ($8 is distinct from 'archived'
+                and mi.archived_at is null and kb.archived_at is null))
        and ($3::uuid is null or kb.school_subject_id = $3)
        and (mi.created_by = $1 or (v.id is not null and exists (
              select 1 from teaching_assignments ta
@@ -248,9 +250,10 @@ class PgMissionsRepo:
 
     async def mission_ref(self, mission_id: UUID) -> MissionRef | None:
         row = await self._conn.fetchrow(
-            "select mi.id, mi.school_id, mi.knowledge_base_id, kb.school_subject_id, mi.created_by"
+            "select mi.id, mi.school_id, mi.knowledge_base_id, kb.school_subject_id, mi.created_by,"
+            " least(mi.archived_at, kb.archived_at) as archived_at"
             "  from missions mi join knowledge_bases kb on kb.id = mi.knowledge_base_id"
-            " where mi.id = $1 and mi.archived_at is null and kb.archived_at is null"
+            " where mi.id = $1"
             " for no key update of kb, mi",
             mission_id,
         )
@@ -357,7 +360,7 @@ class PgMissionsRepo:
     async def version(self, mission_id: UUID, number: int) -> VersionRecord | None:
         row = await self._conn.fetchrow(
             """
-            select mv.*,
+            select mv.*, least(mi.archived_at, kb.archived_at) as archived_at,
                    coalesce(mv.learning_objective_snapshot, legacy.learning_objective,
                             mi.learning_objective)
                    as effective_objective,
@@ -371,6 +374,7 @@ class PgMissionsRepo:
                    array(select misconception_id from mission_version_misconceptions
                           where mission_version_id = mv.id) as misconception_ids
               from mission_versions mv join missions mi on mi.id=mv.mission_id
+              join knowledge_bases kb on kb.id=mi.knowledge_base_id
               left join mission_legacy_metadata legacy on legacy.version_id=mv.id
               left join mission_versions parent on parent.id=mv.base_version_id
               left join mission_revision_requests rr on rr.job_id=mv.generation_job_id
@@ -409,6 +413,7 @@ class PgMissionsRepo:
             draft=draft,
             created_by=row["created_by"],
             reviewed_at=row["reviewed_at"],
+            archived_at=row["archived_at"],
             base_version_number=row["base_version_number"],
             revision_job_id=row["revision_job_id"],
             revision_feedback=tuple(json.loads(row["revision_feedback"]))
@@ -500,11 +505,20 @@ class PgMissionsRepo:
                 if r["version_id"]
                 else None,
                 created_at=r["created_at"],
+                archived_at=r["archived_at"],
             )
             for r in rows
         ]
 
     async def archive(self, mission_id: UUID, now: datetime) -> UUID:
+        mission = await self.mission_ref(mission_id)
+        if mission is None:
+            raise NotFound()
+        if await self._conn.fetchval(
+            "select archived_at is not null from knowledge_bases where id = $1",
+            mission.knowledge_base_id,
+        ):
+            raise Conflict("MISSION_ARCHIVED")
         row = await self._conn.fetchrow(
             "select school_id from missions where id = $1 for update", mission_id
         )

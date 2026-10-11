@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 from uuid import UUID
 
-from nalar.application.errors import Forbidden, NotFound, Unprocessable
+from nalar.application.errors import Conflict, Forbidden, NotFound, Unprocessable
 from nalar.application.ports.missions import MissionRef, VersionDraft
 from nalar.application.ports.uow import UnitOfWork
 from nalar.domain.context_pack import derive_probe_plan, question_bank_from_pack
@@ -25,6 +25,8 @@ async def require_creator(uow: UnitOfWork, actor_id: UUID, mission_id: UUID) -> 
     if mission is None:
         raise NotFound()
     if mission.created_by == actor_id and await uow.authz.is_mission_creator(actor_id, mission_id):
+        if mission.archived_at is not None:
+            raise Conflict("MISSION_ARCHIVED")
         return mission
     if await uow.authz.can_read_kb(actor_id, mission.knowledge_base_id):
         raise Forbidden("NOT_OWNER")

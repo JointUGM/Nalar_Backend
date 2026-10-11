@@ -15,6 +15,7 @@ class MaterialQueuedOut(BaseModel):
 
 
 class KbSummaryOut(BaseModel):
+    archived_at: datetime | None
     owner_name: str | None
     id: UUID
     topic_key: str
@@ -93,6 +94,7 @@ class MisconceptionOut(BaseModel):
 
 
 class KbDetailOut(BaseModel):
+    archived_at: datetime | None
     id: UUID
     topic_title: str
     owner_teacher_id: UUID

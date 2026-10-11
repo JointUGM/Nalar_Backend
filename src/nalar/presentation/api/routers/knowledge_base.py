@@ -130,7 +130,8 @@ async def list_kbs(
                 built_section_count=kb.built_section_count,
                 pending_count=kb.pending_count,
                 approved_concept_count=kb.approved_concept_count,
-                can_edit=kb.owner_teacher_id == user.id,
+                archived_at=kb.archived_at,
+                can_edit=kb.owner_teacher_id == user.id and kb.archived_at is None,
             )
             for kb in page.items
         ],
@@ -145,6 +146,7 @@ async def get_kb(kb_id: UUID, user: CurrentUser, query: FromDishka[GetKbQuery]) 
         id=kb.id,
         topic_title=kb.topic_title,
         owner_teacher_id=kb.owner_teacher_id,
+        archived_at=kb.archived_at,
         materials=[MaterialOut(**asdict(m)) for m in kb.materials],
         concepts=[ConceptOut(**asdict(c)) for c in kb.concepts],
         prerequisites=[

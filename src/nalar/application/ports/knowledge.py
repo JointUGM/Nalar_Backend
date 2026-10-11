@@ -54,6 +54,7 @@ class KbSummary:
     approved_concept_count: int
     created_at: datetime
     owner_name: str | None = None
+    archived_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +105,7 @@ class KbDetail:
     concepts: tuple[ConceptView, ...]
     prerequisites: tuple[tuple[UUID, UUID], ...]
     misconceptions: tuple[MisconceptionView, ...]
+    archived_at: datetime | None = None
 
 
 @dataclass(frozen=True)

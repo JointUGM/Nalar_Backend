@@ -1,7 +1,8 @@
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
+import pytest
 
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import WarmIn, WarmOut
@@ -12,11 +13,105 @@ from tests.integration.support.factories import (
     assign_teacher,
     build_world,
     create_concept,
+    create_mission_version,
     create_teacher,
 )
 from tests.unit.application.fakes import ScriptedAiGateway, invocation
 
 WARMED = AiResult(WarmOut(warmed=True), [invocation("probe_plan")])
+
+
+async def test_parent_archive_keeps_missions_visible_with_draft_scope_and_pagination(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    colleague = await create_teacher(conn, world.school_id)
+    await assign_teacher(conn, world.school_id, world.class_id, world.subject_id, colleague)
+    draft_mission, _ = await create_mission_version(
+        conn, world.school_id, world.kb_id, world.teacher_id, reviewed=False
+    )
+    other = await build_world(conn)
+    async with api_client(conn) as api:
+        headers = as_user(world.teacher_id)
+        archived = await api.post(f"/knowledge-bases/{world.kb_id}/archive", headers=headers)
+        assert archived.status_code == 204, archived.text
+        timestamp = (await api.get(f"/knowledge-bases/{world.kb_id}", headers=headers)).json()[
+            "archived_at"
+        ]
+        url = f"/schools/{world.school_id}/missions"
+        active = await api.get(url, headers=headers)
+        assert active.json()["items"] == []
+        first = await api.get(url, params={"status": "archived", "limit": 1}, headers=headers)
+        assert first.status_code == 200, first.text
+        second = await api.get(
+            url,
+            params={"status": "archived", "limit": 1, "cursor": first.json()["next_cursor"]},
+            headers=headers,
+        )
+        rows = first.json()["items"] + second.json()["items"]
+        assert {m["id"] for m in rows} == {str(world.mission_id), str(draft_mission)}
+        assert all(m["archived_at"] == timestamp and not m["can_edit"] for m in rows)
+        assert second.json()["next_cursor"] is None
+        read = await api.get(url, params={"status": "archived"}, headers=as_user(colleague))
+        assert [m["id"] for m in read.json()["items"]] == [str(world.mission_id)]
+        for mission_id in (world.mission_id, draft_mission):
+            own = await api.get(f"/missions/{mission_id}/versions/1", headers=headers)
+            assert own.status_code == 200, own.text
+            assert own.json()["archived_at"] == timestamp
+            assert not own.json()["can_edit"]
+            assert not own.json()["can_revise_with_ai"]
+            history = await api.get(f"/missions/{mission_id}/versions", headers=headers)
+            assert history.status_code == 200, history.text
+        hidden = await api.get(f"/missions/{draft_mission}/versions/1", headers=as_user(colleague))
+        assert hidden.status_code == 404
+        foreign = await api.get(
+            f"/missions/{world.mission_id}/versions/1", headers=as_user(other.teacher_id)
+        )
+        assert foreign.status_code == 404
+
+
+@pytest.mark.parametrize("parent_archive", [False, True])
+async def test_archived_mission_rejects_authoring_and_publication(
+    conn: asyncpg.Connection, world: World, parent_archive: bool
+) -> None:
+    async with api_client(conn, overrides={"mission_revision_enabled": True}) as api:
+        headers = as_user(world.teacher_id)
+        archive_path = (
+            f"/knowledge-bases/{world.kb_id}/archive"
+            if parent_archive
+            else f"/missions/{world.mission_id}/archive"
+        )
+        assert (await api.post(archive_path, headers=headers)).status_code == 204
+        detail = await api.get(f"/missions/{world.mission_id}/versions/1", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["archived_at"] is not None
+        assert not detail.json()["can_edit"]
+        assert not detail.json()["can_revise_with_ai"]
+        for path, body in (
+            (f"/missions/{world.mission_id}/generate", {}),
+            (f"/missions/{world.mission_id}/versions", version_body(world)),
+            (f"/missions/{world.mission_id}/versions/1/review", {}),
+            (
+                "/publications",
+                {
+                    "mission_version_id": str(world.version_id),
+                    "class_id": str(world.class_id),
+                    "run": {"mode": "live"},
+                },
+            ),
+        ):
+            response = await api.post(path, json=body, headers=headers)
+            assert response.status_code in (404, 409), response.text
+        revision = await api.post(
+            f"/missions/{world.mission_id}/revise",
+            json={
+                "base_version_id": str(world.version_id),
+                "expected_latest_version_id": str(world.version_id),
+                "title": "New title",
+            },
+            headers={**headers, "Idempotency-Key": str(uuid4())},
+        )
+        assert revision.status_code == 409, revision.text
+        assert revision.json()["error"]["code"] == "MISSION_ARCHIVED"
 
 
 async def test_version_history_hides_other_authors_drafts_and_joins_display_names(
