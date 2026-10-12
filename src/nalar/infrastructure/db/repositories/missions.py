@@ -536,3 +536,15 @@ class PgMissionsRepo:
             now,
         )
         return UUID(str(row["school_id"]))
+
+    async def restore(self, mission_id: UUID) -> UUID:
+        mission = await self.mission_ref(mission_id)
+        if mission is None:
+            raise NotFound()
+        if await self._conn.fetchval(
+            "select archived_at is not null from knowledge_bases where id = $1",
+            mission.knowledge_base_id,
+        ):
+            raise Conflict("KNOWLEDGE_BASE_ARCHIVED")
+        await self._conn.execute("update missions set archived_at = null where id = $1", mission_id)
+        return mission.school_id

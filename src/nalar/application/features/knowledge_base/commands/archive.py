@@ -20,6 +20,24 @@ class ArchiveHandler:
                 school_id, actor_id, "mission.archived", "missions", mission_id, {}
             )
 
+    async def restore_mission(self, actor_id: UUID, mission_id: UUID) -> None:
+        async with self._uow:
+            if not await self._uow.authz.is_mission_creator(actor_id, mission_id):
+                raise NotFound()
+            school_id = await self._uow.missions.restore(mission_id)
+            await self._uow.audit.record(
+                school_id, actor_id, "mission.restored", "missions", mission_id, {}
+            )
+
+    async def restore_kb(self, actor_id: UUID, kb_id: UUID) -> None:
+        async with self._uow:
+            if not await self._uow.authz.owns_kb(actor_id, kb_id):
+                raise NotFound()
+            school_id = await self._uow.knowledge.restore(kb_id)
+            await self._uow.audit.record(
+                school_id, actor_id, "kb.restored", "knowledge_bases", kb_id, {}
+            )
+
     async def knowledge(
         self,
         actor_id: UUID,
