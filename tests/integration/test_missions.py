@@ -370,3 +370,60 @@ async def test_review_rechecks_authorization_after_ai_and_keeps_provenance(
         )
         == 1
     )
+
+
+async def test_restore_requires_active_kb_and_reappears_in_active_lists(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    other = await build_world(conn)
+    async with api_client(conn) as api:
+        headers = as_user(world.teacher_id)
+        missions = f"/schools/{world.school_id}/missions"
+        kbs = f"/schools/{world.school_id}/knowledge-bases"
+        await api.post(f"/missions/{world.mission_id}/archive", headers=headers)
+        await api.post(f"/knowledge-bases/{world.kb_id}/archive", headers=headers)
+
+        for path in (
+            f"/missions/{world.mission_id}/restore",
+            f"/knowledge-bases/{world.kb_id}/restore",
+        ):
+            foreign = await api.post(path, headers=as_user(other.teacher_id))
+            assert foreign.status_code == 404
+
+        blocked = await api.post(f"/missions/{world.mission_id}/restore", headers=headers)
+        assert blocked.status_code == 409
+        assert blocked.json()["error"]["code"] == "KNOWLEDGE_BASE_ARCHIVED"
+
+        assert (
+            await api.post(f"/knowledge-bases/{world.kb_id}/restore", headers=headers)
+        ).status_code == 204
+        assert (
+            await api.post(f"/missions/{world.mission_id}/restore", headers=headers)
+        ).status_code == 204
+        assert (
+            await api.post(f"/missions/{world.mission_id}/restore", headers=headers)
+        ).status_code == 204
+        assert [m["id"] for m in (await api.get(missions, headers=headers)).json()["items"]] == [
+            str(world.mission_id)
+        ]
+        assert [k["id"] for k in (await api.get(kbs, headers=headers)).json()["items"]] == [
+            str(world.kb_id)
+        ]
+
+
+async def test_restore_kb_rejects_topic_taken_by_new_kb(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    async with api_client(conn) as api:
+        headers = as_user(world.teacher_id)
+        await api.post(f"/knowledge-bases/{world.kb_id}/archive", headers=headers)
+        await conn.execute(
+            "insert into knowledge_bases (id, school_id, school_subject_id, owner_teacher_id,"
+            " topic_key, topic_title)"
+            " select gen_random_uuid(), school_id, school_subject_id, owner_teacher_id,"
+            " topic_key, topic_title from knowledge_bases where id = $1",
+            world.kb_id,
+        )
+        restored = await api.post(f"/knowledge-bases/{world.kb_id}/restore", headers=headers)
+        assert restored.status_code == 409
+        assert restored.json()["error"]["code"] == "TOPIC_ALREADY_EXISTS"

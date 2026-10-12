@@ -1011,6 +1011,22 @@ class PgKnowledgeRepo:
             )
         return school_id
 
+    async def restore(self, kb_id: UUID) -> UUID:
+        row = await self._conn.fetchrow(
+            "select school_id, school_subject_id, topic_key, archived_at from knowledge_bases"
+            " where id = $1 for update",
+            kb_id,
+        )
+        if row is None:
+            raise NotFound()
+        if row["archived_at"] is not None:
+            if await self.topic_exists(row["school_subject_id"], row["topic_key"]):
+                raise Conflict("TOPIC_ALREADY_EXISTS")
+            await self._conn.execute(
+                "update knowledge_bases set archived_at = null where id = $1", kb_id
+            )
+        return UUID(str(row["school_id"]))
+
     async def material_file(self, kb_id: UUID, material_id: UUID) -> tuple[str, str] | None:
         row = await self._conn.fetchrow(
             "select storage_bucket, storage_path from teaching_materials"

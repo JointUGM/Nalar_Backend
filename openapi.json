@@ -10655,6 +10655,47 @@
         ]
       }
     },
+    "/api/v1/knowledge-bases/{kb_id}/restore": {
+      "post": {
+        "operationId": "restore_kb_api_v1_knowledge_bases__kb_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kb_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Kb Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Restore Kb",
+        "tags": [
+          "knowledge-base"
+        ]
+      }
+    },
     "/api/v1/knowledge-bases/{kb_id}/review-queue": {
       "get": {
         "operationId": "review_queue_api_v1_knowledge_bases__kb_id__review_queue_get",
@@ -11100,6 +11141,47 @@
           }
         ],
         "summary": "Generate Mission",
+        "tags": [
+          "missions"
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/restore": {
+      "post": {
+        "operationId": "restore_mission_api_v1_missions__mission_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Mission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Restore Mission",
         "tags": [
           "missions"
         ]

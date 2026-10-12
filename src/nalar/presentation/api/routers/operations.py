@@ -82,6 +82,22 @@ async def archive_mission(
     return Response(status_code=204)
 
 
+@router.post("/missions/{mission_id}/restore", status_code=204, tags=["missions"])
+async def restore_mission(
+    mission_id: UUID, user: CurrentUser, handler: FromDishka[ArchiveHandler]
+) -> Response:
+    await handler.restore_mission(user.id, mission_id)
+    return Response(status_code=204)
+
+
+@router.post("/knowledge-bases/{kb_id}/restore", status_code=204, tags=["knowledge-base"])
+async def restore_kb(
+    kb_id: UUID, user: CurrentUser, handler: FromDishka[ArchiveHandler]
+) -> Response:
+    await handler.restore_kb(user.id, kb_id)
+    return Response(status_code=204)
+
+
 @router.delete("/knowledge-bases/{kb_id}", status_code=204, tags=["knowledge-base"])
 @router.post("/knowledge-bases/{kb_id}/archive", status_code=204, tags=["knowledge-base"])
 async def archive_kb(
