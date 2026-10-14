@@ -3736,6 +3736,25 @@
         "title": "MissionCreatedOut",
         "type": "object"
       },
+      "MissionGenerateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "follow_up_of_publication_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up Of Publication Id"
+          }
+        },
+        "title": "MissionGenerateIn",
+        "type": "object"
+      },
       "MissionGenerationQueuedOut": {
         "properties": {
           "job_id": {
@@ -11368,6 +11387,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MissionGenerateIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "202": {
             "content": {

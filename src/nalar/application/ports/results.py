@@ -305,6 +305,8 @@ class ResultsRepo(Protocol):
         student's latest attempt only."""
         ...
 
+    async def publication_knowledge_base(self, publication_id: UUID) -> UUID | None: ...
+
     async def misconception_trail_input(
         self, publication_id: UUID, earlier_publication_id: UUID | None
     ) -> TrailInput | None:

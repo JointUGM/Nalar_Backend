@@ -15,7 +15,14 @@ from nalar.infrastructure.db.pool import create_pool
 
 
 async def main(school_id: UUID, since: datetime) -> None:
-    pool = await create_pool(Settings().database_url.get_secret_value(), min_size=1, max_size=1)
+    cfg = Settings()
+    pool = await create_pool(
+        cfg.database_url.get_secret_value(),
+        min_size=1,
+        max_size=1,
+        statement_cache_size=cfg.db_statement_cache_size,
+        command_timeout=cfg.db_command_timeout_s,
+    )
     try:
         async with pool.acquire() as conn, conn.transaction(readonly=True):
             print(json.dumps(await teacher_cycle(conn, school_id, since), indent=2))

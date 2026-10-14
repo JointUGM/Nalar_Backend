@@ -1,4 +1,6 @@
 import json
+from collections.abc import Mapping
+from typing import Any
 from uuid import UUID
 
 from nalar.application.ports.jobs import Job
@@ -17,15 +19,17 @@ class PgJobStore:
         entity_id: UUID,
         school_id: UUID | None,
         requested_by: UUID | None,
+        result: Mapping[str, Any] | None = None,
     ) -> UUID:
         job_id: UUID = await self._conn.fetchval(
-            "insert into jobs (kind, entity_type, entity_id, school_id, requested_by)"
-            " values ($1, $2, $3, $4, $5) returning id",
+            "insert into jobs (kind, entity_type, entity_id, school_id, requested_by, result)"
+            " values ($1, $2, $3, $4, $5, $6::jsonb) returning id",
             kind,
             entity_type,
             entity_id,
             school_id,
             requested_by,
+            None if result is None else json.dumps(dict(result)),
         )
         return job_id
 

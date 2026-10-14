@@ -6,7 +6,7 @@ import pytest
 
 from nalar.application.ports.ai import AiResult, AiServiceError
 from nalar.application.ports.ai_contract import EmbedOut
-from nalar.bootstrap.curriculum import seed_curriculum
+from nalar.bootstrap.curriculum import seed_curriculum, seed_library, validate_library
 from tests.unit.application.fakes import ScriptedAiGateway, invocation, vector
 
 MODEL = "text-embedding-3-small"
@@ -103,3 +103,32 @@ async def test_seed_deduplicates_repeated_input_entries(conn: asyncpg.Connection
     ai.script("embed", embedded(2), embedded(1))
     result = await seed_curriculum(conn, ai, cp, library, MODEL)
     assert (result.statements, result.library) == (2, 1)
+
+
+async def test_library_alone_seeds_published_cited_entries_once(conn: asyncpg.Connection) -> None:
+    ai = ScriptedAiGateway()
+    ai.script("embed", embedded(1))
+    assert await seed_library(conn, ai, LIBRARY, MODEL) == 1
+    assert await seed_library(conn, ai, LIBRARY, MODEL) == 0
+    assert len(ai.calls) == 1
+    row = await conn.fetchrow(
+        "select status::text, published_at, source_citations, embedding_model"
+        " from misconception_library where topic = 'Gaya dan Gerak'"
+    )
+    assert row is not None and row["status"] == "published" and row["published_at"] is not None
+    assert row["source_citations"] == ["Driver et al. (1994)"] and row["embedding_model"] == MODEL
+    assert not await conn.fetchval("select exists (select 1 from cp_versions)")
+
+
+@pytest.mark.parametrize("citations", [[], ["  "]])
+def test_library_check_rejects_uncited_entries_without_any_service(citations: list[str]) -> None:
+    library = deepcopy(LIBRARY)
+    library["entries"][0]["source_citations"] = citations
+    with pytest.raises(ValueError):
+        validate_library(library)
+
+
+def test_library_check_counts_distinct_entries() -> None:
+    library = deepcopy(LIBRARY)
+    library["entries"].append(library["entries"][0])
+    assert validate_library(library) == 1

@@ -76,6 +76,74 @@ async def _embed(
     return vectors
 
 
+async def _insert_library(
+    conn: DbConnection, ai: AiGateway, library: Mapping[str, Any], model: str, record: Record
+) -> int:
+    new_entries = [
+        e
+        for e in {(e["topic"], e["statement"]): e for e in library["entries"]}.values()
+        if not await conn.fetchval(
+            "select exists (select 1 from misconception_library where subject = $1 and phase = $2"
+            " and topic = $3 and statement = $4)",
+            library["subject"],
+            library["phase"],
+            e["topic"],
+            e["statement"],
+        )
+    ]
+    lib_vectors = await _embed(
+        ai, Tag.library, [e["statement"] for e in new_entries], model, record
+    )
+    for e, vec in zip(new_entries, lib_vectors, strict=True):
+        await conn.execute(
+            "insert into misconception_library (subject, phase, topic, statement,"
+            " correct_understanding, student_phrasings, counter_examples, source_citations,"
+            " status, embedding, embedding_model, published_at)"
+            " values ($1, $2, $3, $4, $5, $6, $7, $8, 'published', $9, $10, now())",
+            library["subject"],
+            library["phase"],
+            e["topic"],
+            e["statement"],
+            e["correct_understanding"],
+            e["student_phrasings"],
+            e["counter_examples"],
+            e["source_citations"],
+            vec,
+            model,
+        )
+    return len(new_entries)
+
+
+def validate_library(library: Mapping[str, Any]) -> int:
+    """Check a library file without any service call; returns the number of distinct entries."""
+    entries = CurriculumLibrary.model_validate(library)
+    if any(not c.strip() for e in entries.entries for c in e.source_citations):
+        raise ValueError("library citations must not be blank")
+    if any(not e.statement.strip() or len(e.statement) > 30_000 for e in entries.entries):
+        raise ValueError("curriculum embedding texts must contain 1–30000 characters")
+    return len({(e.topic, e.statement) for e in entries.entries})
+
+
+async def seed_library(
+    conn: DbConnection,
+    ai: AiGateway,
+    library: Mapping[str, Any],
+    model: str,
+    record: Record | None = None,
+) -> int:
+    """Idempotent: adds and embeds only entries not yet present, as published (D-S26-16)."""
+    validate_library(library)
+    library = CurriculumLibrary.model_validate(library).model_dump(mode="json")
+    if record is None:
+
+        async def record_local(invocations: Sequence[InvocationOut]) -> None:
+            await PgAiInvocationLog(conn).record(None, invocations)
+
+        record = record_local
+    await conn.execute("select pg_advisory_xact_lock(hashtext('nalar-curriculum-seed'))")
+    return await _insert_library(conn, ai, library, model, record)
+
+
 async def seed_curriculum(
     conn: DbConnection,
     ai: AiGateway,
@@ -159,36 +227,5 @@ async def seed_curriculum(
             vec,
             model,
         )
-    new_entries = [
-        e
-        for e in {(e["topic"], e["statement"]): e for e in library["entries"]}.values()
-        if not await conn.fetchval(
-            "select exists (select 1 from misconception_library where subject = $1 and phase = $2"
-            " and topic = $3 and statement = $4)",
-            library["subject"],
-            library["phase"],
-            e["topic"],
-            e["statement"],
-        )
-    ]
-    lib_vectors = await _embed(
-        ai, Tag.library, [e["statement"] for e in new_entries], model, record
-    )
-    for e, vec in zip(new_entries, lib_vectors, strict=True):
-        await conn.execute(
-            "insert into misconception_library (subject, phase, topic, statement,"
-            " correct_understanding, student_phrasings, counter_examples, source_citations,"
-            " status, embedding, embedding_model, published_at)"
-            " values ($1, $2, $3, $4, $5, $6, $7, $8, 'published', $9, $10, now())",
-            library["subject"],
-            library["phase"],
-            e["topic"],
-            e["statement"],
-            e["correct_understanding"],
-            e["student_phrasings"],
-            e["counter_examples"],
-            e["source_citations"],
-            vec,
-            model,
-        )
-    return SeedCounts(len(missing), len(new_entries))
+    added = await _insert_library(conn, ai, library, model, record)
+    return SeedCounts(len(missing), added)
