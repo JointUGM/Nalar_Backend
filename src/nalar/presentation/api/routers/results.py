@@ -10,6 +10,7 @@ from nalar.application.features.results.commands.override_score import (
     OverrideScoreHandler,
 )
 from nalar.application.features.results.commands.review_flag import ReviewFlag, ReviewFlagHandler
+from nalar.application.features.results.commands.teaching_plan import RequestTeachingPlanHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.misconception_trail import MisconceptionTrailQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
@@ -53,6 +54,8 @@ from nalar.presentation.api.schemas.results import (
     ResolvedBreakdownOut,
     SafetyActionIn,
     SafetyActionOut,
+    TeachingPlanQueuedOut,
+    TeachingPlanRequestIn,
     TrailEarlierOut,
     TrailItemOut,
     TrailLaterOut,
@@ -139,6 +142,22 @@ async def class_map(
             for c in counts.concepts
         ],
     )
+
+
+@router.post(
+    "/publications/{publication_id}/teaching-plans",
+    status_code=202,
+    response_model=TeachingPlanQueuedOut,
+)
+async def request_teaching_plan(
+    publication_id: UUID,
+    body: TeachingPlanRequestIn,
+    user: CurrentUser,
+    handler: FromDishka[RequestTeachingPlanHandler],
+) -> TeachingPlanQueuedOut:
+    """TC-23: queue one S5 next-lesson activity; poll GET /jobs/{id}, then the class map."""
+    job_id = await handler.execute(user.id, publication_id, body.misconception_id)
+    return TeachingPlanQueuedOut(job_id=job_id)
 
 
 @router.get(
