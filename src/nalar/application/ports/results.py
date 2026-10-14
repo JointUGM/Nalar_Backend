@@ -143,12 +143,41 @@ class ClassMapStudent:
 
 
 @dataclass(frozen=True)
+class MisconceptionStrategy:
+    misconception_id: UUID
+    correct_understanding: str
+    counter_examples: tuple[str, ...]
+    detection_cues: tuple[str, ...]
+    source: Literal["library", "kb"]
+    citations: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ClassMapInput:
     concepts: tuple[tuple[UUID, str], ...]
     misconceptions: tuple[tuple[UUID, UUID, str], ...]
     attempts: tuple[StudentAttempt, ...]
     students: tuple[ClassMapStudent, ...]
     prerequisites: tuple[tuple[UUID, UUID], ...] = ()
+    strategies: tuple[MisconceptionStrategy, ...] = ()
+
+
+@dataclass(frozen=True)
+class TrailPublication:
+    publication_id: UUID
+    mission_title: str
+    mission_version: int
+    class_name: str
+    attempts: tuple[StudentAttempt, ...]
+    misconceptions: tuple[tuple[UUID, UUID, str], ...]
+
+
+@dataclass(frozen=True)
+class TrailInput:
+    to: TrailPublication
+    earlier: TrailPublication | None
+    concepts: tuple[tuple[UUID, str], ...]
+    students: tuple[ClassMapStudent, ...]
 
 
 @dataclass(frozen=True)
@@ -274,6 +303,14 @@ class ResultsRepo(Protocol):
     async def class_map_input(self, publication_id: UUID) -> ClassMapInput | None:
         """Targets as (id, name), misconceptions as (id, concept_id, statement), and each
         student's latest attempt only."""
+        ...
+
+    async def misconception_trail_input(
+        self, publication_id: UUID, earlier_publication_id: UUID | None
+    ) -> TrailInput | None:
+        """The earlier publication is the latest eligible one of the same class and subject
+        sharing a target concept; None when the publication, or a named earlier one outside
+        that class and subject, does not exist."""
         ...
 
     async def student_history(

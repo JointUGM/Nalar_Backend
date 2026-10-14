@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from nalar.presentation.api.schemas.common import Body
 
@@ -57,6 +57,11 @@ class MisconceptionCountOut(BaseModel):
     resolved_count: int
     student_ids: list[UUID] = Field(deprecated=True)
     students: list[MisconceptionStudentOut]
+    correct_understanding: str
+    counter_examples: list[str]
+    detection_cues: list[str]
+    source: Literal["library", "kb"]
+    citations: list[str]
 
 
 class ConceptCountOut(BaseModel):
@@ -233,6 +238,52 @@ class ReportOut(BaseModel):
     scores: list[ReportScoreOut]
     concept_results: list[ReportConceptResultOut]
     flags: list[ReportFlagOut]
+
+
+class TrailEarlierOut(BaseModel):
+    publication_id: UUID
+    mission_title: str
+    mission_version: int
+    denominator: int
+
+
+class TrailLaterOut(TrailEarlierOut):
+    class_name: str
+
+
+class ResolvedBreakdownOut(BaseModel):
+    mastered: int
+    developing: int
+    other_misconception: int
+
+
+class TrailItemOut(BaseModel):
+    concept_id: UUID
+    concept_name: str
+    misconception_id: UUID
+    statement: str
+    held_count: int
+    resolved_count: int
+    resolved_breakdown: ResolvedBreakdownOut
+    still_held_count: int
+    not_observed_count: int
+    students_still_holding: list[MisconceptionStudentOut]
+
+
+class TrailNotRetestedOut(BaseModel):
+    concept_id: UUID
+    misconception_id: UUID
+    statement: str
+    held_count: int
+
+
+class MisconceptionTrailOut(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    to: TrailLaterOut
+    from_: TrailEarlierOut | None = Field(alias="from")
+    items: list[TrailItemOut]
+    not_retested: list[TrailNotRetestedOut]
 
 
 class SafetyActionIn(Body):

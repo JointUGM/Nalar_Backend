@@ -361,3 +361,36 @@ async def test_another_teacher_gets_404(
     async with api_client(conn) as api:
         response = await getattr(api, method)(url, headers=as_user(other.teacher_id), **kwargs)
     assert response.status_code == 404
+
+
+async def test_class_map_labels_research_only_for_published_library_entries(
+    conn: asyncpg.Connection, world: World
+) -> None:
+    published, draft = world.misconception_ids
+    for misconception_id, status in ((published, "published"), (draft, "draft")):
+        library_id = await conn.fetchval(
+            "insert into misconception_library (subject, phase, topic, statement,"
+            " correct_understanding, source_citations, status, published_at)"
+            " values ('IPA', 'D', 'Gaya', $1, 'x', array['Buku IPA Kelas VIII, hlm. 12'],"
+            " $2::library_status, case when $2 = 'published' then now() end) returning id",
+            str(misconception_id),
+            status,
+        )
+        await conn.execute(
+            "update misconceptions set library_id = $2, detection_cues = array['menyebut habis']"
+            " where id = $1",
+            misconception_id,
+            library_id,
+        )
+    async with api_client(conn) as api:
+        response = await api.get(
+            f"/publications/{world.publication_id}/class-map", headers=as_user(world.teacher_id)
+        )
+    cards = {
+        m["misconception_id"]: m for c in response.json()["concepts"] for m in c["misconceptions"]
+    }
+    assert cards[str(published)]["source"] == "library"
+    assert cards[str(published)]["citations"] == ["Buku IPA Kelas VIII, hlm. 12"]
+    assert (cards[str(draft)]["source"], cards[str(draft)]["citations"]) == ("kb", [])
+    assert cards[str(draft)]["correct_understanding"] == "Benda tetap bergerak tanpa gaya"
+    assert cards[str(draft)]["detection_cues"] == ["menyebut habis"]

@@ -21,6 +21,10 @@ class StudentAttempt:
     evaluation_status: str | None
     results: tuple[ConceptResult, ...]
 
+    @property
+    def eligible(self) -> bool:
+        return self.status == "completed" and self.evaluation_status == "completed"
+
 
 @dataclass(frozen=True)
 class MisconceptionCount:
@@ -52,9 +56,7 @@ def aggregate(
     attempts: Sequence[StudentAttempt],
 ) -> ClassMap:
     """AI-4: exact counts over eligible latest attempts; no model is involved."""
-    eligible = [
-        a for a in attempts if a.status == "completed" and a.evaluation_status == "completed"
-    ]
+    eligible = [a for a in attempts if a.eligible]
     concepts = []
     for concept_id in concept_ids:
         results = {
