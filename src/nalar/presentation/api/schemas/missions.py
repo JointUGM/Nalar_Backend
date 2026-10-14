@@ -16,6 +16,11 @@ class MissionIn(Body):
     learning_objective: str = Field(min_length=1, max_length=1000)
 
 
+class MissionGenerateIn(Body):
+    # A follow-up mission: concepts the class still holds misconceptions in are preferred.
+    follow_up_of_publication_id: UUID | None = None
+
+
 class MissionCreatedOut(BaseModel):
     mission_id: UUID
 

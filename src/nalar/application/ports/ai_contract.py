@@ -679,6 +679,9 @@ class SelectTargetsIn(BaseModel):
     learning_objective: Annotated[
         str, Field(max_length=1000, min_length=1, title="Learning Objective")
     ]
+    preferred_concept_ids: Annotated[
+        list[UUID] | None, Field(max_length=3, title="Preferred Concept Ids")
+    ] = None
 
 
 class SelectTargetsOut(BaseModel):

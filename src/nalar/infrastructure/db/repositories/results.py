@@ -740,6 +740,15 @@ class PgResultsRepo:
             ),
         )
 
+    async def publication_knowledge_base(self, publication_id: UUID) -> UUID | None:
+        kb_id: UUID | None = await self._conn.fetchval(
+            "select mi.knowledge_base_id from publications p"
+            " join mission_versions mv on mv.id = p.mission_version_id"
+            " join missions mi on mi.id = mv.mission_id where p.id = $1",
+            publication_id,
+        )
+        return kb_id
+
     async def _trail_publication(
         self, row: asyncpg.Record, attempts: tuple[StudentAttempt, ...]
     ) -> TrailPublication:

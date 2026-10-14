@@ -1,6 +1,6 @@
 import hashlib
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -19,6 +19,7 @@ from nalar.application.ports.clock import Clock
 from nalar.application.ports.missions import MissionRef, VersionDraft
 from nalar.application.ports.queue import DEFAULT_QUEUE
 from nalar.application.ports.uow import UnitOfWork
+from nalar.domain.class_map import aggregate
 from nalar.domain.context_pack import (
     PackMisconception,
     Target,
@@ -43,7 +44,9 @@ class GenerateMissionHandler:
     def __init__(self, uow: UnitOfWork) -> None:
         self._uow = uow
 
-    async def execute(self, actor_id: UUID, mission_id: UUID) -> GenerationQueued:
+    async def execute(
+        self, actor_id: UUID, mission_id: UUID, follow_up_of: UUID | None = None
+    ) -> GenerationQueued:
         async with self._uow:
             mission = await require_creator(self._uow, actor_id, mission_id)
             if not await self._uow.authz.can_read_kb(actor_id, mission.knowledge_base_id):
@@ -54,6 +57,7 @@ class GenerateMissionHandler:
                 if active is not None and active.kind != GENERATION_KIND:
                     raise Conflict("REVISION_IN_PROGRESS")
                 return GenerationQueued(existing)
+            preferred = await self._preferred_concepts(actor_id, mission, follow_up_of)
             catalog = await self._uow.missions.generation_catalog(mission)
             if not 2 <= len(catalog.concepts) <= 200:
                 raise Unprocessable(
@@ -66,6 +70,9 @@ class GenerateMissionHandler:
                 entity_id=mission_id,
                 school_id=mission.school_id,
                 requested_by=actor_id,
+                result={"preferred_concept_ids": [str(i) for i in preferred]}
+                if preferred
+                else None,
             )
             await self._uow.queue.send(
                 DEFAULT_QUEUE,
@@ -76,6 +83,32 @@ class GenerateMissionHandler:
                 },
             )
         return GenerationQueued(job_id)
+
+    async def _preferred_concepts(
+        self, actor_id: UUID, mission: MissionRef, follow_up_of: UUID | None
+    ) -> list[UUID]:
+        """Concepts the class still holds misconceptions in, most held first (at most 3)."""
+        if follow_up_of is None:
+            return []
+        if not await self._uow.authz.teaches_publication(actor_id, follow_up_of):
+            raise NotFound()
+        if await self._uow.results.publication_knowledge_base(follow_up_of) != (
+            mission.knowledge_base_id
+        ):
+            raise Unprocessable(
+                "FOLLOW_UP_KB_MISMATCH",
+                "Misi lanjutan harus memakai topik yang sama dengan misi sebelumnya.",
+            )
+        data = await self._uow.results.class_map_input(follow_up_of)
+        if data is None:
+            raise NotFound()
+        by_concept: defaultdict[UUID, list[UUID]] = defaultdict(list)
+        for misconception_id, concept_id, _ in data.misconceptions:
+            by_concept[concept_id].append(misconception_id)
+        counted = aggregate([c for c, _ in data.concepts], by_concept, data.attempts)
+        held = {c.concept_id: sum(m.count for m in c.misconceptions) for c in counted.concepts}
+        ranked = sorted((c for c, n in held.items() if n > 0), key=lambda c: -held[c])
+        return ranked[:3]
 
 
 class GenerationSuperseded(Exception):
@@ -141,6 +174,15 @@ class BuildMissionHandler:
                         SelectTargetsIn(
                             learning_objective=catalog.learning_objective,
                             concepts=list(catalog.concepts),
+                            preferred_concept_ids=[
+                                i
+                                for i in (
+                                    UUID(str(x))
+                                    for x in checkpoint.get("preferred_concept_ids", [])
+                                )
+                                if i in concepts
+                            ][:3]
+                            or None,
                         ),
                         rid,
                     ),

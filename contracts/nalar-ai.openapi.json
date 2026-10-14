@@ -3865,6 +3865,15 @@
             "minLength": 1,
             "title": "Learning Objective",
             "type": "string"
+          },
+          "preferred_concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "title": "Preferred Concept Ids",
+            "type": "array"
           }
         },
         "required": [

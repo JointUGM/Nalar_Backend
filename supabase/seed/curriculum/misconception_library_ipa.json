@@ -1,0 +1,248 @@
+{
+  "subject": "Ilmu Pengetahuan Alam",
+  "phase": "D",
+  "entries": [
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Benda yang bergerak membutuhkan gaya yang terus mendorongnya agar tetap bergerak.",
+      "correct_understanding": "Benda yang sudah bergerak akan tetap bergerak dengan kecepatan tetap bila tidak ada gaya total yang bekerja. Gaya dibutuhkan untuk mengubah geraknya (mempercepat, memperlambat, atau membelokkan), bukan untuk mempertahankannya.",
+      "student_phrasings": [
+        "kalau mau terus jalan harus terus didorong",
+        "tidak didorong lagi ya berhenti",
+        "gerak itu butuh gaya terus"
+      ],
+      "counter_examples": [
+        "Kelereng di lantai licin meluncur jauh setelah dilepas tanpa ada yang mendorongnya.",
+        "Puck hoki es meluncur lama di atas es setelah dipukul sekali."
+      ],
+      "source_citations": [
+        "Clement, J. (1982). Students' preconceptions in introductory mechanics. American Journal of Physics, 50(1), 66-71.",
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Benda berhenti bergerak karena gaya dorongnya habis.",
+      "correct_understanding": "Benda berhenti karena ada gaya yang melawan geraknya, misalnya gaya gesek dengan lantai atau hambatan udara. Dorongan tidak tersimpan di dalam benda seperti isi baterai yang bisa habis.",
+      "student_phrasings": [
+        "gayanya habis",
+        "dorongannya hilang",
+        "tenaganya sudah tidak ada",
+        "gayanya sudah capek"
+      ],
+      "counter_examples": [
+        "Di lantai yang sangat licin, benda meluncur jauh karena gaya yang melawannya kecil, bukan karena gayanya lebih awet.",
+        "Mobil mogok di jalan menurun tetap meluncur tanpa mesin."
+      ],
+      "source_citations": [
+        "McCloskey, M. (1983). Intuitive physics. Scientific American, 248(4), 122-130.",
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Benda yang diam tidak dikenai gaya.",
+      "correct_understanding": "Benda diam biasanya dikenai beberapa gaya yang saling mengimbangi, sehingga gaya totalnya nol. Buku di meja dikenai gaya berat ke bawah dan gaya dorong meja ke atas.",
+      "student_phrasings": [
+        "kan bukunya diam, jadi tidak ada gaya",
+        "kalau diam berarti tidak ada yang mendorong",
+        "diam itu gayanya nol"
+      ],
+      "counter_examples": [
+        "Dalam permainan tarik tambang yang seimbang, tali diam walau ada dua gaya besar.",
+        "Balon yang ditahan di bawah air oleh tangan diam, padahal ada gaya ke atas dan gaya tangan."
+      ],
+      "source_citations": [
+        "Minstrell, J. (1982). Explaining the 'at rest' condition of an object. The Physics Teacher, 20(1), 10-14.",
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Gesekan hanya terjadi pada permukaan yang kasar.",
+      "correct_understanding": "Gaya gesek terjadi di antara dua permukaan yang bersentuhan dan saling bergeser, termasuk permukaan yang tampak licin. Permukaan kasar hanya membuat gesekan lebih besar.",
+      "student_phrasings": [
+        "lantainya licin jadi tidak ada gesekan",
+        "cuma permukaan kasar yang menahan",
+        "es itu licin jadi tanpa gesekan"
+      ],
+      "counter_examples": [
+        "Kelereng yang menggelinding di lantai keramik tetap akhirnya berhenti.",
+        "Tangan yang digosokkan satu sama lain terasa hangat, walau kulit tampak halus."
+      ],
+      "source_citations": [
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Gaya gesek selalu merugikan karena hanya menghambat gerak.",
+      "correct_understanding": "Gaya gesek juga berguna: tanpanya kita tidak bisa berjalan, rem tidak bekerja, dan ban tidak mencengkeram jalan. Gesekan melawan gerak relatif antar permukaan, dan kadang itulah yang kita perlukan.",
+      "student_phrasings": [
+        "gesekan itu bikin susah",
+        "kalau tidak ada gesekan lebih enak",
+        "gesekan harus dihilangkan"
+      ],
+      "counter_examples": [
+        "Berjalan di lantai berminyak sulit karena gesekannya terlalu kecil.",
+        "Mobil bisa berhenti saat direm karena ada gesekan antara kampas rem dan roda."
+      ],
+      "source_citations": [
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Benda yang lebih berat jatuh lebih cepat daripada benda yang lebih ringan.",
+      "correct_understanding": "Tanpa hambatan udara yang besar, benda ringan dan berat jatuh dengan percepatan yang sama. Benda ringan yang lebar (seperti kertas) tampak lebih lambat karena hambatan udara, bukan karena massanya.",
+      "student_phrasings": [
+        "yang berat pasti duluan sampai",
+        "batu jatuh lebih cepat dari kertas",
+        "makin berat makin cepat jatuh"
+      ],
+      "counter_examples": [
+        "Selembar kertas yang diremas menjadi bola jatuh hampir sama cepat dengan batu.",
+        "Di ruang hampa, bulu dan bola logam jatuh bersama-sama."
+      ],
+      "source_citations": [
+        "Hestenes, D., Wells, M., & Swackhamer, G. (1992). Force Concept Inventory. The Physics Teacher, 30(3), 141-158.",
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Arah gerak benda selalu sama dengan arah gaya yang bekerja padanya.",
+      "correct_understanding": "Gaya total menentukan arah perubahan kecepatan, bukan arah gerak itu sendiri. Bola yang dilempar ke atas masih bergerak ke atas walau gaya beratnya mengarah ke bawah.",
+      "student_phrasings": [
+        "geraknya ke kanan berarti gayanya ke kanan",
+        "benda bergerak ke arah gayanya"
+      ],
+      "counter_examples": [
+        "Bola yang naik setelah dilempar tetap dikenai gaya berat ke bawah.",
+        "Mobil yang direm masih bergerak maju walau gaya rem mengarah ke belakang."
+      ],
+      "source_citations": [
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065.",
+        "Hestenes, D., Wells, M., & Swackhamer, G. (1992). Force Concept Inventory. The Physics Teacher, 30(3), 141-158."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Saat dua benda bertabrakan, benda yang lebih besar memberi gaya yang lebih besar daripada benda yang lebih kecil.",
+      "correct_understanding": "Saat dua benda saling mendorong, besar gaya yang diberikan sama dan arahnya berlawanan (aksi-reaksi). Benda yang lebih ringan hanya mengalami perubahan gerak yang lebih besar.",
+      "student_phrasings": [
+        "truknya lebih besar jadi gayanya lebih besar",
+        "yang kecil yang kalah gayanya",
+        "mobil kecil mendapat gaya lebih besar saat ditabrak"
+      ],
+      "counter_examples": [
+        "Nyamuk menabrak kaca mobil: gaya pada nyamuk sama besar dengan gaya pada kaca.",
+        "Dua orang di atas skateboard yang saling mendorong sama-sama bergerak mundur."
+      ],
+      "source_citations": [
+        "Hestenes, D., Wells, M., & Swackhamer, G. (1992). Force Concept Inventory. The Physics Teacher, 30(3), 141-158.",
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Meja atau lantai tidak memberi gaya pada benda yang diam di atasnya; benda hanya ditahan karena ada penghalang.",
+      "correct_understanding": "Permukaan memberi gaya dorong ke atas (gaya normal) yang seimbang dengan gaya berat benda. Permukaan yang tampak keras tetap termampat sedikit sehingga bisa memberi gaya.",
+      "student_phrasings": [
+        "mejanya tidak mendorong, cuma ada di situ",
+        "bukunya diam karena mejanya keras, bukan karena ada gaya"
+      ],
+      "counter_examples": [
+        "Kasur yang ditiduri melesak, tanda ia memberi gaya ke atas.",
+        "Pegas yang ditumpuk buku memendek dan mendorong buku ke atas."
+      ],
+      "source_citations": [
+        "Minstrell, J. (1982). Explaining the 'at rest' condition of an object. The Physics Teacher, 20(1), 10-14."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Gravitasi hanya bekerja bila ada udara.",
+      "correct_understanding": "Gravitasi bekerja di antara benda-benda bermassa, juga di ruang hampa. Bulan mengorbit Bumi tanpa ada udara di antaranya.",
+      "student_phrasings": [
+        "di luar angkasa tidak ada gravitasi karena tidak ada udara",
+        "udara yang membuat benda jatuh"
+      ],
+      "counter_examples": [
+        "Bulan mengelilingi Bumi walau antara keduanya hampir tanpa udara.",
+        "Benda jatuh bersama di dalam tabung hampa pada percobaan di sekolah."
+      ],
+      "source_citations": [
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Massa dan berat adalah hal yang sama.",
+      "correct_understanding": "Massa adalah jumlah materi pada benda dan tidak berubah di tempat mana pun. Berat adalah gaya gravitasi pada benda dan berubah bila gravitasinya berbeda, misalnya di Bulan.",
+      "student_phrasings": [
+        "beratnya 5 kg",
+        "berat dan massa itu sama saja",
+        "di bulan benda jadi lebih ringan massanya"
+      ],
+      "counter_examples": [
+        "Astronaut punya massa yang sama di Bulan, tetapi beratnya jauh lebih kecil.",
+        "Timbangan pegas menunjukkan angka berbeda di Bulan, timbangan neraca tidak."
+      ],
+      "source_citations": [
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Jika tidak ada gaya yang bekerja, benda yang bergerak akan berhenti dengan sendirinya.",
+      "correct_understanding": "Menurut hukum kelembaman, bila gaya total nol, benda yang bergerak terus bergerak lurus dengan kecepatan tetap. Berhenti hanya terjadi bila ada gaya yang melawan.",
+      "student_phrasings": [
+        "kalau tidak ada gaya ya berhenti",
+        "tanpa gaya benda pasti diam"
+      ],
+      "counter_examples": [
+        "Pesawat luar angkasa terus meluncur tanpa mesin menyala.",
+        "Penumpang terdorong ke depan saat bus mengerem mendadak."
+      ],
+      "source_citations": [
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065.",
+        "Viennot, L. (1979). Spontaneous reasoning in elementary dynamics. European Journal of Science Education, 1(2), 205-221."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Jika sebuah gaya bekerja pada benda, benda itu pasti bergerak.",
+      "correct_understanding": "Gaya total yang tidak nol mengubah gerak benda, tetapi bila beberapa gaya saling meniadakan atau benda ditahan, benda tidak bergerak. Mendorong tembok tidak membuatnya bergerak walau kita mengerahkan gaya.",
+      "student_phrasings": [
+        "didorong tapi tidak bergerak berarti tidak ada gaya",
+        "gaya itu pasti bikin gerak"
+      ],
+      "counter_examples": [
+        "Mendorong dinding: ada gaya, tetapi dinding diam karena dinding mendorong balik.",
+        "Dua tim tarik tambang yang seimbang menghasilkan gaya besar tanpa gerak."
+      ],
+      "source_citations": [
+        "Driver, R., Squires, A., Rushworth, P., & Wood-Robinson, V. (1994). Making Sense of Secondary Science: Research into Children's Ideas. London: Routledge.",
+        "Viennot, L. (1979). Spontaneous reasoning in elementary dynamics. European Journal of Science Education, 1(2), 205-221."
+      ]
+    },
+    {
+      "topic": "Gaya dan Gerak",
+      "statement": "Bola yang dilempar ke atas tidak dikenai gaya apa pun pada titik tertingginya.",
+      "correct_understanding": "Di titik tertinggi, kecepatan bola sesaat nol tetapi gaya berat tetap bekerja, itulah sebabnya bola kemudian jatuh. Gaya tidak sama dengan kecepatan.",
+      "student_phrasings": [
+        "di atas bolanya diam, jadi gayanya nol",
+        "di puncak tidak ada gaya"
+      ],
+      "counter_examples": [
+        "Bila gaya berat hilang di puncak, bola akan melayang di sana dan tidak jatuh.",
+        "Bola yang dilempar naik melambat karena gaya berat bekerja sejak ia dilepas."
+      ],
+      "source_citations": [
+        "Clement, J. (1982). Students' preconceptions in introductory mechanics. American Journal of Physics, 50(1), 66-71.",
+        "Halloun, I. A., & Hestenes, D. (1985). Common sense concepts about motion. American Journal of Physics, 53(11), 1056-1065."
+      ]
+    }
+  ]
+}

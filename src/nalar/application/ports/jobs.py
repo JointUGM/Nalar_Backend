@@ -29,6 +29,7 @@ class JobStore(Protocol):
         entity_id: UUID,
         school_id: UUID | None,
         requested_by: UUID | None,
+        result: Mapping[str, Any] | None = None,
     ) -> UUID: ...
 
     async def get(self, job_id: UUID) -> Job | None: ...
