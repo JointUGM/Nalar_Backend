@@ -152,6 +152,22 @@ class MisconceptionStrategy:
     detection_cues: tuple[str, ...]
     source: Literal["library", "kb"]
     citations: tuple[str, ...]
+    teaching_plan: dict[str, Any] | None = None  # TC-23, the stored S5 draft
+
+
+@dataclass(frozen=True)
+class TeachingPlanSource:
+    """Reviewed content for one misconception of a publication (TC-23). No student data."""
+
+    school_id: UUID
+    mission_title: str
+    learning_objective: str
+    concept_name: str
+    statement: str
+    correct_understanding: str
+    counter_examples: tuple[str, ...]
+    detection_cues: tuple[str, ...]
+    questions: tuple[tuple[str, str], ...]  # (bank id, text), this misconception's first
 
 
 @dataclass(frozen=True)
@@ -236,16 +252,7 @@ class KbReviewAttention(AttentionEntry):
     kind: Literal["kb_review"] = "kb_review"
 
 
-@dataclass(frozen=True)
-class ReleaseReadyAttention(AttentionEntry):
-    publication_id: UUID
-    class_name: str
-    mission_title: str
-    eligible_count: int
-    kind: Literal["release_ready"] = "release_ready"
-
-
-AttentionItem = SafetyAttention | FlagAttention | KbReviewAttention | ReleaseReadyAttention
+AttentionItem = SafetyAttention | FlagAttention | KbReviewAttention
 AttentionCursor = tuple[datetime, str, UUID]
 
 
@@ -254,7 +261,6 @@ class AttentionCounts:
     safety: int
     flag: int
     kb_review: int
-    release_ready: int
     total: int
 
 
@@ -307,6 +313,29 @@ class ResultsRepo(Protocol):
         ...
 
     async def report(self, session_id: UUID) -> SessionReport | None: ...
+
+    async def teaching_plan_source(
+        self, publication_id: UUID, misconception_id: UUID
+    ) -> TeachingPlanSource | None:
+        """None when the misconception is not in the publication's mission version."""
+        ...
+
+    async def has_teaching_plan(self, publication_id: UUID, misconception_id: UUID) -> bool: ...
+
+    async def active_teaching_plan_job(
+        self, publication_id: UUID, misconception_id: UUID
+    ) -> UUID | None: ...
+
+    async def insert_teaching_plan(
+        self,
+        school_id: UUID,
+        publication_id: UUID,
+        misconception_id: UUID,
+        plan: dict[str, Any],
+        ai_invocation_id: UUID | None,
+    ) -> None:
+        """Generated once: a second insert for the same pair is ignored."""
+        ...
 
     async def class_map_input(self, publication_id: UUID) -> ClassMapInput | None:
         """Targets as (id, name), misconceptions as (id, concept_id, statement), and each

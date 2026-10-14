@@ -108,7 +108,7 @@ async def test_bad_rows_are_reported_while_valid_rows_import(
         await conn.fetchval(
             "select count(*) from parent_student_links where student_id = $1", student
         )
-        == 1
+        == 0
     )
 
 
@@ -127,11 +127,11 @@ async def test_reimporting_the_same_file_creates_no_duplicates(
         world.school_id,
     )
     assert counts is not None
-    assert dict(counts) == {"students": 1, "classes": 1, "teachers": 1, "parents": 1}
-    assert await conn.fetchval("select count(*) from account_activations") == 2
+    assert dict(counts) == {"students": 1, "classes": 1, "teachers": 1, "parents": 0}
+    assert await conn.fetchval("select count(*) from account_activations") == 1
     assert (
         await conn.fetchval("select count(*) from notifications where type = 'account_invitation'")
-        == 2
+        == 1
     )
 
 
@@ -332,33 +332,6 @@ async def test_upload_rejects_unreadable_files_before_storage(
     assert response.status_code == 400
     assert response.json()["error"]["code"] == code
     assert storage.objects == {}
-
-
-async def test_shared_parent_receives_one_invitation_across_schools(
-    conn: asyncpg.Connection, world: World
-) -> None:
-    other = await build_world(conn, "SMP Kedua")
-    storage = FakeStorage()
-    first = f"{HEADER}\nstudent,A,,1111111111,7A,7,parent@mail.id,Wali,ibu\n"
-    second = f"{HEADER}\nstudent,B,,2222222222,7A,7,parent@mail.id,Wali,ibu\n"
-    await run(conn, storage, await upload(conn, world, storage, first))
-    await run(conn, storage, await upload(conn, other, storage, second))
-    row = await conn.fetchrow(
-        "select a.school_id, n.payload, n.id from account_activations a"
-        " join notifications n on n.dedupe_key = 'account-invitation:' || a.id::text"
-        " where a.user_id = (select id from profiles where contact_email = 'parent@mail.id')"
-    )
-    assert row is not None
-    assert row["school_id"] == world.school_id
-    assert await conn.fetchval("select count(*) from account_activations") == 1
-    assert "parent@mail.id" not in row["payload"]
-    assert (
-        await conn.fetchval(
-            "select count(*) from pgmq.q_nalar_default where message->>'notification_id' = $1",
-            str(row["id"]),
-        )
-        == 1
-    )
 
 
 async def test_rejected_row_does_not_queue_accounts_created_before_validation(

@@ -29,13 +29,7 @@ _INVITATION = """
 
 _RECIPIENT_SCOPE = """
     (exists (select 1 from school_memberships m
-              where m.school_id = $1 and m.user_id = p.id and m.status = 'active')
-     or exists (select 1 from parent_student_links l
-                 join school_memberships m on m.user_id = l.student_id
-                  and m.school_id = l.school_id and m.role = 'student' and m.status = 'active'
-                 join class_enrollments e on e.student_id = l.student_id
-                  and e.school_id = l.school_id and e.status = 'active'
-                where l.deactivated_at is null and l.parent_id = p.id and l.school_id = $1))
+              where m.school_id = $1 and m.user_id = p.id and m.status = 'active'))
 """
 
 _STATUS = (
@@ -46,7 +40,7 @@ _STATUS = (
                           where m.school_id = $1 and m.user_id = p.id and m.status = 'active'
                           order by case m.role when 'school_admin' then 0
                                                when 'teacher' then 1 else 2 end limit 1),
-                        'parent') as role,
+                        'student') as role,
                n.id as notification_id,
                case
                  when a.consumed_at is not null then 'activated'
@@ -476,15 +470,7 @@ class PgActivationsRepo:
                and lower(p.contact_email) = lower($4)
                and lower(a.recipient_email) = lower($4)
                and (exists (select 1 from school_memberships m
-                             where m.school_id = $2 and m.user_id = p.id and m.status = 'active')
-                    or exists (select 1 from parent_student_links l
-                                join school_memberships m on m.user_id = l.student_id
-                                 and m.school_id = l.school_id and m.role = 'student'
-                                 and m.status = 'active'
-                                join class_enrollments e on e.student_id = l.student_id
-                                 and e.school_id = l.school_id and e.status = 'active'
-                               where l.deactivated_at is null
-                                 and l.parent_id = p.id and l.school_id = $2))
+                             where m.school_id = $2 and m.user_id = p.id and m.status = 'active'))
              for update of p, a
             """,
             invitation.user_id,
@@ -731,15 +717,7 @@ class PgActivationsRepo:
                                where issuer.id = $3 and issuer.is_platform_admin))
                and (exists (select 1 from school_memberships m
                              where m.school_id = $2 and m.user_id = p.id
-                               and m.status = 'active')
-                    or exists (select 1 from parent_student_links l
-                                join school_memberships m on m.user_id = l.student_id
-                                 and m.school_id = l.school_id and m.role = 'student'
-                                 and m.status = 'active'
-                                join class_enrollments e on e.student_id = l.student_id
-                                 and e.school_id = l.school_id and e.status = 'active'
-                               where l.deactivated_at is null
-                                 and l.parent_id = p.id and l.school_id = $2))
+                               and m.status = 'active'))
              for update of p
             """,
             user_id,

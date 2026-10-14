@@ -184,17 +184,6 @@ class PgAuthz:
             session_id,
         )
 
-    async def is_linked_parent(self, user_id: UUID, student_id: UUID) -> bool:
-        return await self._check(
-            "select exists(select 1 from parent_student_links l"
-            " join schools sc on sc.id = l.school_id"
-            " join school_memberships m on m.school_id = l.school_id and m.user_id = l.student_id"
-            " where l.parent_id = $1 and l.student_id = $2 and l.deactivated_at is null"
-            " and sc.is_active and m.role = 'student' and m.status = 'active')",
-            user_id,
-            student_id,
-        )
-
     async def is_school_admin(self, user_id: UUID, school_id: UUID) -> bool:
         return await self._check(
             "select exists (select 1 from school_memberships where school_id = $2"

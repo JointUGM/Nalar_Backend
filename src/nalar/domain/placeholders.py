@@ -15,7 +15,6 @@ _WORD = re.compile(r"[^\W\d_]+")
 class NarrativeLexicon:
     number_words: frozenset[str]
     count_claims: tuple[str, ...]
-    score_terms: tuple[str, ...]
 
 
 class PlaceholderError(ValueError):
@@ -26,19 +25,16 @@ def _phrase(text: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text) is not None
 
 
-def quantity_problems(text: str, lexicon: NarrativeLexicon, *, parent: bool = False) -> list[str]:
+def quantity_problems(text: str, lexicon: NarrativeLexicon) -> list[str]:
     """AI-4: run on the raw text, before filling inserts numerals."""
     bare = _PLACEHOLDER.sub(" ", text)
     folded = bare.casefold()
     problems: list[str] = []
     if _DIGIT.search(bare):
         problems.append("digit")
-    if not parent:
-        found = set(_WORD.findall(folded)) & lexicon.number_words
-        problems += sorted(f"number_word:{w}" for w in found)
+    found = set(_WORD.findall(folded)) & lexicon.number_words
+    problems += sorted(f"number_word:{w}" for w in found)
     problems += [f"count_claim:{c}" for c in lexicon.count_claims if _phrase(folded, c)]
-    if parent:
-        problems += [f"score_term:{t}" for t in lexicon.score_terms if _phrase(folded, t)]
     if "{{" in bare or "}}" in bare:
         problems.append("malformed_placeholder")
     return problems

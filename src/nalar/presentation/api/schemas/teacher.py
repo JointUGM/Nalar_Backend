@@ -111,16 +111,8 @@ class KbReviewAttentionOut(AttentionEntryOut):
     pending_misconceptions: int
 
 
-class ReleaseReadyAttentionOut(AttentionEntryOut):
-    kind: Literal["release_ready"]
-    publication_id: UUID
-    class_name: str
-    mission_title: str
-    eligible_count: int
-
-
 AttentionItemOut = Annotated[
-    SafetyAttentionOut | FlagAttentionOut | KbReviewAttentionOut | ReleaseReadyAttentionOut,
+    SafetyAttentionOut | FlagAttentionOut | KbReviewAttentionOut,
     Field(discriminator="kind"),
 ]
 
@@ -129,7 +121,6 @@ class AttentionCountsOut(BaseModel):
     safety: int
     flag: int
     kb_review: int
-    release_ready: int
     total: int
 
 
@@ -149,7 +140,6 @@ class MeOut(BaseModel):
     user_id: UUID
     full_name: str
     roles: list[RoleOut]
-    is_parent: bool
     is_platform_admin: bool
     email: str | None = None
 
@@ -211,7 +201,6 @@ class PublicationDetailOut(BaseModel):
     published_by: UUID
     created_at: datetime
     cancelled_at: datetime | None
-    released_to_parents_at: datetime | None
     mission_version_id: UUID
     version_number: int
     mission_id: UUID
@@ -259,7 +248,6 @@ class PublicationOut(BaseModel):
     subject_name: str = ""
     mission_id: UUID | None = None
     mission_version: int | None = None
-    released_to_parents_at: datetime | None
 
 
 class PublicationsPageOut(BaseModel):

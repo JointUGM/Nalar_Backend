@@ -36,5 +36,4 @@ def load_narrative_lexicon(path: Path = CONFIG_DIR / "narrative_lexicon.toml") -
     return NarrativeLexicon(
         number_words=frozenset(w.casefold() for w in raw["number_words"]),
         count_claims=tuple(c.casefold() for c in raw["count_claims"]),
-        score_terms=tuple(t.casefold() for t in raw["score_terms"]),
     )

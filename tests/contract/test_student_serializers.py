@@ -1,4 +1,3 @@
-import contextlib
 import importlib
 from types import ModuleType
 
@@ -10,8 +9,6 @@ from tests.contract.forbidden import forbidden_keys, schema_property_names
 
 def _modules() -> list[ModuleType]:
     modules = [importlib.import_module("nalar.presentation.api.schemas.student")]
-    with contextlib.suppress(ModuleNotFoundError):
-        modules.append(importlib.import_module("nalar.presentation.api.schemas.parent"))
     return modules
 
 
@@ -31,13 +28,11 @@ def test_the_student_models_were_found() -> None:
         "StateOut",
         "ReflectionOut",
         "MissionCardOut",
-        "ParentProgressOut",
-        "ParentReflectionOut",
     } <= {m.__name__ for m in MODELS}
 
 
 @pytest.mark.parametrize("model", MODELS, ids=lambda m: m.__name__)
-def test_student_and_parent_models_never_carry_hidden_fields(model: type[BaseModel]) -> None:
+def test_student_models_never_carry_hidden_fields(model: type[BaseModel]) -> None:
     assert not forbidden_keys(schema_property_names(model.model_json_schema()))
 
 

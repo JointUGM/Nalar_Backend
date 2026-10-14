@@ -159,14 +159,6 @@ class ImportRosterHandler:
             student_id = await self._account(
                 claim, login, row.full_name, real=row.email is not None
             )
-        parent_id = None
-        if row.parent_email:
-            parent_id = await self._account(
-                claim,
-                row.parent_email,
-                row.parent_name or f"Orang tua {row.full_name}",
-                real=True,
-            )
         async with self._uow:
             await self._guard(claim)
             if not await self._uow.roster.claim_nisn(student_id, row.nisn):
@@ -187,13 +179,7 @@ class ImportRosterHandler:
                 class_id,
                 student_id,
             )
-            if parent_id:
-                await self._uow.roster.ensure_parent_link(
-                    parent_id, student_id, ref.school_id, row.relationship
-                )
             await self._invite(claim, student_id)
-            if parent_id:
-                await self._invite(claim, parent_id)
 
     async def _teacher(self, claim: ImportClaim, row: RosterRow) -> None:
         assert row.email

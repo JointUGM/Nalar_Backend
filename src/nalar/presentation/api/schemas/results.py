@@ -59,6 +59,22 @@ class MisconceptionStudentOut(BaseModel):
     session_id: UUID
 
 
+class TeachingPlanStepOut(BaseModel):
+    phase: Literal["elicit", "contrast", "explain"]
+    teacher_action: str
+    ask: str
+
+
+class TeachingPlanOut(BaseModel):
+    """TC-23 next-lesson activity drafted by S5 from reviewed content. No names or counts."""
+
+    objective: str
+    steps: list[TeachingPlanStepOut]
+    counter_example: str | None = Field(description="The reviewed example the contrast uses")
+    check_question: str
+    look_for: str = Field(description="Teacher-only: reasoning that shows the idea changed")
+
+
 class MisconceptionCountOut(BaseModel):
     misconception_id: UUID
     statement: str
@@ -71,6 +87,17 @@ class MisconceptionCountOut(BaseModel):
     detection_cues: list[str]
     source: Literal["library", "kb"]
     citations: list[str]
+    teaching_plan: TeachingPlanOut | None = Field(
+        default=None, description="TC-23 S5 draft for this misconception; teacher reviews it"
+    )
+
+
+class TeachingPlanRequestIn(BaseModel):
+    misconception_id: UUID
+
+
+class TeachingPlanQueuedOut(BaseModel):
+    job_id: UUID | None = Field(description="Null when the plan already exists")
 
 
 class ConceptCountOut(BaseModel):

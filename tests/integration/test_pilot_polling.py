@@ -33,7 +33,6 @@ async def test_polling_revalidates_scope_before_returning_304(
         assert config.json() == {
             "password_reset_enabled": False,
             "account_email_enabled": False,
-            "weekly_digest_enabled": False,
         }
         first = await api.get(url, headers=as_user(actor))
         assert first.status_code == 200, first.text

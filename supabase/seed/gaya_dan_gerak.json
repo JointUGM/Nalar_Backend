@@ -32,31 +32,7 @@
       "email": "siswa{n:02d}@demo.nalar.id",
       "full_name": "Siswa {n:02d}",
       "nisn": "99000{n:05d}"
-    },
-    "parents": [
-      {
-        "email": "ortu01@demo.nalar.id",
-        "full_name": "Orang Tua 01",
-        "children": [
-          1
-        ]
-      },
-      {
-        "email": "ortu02@demo.nalar.id",
-        "full_name": "Orang Tua 02",
-        "children": [
-          2,
-          3
-        ]
-      },
-      {
-        "email": "ortu03@demo.nalar.id",
-        "full_name": "Orang Tua 03",
-        "children": [
-          4
-        ]
-      }
-    ]
+    }
   },
   "knowledge_base": {
     "id": "3fb97de5-5bb2-581f-a346-bfe6084a80dd",
@@ -279,5 +255,20 @@
       "Situasi baru dijawab benar dengan alasan."
     ]
   },
-  "correct_understanding": "Kelereng melambat lalu berhenti karena ada gaya gesek antara kelereng dan lantai yang arahnya melawan gerak. Tanpa gaya yang melawan, benda yang bergerak akan terus bergerak dengan kecepatan tetap karena kelembaman."
+  "correct_understanding": "Kelereng melambat lalu berhenti karena ada gaya gesek antara kelereng dan lantai yang arahnya melawan gerak. Tanpa gaya yang melawan, benda yang bergerak akan terus bergerak dengan kecepatan tetap karena kelembaman.",
+  "misconception_content": {
+    "00000000-0000-0000-0000-000000000021": {
+      "counter_examples": [
+        "Dorong kelereng dengan dorongan yang sama di lantai keramik dan di atas karpet. Di karpet kelereng berhenti lebih cepat, padahal dorongannya sama; yang berbeda adalah gaya gesek permukaannya.",
+        "Keping hoki di atas es meluncur sangat jauh setelah dipukul karena gesekan es sangat kecil, bukan karena dorongannya tersimpan lebih banyak."
+      ]
+    },
+    "00000000-0000-0000-0000-000000000022": {
+      "correct_understanding": "Gaya gesek terjadi pada semua permukaan yang bersentuhan dan bergeser satu sama lain, termasuk permukaan yang tampak halus. Permukaan yang lebih halus biasanya hanya menghasilkan gaya gesek yang lebih kecil.",
+      "counter_examples": [
+        "Kelereng yang menggelinding di lantai keramik yang licin tetap melambat lalu berhenti. Jika tidak ada gesekan sama sekali, kelereng itu akan terus bergerak.",
+        "Gosokkan kedua telapak tangan dengan cepat. Tangan terasa hangat karena ada gesekan, walaupun kulit telapak tangan terasa halus."
+      ]
+    }
+  }
 }

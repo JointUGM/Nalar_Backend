@@ -19,6 +19,5 @@ async def me(user: CurrentUser, query: FromDishka[MeQuery]) -> MeOut:
             RoleOut(role=r.role, school_id=r.school_id, school_name=r.school_name)
             for r in result.roles
         ],
-        is_parent=result.is_parent,
         is_platform_admin=result.is_platform_admin,
     )

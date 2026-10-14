@@ -16,7 +16,7 @@
           "session_evaluation",
           "reflection_generation",
           "class_map_insight",
-          "parent_summary"
+          "teaching_plan"
         ],
         "title": "AiPurpose",
         "type": "string"
@@ -1831,34 +1831,6 @@
         "title": "Envelope[NextTurnOut]",
         "type": "object"
       },
-      "Envelope_ParentSummaryOut_": {
-        "properties": {
-          "invocations": {
-            "items": {
-              "$ref": "#/components/schemas/InvocationOut"
-            },
-            "title": "Invocations",
-            "type": "array"
-          },
-          "result": {
-            "$ref": "#/components/schemas/ParentSummaryOut"
-          },
-          "warnings": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Warnings",
-            "type": "array"
-          }
-        },
-        "required": [
-          "result",
-          "invocations",
-          "warnings"
-        ],
-        "title": "Envelope[ParentSummaryOut]",
-        "type": "object"
-      },
       "Envelope_ReviseMissionOut_": {
         "properties": {
           "invocations": {
@@ -1913,6 +1885,34 @@
           "warnings"
         ],
         "title": "Envelope[SelectTargetsOut]",
+        "type": "object"
+      },
+      "Envelope_TeachingPlanOut_": {
+        "properties": {
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationOut"
+            },
+            "title": "Invocations",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/TeachingPlanOut"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "result",
+          "invocations",
+          "warnings"
+        ],
+        "title": "Envelope[TeachingPlanOut]",
         "type": "object"
       },
       "Envelope_WarmOut_": {
@@ -3241,105 +3241,50 @@
         "title": "NextTurnOut",
         "type": "object"
       },
-      "ParentConceptIn": {
+      "PlanQuestionIn": {
         "properties": {
-          "misconception_statement": {
-            "anyOf": [
-              {
-                "maxLength": 1000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The held idea, or the idea the child moved away from when resolved",
-            "title": "Misconception Statement"
-          },
-          "name": {
-            "maxLength": 300,
+          "id": {
+            "maxLength": 64,
             "minLength": 1,
-            "title": "Name",
+            "title": "Id",
             "type": "string"
           },
-          "outcome": {
-            "$ref": "#/components/schemas/ConceptOutcome",
-            "description": "session_concept_results.outcome"
-          },
-          "resolved_in_session": {
-            "default": false,
-            "title": "Resolved In Session",
-            "type": "boolean"
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
           }
         },
         "required": [
-          "name",
-          "outcome"
+          "id",
+          "text"
         ],
-        "title": "ParentConceptIn",
+        "title": "PlanQuestionIn",
         "type": "object"
       },
-      "ParentSummaryIn": {
-        "description": "One student's latest completed, evaluated attempt. No scores, flags, names or ids.",
+      "PlanStepOut": {
         "properties": {
-          "concepts": {
-            "items": {
-              "$ref": "#/components/schemas/ParentConceptIn"
-            },
-            "maxItems": 10,
-            "minItems": 1,
-            "title": "Concepts",
-            "type": "array"
+          "ask": {
+            "title": "Ask",
+            "type": "string"
           },
-          "evaluation_summary": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "session_evaluations.summary",
-            "title": "Evaluation Summary"
+          "phase": {
+            "description": "elicit, contrast, explain",
+            "title": "Phase",
+            "type": "string"
           },
-          "mission_title": {
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Mission Title",
+          "teacher_action": {
+            "title": "Teacher Action",
             "type": "string"
           }
         },
         "required": [
-          "mission_title",
-          "concepts"
+          "phase",
+          "teacher_action",
+          "ask"
         ],
-        "title": "ParentSummaryIn",
-        "type": "object"
-      },
-      "ParentSummaryOut": {
-        "properties": {
-          "content": {
-            "description": "parent_summaries.content",
-            "title": "Content",
-            "type": "string"
-          },
-          "source": {
-            "description": "Not stored; 'template' after two blocked drafts (store ai_invocation_id null)",
-            "enum": [
-              "model",
-              "template"
-            ],
-            "title": "Source",
-            "type": "string"
-          }
-        },
-        "required": [
-          "content",
-          "source"
-        ],
-        "title": "ParentSummaryOut",
+        "title": "PlanStepOut",
         "type": "object"
       },
       "PlannerMode": {
@@ -4029,6 +3974,140 @@
           "name"
         ],
         "title": "TargetConceptIn",
+        "type": "object"
+      },
+      "TeachingPlanIn": {
+        "description": "Reviewed content only: no student names, ids or counts (AI-4, invariant 8).",
+        "properties": {
+          "concept_name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Concept Name",
+            "type": "string"
+          },
+          "correct_understanding": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Correct Understanding",
+            "type": "string"
+          },
+          "counter_examples": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Detection Cues",
+            "type": "array"
+          },
+          "learning_objective": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Learning Objective",
+            "type": "string"
+          },
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          },
+          "mission_title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "questions": {
+            "description": "Approved bank questions on this concept",
+            "items": {
+              "$ref": "#/components/schemas/PlanQuestionIn"
+            },
+            "maxItems": 8,
+            "title": "Questions",
+            "type": "array"
+          },
+          "statement": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mission_title",
+          "learning_objective",
+          "concept_name",
+          "misconception_id",
+          "statement",
+          "correct_understanding"
+        ],
+        "title": "TeachingPlanIn",
+        "type": "object"
+      },
+      "TeachingPlanOut": {
+        "properties": {
+          "check_question": {
+            "title": "Check Question",
+            "type": "string"
+          },
+          "counter_example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The reviewed counter-example the contrast step uses, copied verbatim",
+            "title": "Counter Example"
+          },
+          "look_for": {
+            "description": "Teacher-only: the reasoning that shows change",
+            "title": "Look For",
+            "type": "string"
+          },
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "question_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Question Ids",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "misconception_id",
+          "objective",
+          "steps",
+          "counter_example",
+          "check_question",
+          "look_for",
+          "question_ids"
+        ],
+        "title": "TeachingPlanOut",
         "type": "object"
       },
       "TurnAction": {
@@ -5775,10 +5854,10 @@
         ]
       }
     },
-    "/v1/s5/parent-summaries/generate": {
+    "/v1/s5/teaching-plan": {
       "post": {
-        "description": "Write one parent summary (TC-18, PA-1).\n\nCall once per eligible student; store the first success and never regenerate after release\n(AI-5). A provider outage is a 503, never a template.",
-        "operationId": "generate_parent_summary_v1_s5_parent_summaries_generate_post",
+        "description": "Draft a short elicit, contrast, explain and check activity for the next lesson (TC-23).\n\nA teacher-reviewed draft, not a verdict. Fails with `ai_output_invalid` after two drafts\nfail the guard; show the reviewed strategy card instead.",
+        "operationId": "teaching_plan_v1_s5_teaching_plan_post",
         "parameters": [
           {
             "in": "header",
@@ -5801,7 +5880,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ParentSummaryIn"
+                "$ref": "#/components/schemas/TeachingPlanIn"
               }
             }
           },
@@ -5812,7 +5891,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_ParentSummaryOut_"
+                  "$ref": "#/components/schemas/Envelope_TeachingPlanOut_"
                 }
               }
             },
@@ -5879,7 +5958,7 @@
             "description": "upstream_unavailable"
           }
         },
-        "summary": "Generate Parent Summary",
+        "summary": "Teaching Plan",
         "tags": [
           "s5"
         ]

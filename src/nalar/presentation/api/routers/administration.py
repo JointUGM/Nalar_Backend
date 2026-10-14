@@ -28,7 +28,6 @@ from nalar.application.features.administration.commands.reactivate_person import
 )
 from nalar.application.features.administration.commands.save_class import SaveClassHandler
 from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
-from nalar.application.features.administration.commands.set_parent_link import SetParentLinkHandler
 from nalar.application.features.administration.commands.set_school_status import (
     SetSchoolStatusHandler,
 )
@@ -73,7 +72,6 @@ from nalar.presentation.api.schemas.administration import (
     CurriculumMappingIn,
     CurriculumVersionOut,
     KbOwnerIn,
-    ParentLinkIn,
     PeoplePageOut,
     PersonCreatedOut,
     PersonCreateIn,
@@ -405,29 +403,4 @@ async def place_students(
     handler: FromDishka[PlaceStudentsHandler],
 ) -> Response:
     await handler.execute(user.id, school_id, class_id, body.user_ids)
-    return Response(status_code=204)
-
-
-@router.put("/schools/{school_id}/people/{parent_id}/children/{student_id}", status_code=204)
-async def link_child(
-    school_id: UUID,
-    parent_id: UUID,
-    student_id: UUID,
-    body: ParentLinkIn,
-    user: CurrentUser,
-    handler: FromDishka[SetParentLinkHandler],
-) -> Response:
-    await handler.execute(user.id, school_id, parent_id, student_id, True, body.relationship)
-    return Response(status_code=204)
-
-
-@router.delete("/schools/{school_id}/people/{parent_id}/children/{student_id}", status_code=204)
-async def unlink_child(
-    school_id: UUID,
-    parent_id: UUID,
-    student_id: UUID,
-    user: CurrentUser,
-    handler: FromDishka[SetParentLinkHandler],
-) -> Response:
-    await handler.execute(user.id, school_id, parent_id, student_id, False)
     return Response(status_code=204)

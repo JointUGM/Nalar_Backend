@@ -9,5 +9,3 @@ count_claims = [
   "semua siswa", "seluruh siswa", "hampir semua", "hampir seluruh", "mayoritas", "kebanyakan",
   "sebagian besar", "sebagian kecil", "banyak siswa", "sedikit siswa", "tidak ada siswa",
 ]
-# Parent text only (PA rules): never a score, level or ranking.
-score_terms = ["skor", "level", "peringkat", "ranking", "nilai akhir"]

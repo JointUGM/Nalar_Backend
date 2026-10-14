@@ -96,10 +96,6 @@ class RosterRepo(Protocol):
         """No-op when the student already has an active class this year."""
         ...
 
-    async def ensure_parent_link(
-        self, parent_id: UUID, student_id: UUID, school_id: UUID, relationship: str | None
-    ) -> None: ...
-
     async def finish(
         self, import_id: UUID, total: int, errors: Sequence[RowError], now: datetime
     ) -> None: ...

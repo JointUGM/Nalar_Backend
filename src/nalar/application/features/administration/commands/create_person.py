@@ -76,17 +76,11 @@ class CreatePersonHandler:
                 assert details.nisn is not None and details.class_id is not None
                 if not await self._uow.roster.claim_nisn(account.id, details.nisn):
                     raise Conflict("PERSON_IDENTITY_CONFLICT")
-            if details.role != "parent" and not await self._uow.roster.ensure_membership(
-                school_id, account.id, details.role
-            ):
+            if not await self._uow.roster.ensure_membership(school_id, account.id, details.role):
                 raise Conflict("PERSON_INACTIVE")
             if details.class_id:
                 await self._uow.administration.place_students(
                     school_id, details.class_id, [account.id]
-                )
-            for student_id in details.child_ids:
-                await self._uow.administration.attach_parent(
-                    school_id, account.id, student_id, details.relationship, restore=False
                 )
             if details.invite:
                 now = self._clock.now()

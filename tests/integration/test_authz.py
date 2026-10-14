@@ -88,15 +88,13 @@ async def test_subject_colleague_reads_but_does_not_own_the_kb(
     assert not await authz.is_mission_creator(colleague, world.mission_id)
 
 
-async def test_student_parent_and_admin_scopes(conn: asyncpg.Connection, world: World) -> None:
+async def test_student_and_admin_scopes(conn: asyncpg.Connection, world: World) -> None:
     other = await build_world(conn, "SMP Lain")
     authz = PgAuthz(conn)
     assert await authz.is_enrolled(world.student_id, world.class_id)
     assert not await authz.is_enrolled(other.student_id, world.class_id)
     assert await authz.owns_session(world.student_id, world.session_id)
     assert not await authz.owns_session(other.student_id, world.session_id)
-    assert await authz.is_linked_parent(world.parent_id, world.student_id)
-    assert not await authz.is_linked_parent(other.parent_id, world.student_id)
     assert await authz.is_school_admin(world.admin_id, world.school_id)
     assert not await authz.is_school_admin(world.teacher_id, world.school_id)
     assert not await authz.teaches_class(world.student_id, world.class_id)

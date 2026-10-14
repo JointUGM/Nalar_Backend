@@ -20,7 +20,6 @@ from nalar.application.ports.knowledge import KnowledgeRepo
 from nalar.application.ports.missions import MissionsRepo
 from nalar.application.ports.national_references import NationalReferencesRepo
 from nalar.application.ports.notifications import NotificationsRepo
-from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.password_resets import PasswordResetsRepo
 from nalar.application.ports.publications import PublicationsRepo
@@ -49,7 +48,6 @@ from nalar.infrastructure.db.repositories.knowledge import PgKnowledgeRepo
 from nalar.infrastructure.db.repositories.missions import PgMissionsRepo
 from nalar.infrastructure.db.repositories.national_references import PgNationalReferencesRepo
 from nalar.infrastructure.db.repositories.notifications import PgNotificationsRepo
-from nalar.infrastructure.db.repositories.parents import PgParentsRepo
 from nalar.infrastructure.db.repositories.participants import PgParticipantsRepo
 from nalar.infrastructure.db.repositories.password_resets import PgPasswordResetsRepo
 from nalar.infrastructure.db.repositories.publications import PgPublicationsRepo
@@ -89,7 +87,6 @@ class PgUnitOfWork:
     grading: GradingRepo
     integrity: IntegrityRepo
     release: ReleaseRepo
-    parents: ParentsRepo
     missions: MissionsRepo
     knowledge: KnowledgeRepo
     roster: RosterRepo
@@ -135,7 +132,6 @@ class PgUnitOfWork:
         self.grading = PgGradingRepo(conn)
         self.integrity = PgIntegrityRepo(conn)
         self.release = PgReleaseRepo(conn)
-        self.parents = PgParentsRepo(conn)
         self.missions = PgMissionsRepo(conn)
         self.knowledge = PgKnowledgeRepo(conn)
         self.roster = PgRosterRepo(conn)

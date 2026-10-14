@@ -27,8 +27,8 @@ from tests.integration.support.factories import (
     create_teacher,
     create_user,
 )
+from tests.integration.support.settling import settled
 from tests.integration.support.uow import uow_on
-from tests.integration.test_release import settled
 from tests.integration.test_roster import FakeAuthAdmin
 from tests.unit.application.fakes import FakeClock
 
@@ -484,15 +484,14 @@ async def test_platform_onboarding_handoff_and_suspension_preserve_scope(
         authz = PgAuthz(conn)
         assert not await authz.teaches_session(world.teacher_id, world.session_id)
         assert not await authz.owns_session(world.student_id, world.session_id)
-        assert not await authz.is_linked_parent(world.parent_id, world.student_id)
         assert (await api.get("/student/missions", headers=as_user(world.student_id))).json() == {
             "upcoming": [],
             "open": [],
             "completed": [],
         }
-        assert (await api.get("/parent/children", headers=as_user(world.parent_id))).json()[
-            "items"
-        ] == []
+        assert (
+            await api.get("/parent/children", headers=as_user(world.parent_id))
+        ).status_code == 404
         resumed = await api.patch(
             root + "/status", json={"status": "active"}, headers=as_user(platform)
         )

@@ -1,5 +1,3 @@
-import math
-import re
 from typing import Literal, Self
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -182,71 +180,6 @@ class Settings(BaseSettings):
             raise ValueError("session refresh lock must exceed the auth timeout")
         if "*" in self.cors_origins:
             raise ValueError("cookie authentication requires explicit CORS origins")
-        return self
-
-    email_enabled: bool = False
-    smtp_username: str | None = None
-    smtp_app_password: SecretStr | None = None
-    email_from_name: str = "NALAR"
-    smtp_command_timeout_s: float = 10.0
-    smtp_data_timeout_s: float = 60.0
-    email_timeout_s: float = 90.0
-    digest_lease_s: float = 180.0
-    digest_dispatch_ttl_s: float = 1080.0
-    digest_retry_window_s: float = 172800.0
-    digest_max_attempts: int = 5
-    digest_retry_delays_s: tuple[int, ...] = (1800, 7200, 21600, 43200)
-    digest_daily_limit: int = 200
-    digest_batch_size: int = 32
-    digest_sender_spacing_s: float = 1.0
-    digest_quota_cooldown_s: float = 86400.0
-    digest_auth_cooldown_s: float = 1800.0
-
-    @model_validator(mode="after")
-    def digest_delivery_limits(self) -> Self:
-        if not self.email_enabled:
-            return self
-        durations = (
-            self.smtp_command_timeout_s,
-            self.smtp_data_timeout_s,
-            self.email_timeout_s,
-            self.digest_lease_s,
-            self.digest_dispatch_ttl_s,
-            self.digest_retry_window_s,
-            self.digest_sender_spacing_s,
-            self.digest_quota_cooldown_s,
-            self.digest_auth_cooldown_s,
-            *self.digest_retry_delays_s,
-        )
-        if any(not math.isfinite(v) or v <= 0 for v in durations):
-            raise ValueError("email durations must be finite and positive")
-        if not (
-            max(self.smtp_command_timeout_s, self.smtp_data_timeout_s)
-            < self.email_timeout_s
-            < self.digest_lease_s
-            < self.digest_dispatch_ttl_s
-        ):
-            raise ValueError("email timeout, lease and dispatch reservation must increase")
-        if not 1 <= self.digest_daily_limit <= 500 or not 1 <= self.digest_batch_size <= 200:
-            raise ValueError("invalid digest daily or batch limit")
-        if (
-            not 1 <= self.digest_max_attempts <= 5
-            or len(self.digest_retry_delays_s) < self.digest_max_attempts - 1
-        ):
-            raise ValueError("invalid digest attempt limit or retry delays")
-        if not self.smtp_username or not self.smtp_app_password:
-            raise ValueError(
-                "enabled email requires NALAR_SMTP_USERNAME and NALAR_SMTP_APP_PASSWORD"
-            )
-        self.smtp_username = self.smtp_username.strip().lower()
-        if not re.fullmatch(r"[a-z0-9][a-z0-9.]*@gmail\.com", self.smtp_username):
-            raise ValueError("SMTP sender must be one personal Gmail address")
-        password = self.smtp_app_password.get_secret_value().replace(" ", "")
-        if not re.fullmatch(r"[A-Za-z0-9]{16}", password):
-            raise ValueError("SMTP app password must contain sixteen letters or digits")
-        if any(c in self.email_from_name for c in "\r\n"):
-            raise ValueError("invalid email sender name")
-        self.smtp_app_password = SecretStr(password)
         return self
 
     @model_validator(mode="after")

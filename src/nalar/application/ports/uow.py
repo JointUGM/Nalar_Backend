@@ -16,7 +16,6 @@ from nalar.application.ports.knowledge import KnowledgeRepo
 from nalar.application.ports.missions import MissionsRepo
 from nalar.application.ports.national_references import NationalReferencesRepo
 from nalar.application.ports.notifications import NotificationsRepo
-from nalar.application.ports.parents import ParentsRepo
 from nalar.application.ports.participants import ParticipantsRepo
 from nalar.application.ports.password_resets import PasswordResetsRepo
 from nalar.application.ports.publications import PublicationsRepo
@@ -56,7 +55,6 @@ class UnitOfWork(Protocol):
     grading: GradingRepo
     integrity: IntegrityRepo
     release: ReleaseRepo
-    parents: ParentsRepo
     missions: MissionsRepo
     knowledge: KnowledgeRepo
     roster: RosterRepo

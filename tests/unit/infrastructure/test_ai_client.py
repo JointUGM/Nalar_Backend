@@ -12,7 +12,6 @@ from nalar.application.ports.ai_contract import (
     EmbedIn,
     HistoryTurnIn,
     NextTurnIn,
-    ParentSummaryIn,
     PlannerMode,
     Tag,
     Text,
@@ -221,30 +220,6 @@ async def test_unset_optional_fields_are_omitted_not_sent_as_null() -> None:
         await make_client(handler).next_turn(body, request_id="req-1")
 
     assert "misconception_ids" not in seen[0]["history"][0]
-
-
-async def test_parent_summary_posts_to_the_s5_route_without_null_fields() -> None:
-    seen: dict[str, Any] = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen["path"] = request.url.path
-        seen["body"] = json.loads(request.content)
-        return httpx.Response(
-            200,
-            json={
-                "result": {"content": "Ananda menjelaskan gaya gesek.", "source": "model"},
-                "invocations": [],
-                "warnings": [],
-            },
-        )
-
-    body = ParentSummaryIn.model_validate(
-        {"mission_title": "Gaya", "concepts": [{"name": "Gaya gesek", "outcome": "mastered"}]}
-    )
-    reply = await make_client(handler).parent_summary(body, "r1")
-    assert seen["path"] == "/v1/s5/parent-summaries/generate"
-    assert "evaluation_summary" not in seen["body"]
-    assert reply.result.source.value == "model"
 
 
 async def test_detect_sections_sends_the_pdf_as_multipart() -> None:

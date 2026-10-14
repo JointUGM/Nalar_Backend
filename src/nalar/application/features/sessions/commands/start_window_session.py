@@ -50,7 +50,7 @@ class StartWindowSessionHandler:
             mine = await uow.sessions.for_run(target.run_id, actor)
             if mine is not None:
                 return _window(mine, anchor)
-            if publication.cancelled_at or publication.released_to_parents_at:
+            if publication.cancelled_at:
                 raise Conflict("PUBLICATION_NOT_GRANTABLE")
             if (
                 target.opens_at is None

@@ -20,7 +20,7 @@ def test_valid_rows_parse_and_bad_rows_report_their_number() -> None:
         )
     )
     assert [(r.row_number, r.role) for r in rows] == [(2, "student"), (4, "teacher")]
-    assert rows[0].parent_email == "ibu.budi@mail.id"
+    assert rows[0].nisn == "0012345678"
     assert [(e.row_number, e.field) for e in errors] == [(3, "nisn"), (5, "email"), (6, "role")]
 
 

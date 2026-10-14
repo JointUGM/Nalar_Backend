@@ -315,10 +315,11 @@ async def test_status_paginates_scoped_sql_counts_without_payload_secrets(
         second = await api.get(path + f"?limit=2&cursor={cursor}", headers=as_user(world.admin_id))
     assert first.status_code == second.status_code == 200
     body = first.json()
-    assert body["total"] == sum(body["counts"].values()) == 4
+    assert body["total"] == sum(body["counts"].values()) == 3
     assert body["counts"]["pending"] == 1
     ids = [item["user_id"] for item in body["items"] + second.json()["items"]]
-    assert len(ids) == len(set(ids)) == 4
+    assert len(ids) == len(set(ids)) == 3
+    assert str(world.parent_id) not in ids
     assert "hidden-fence" not in first.text + second.text
     assert "uncontrolled-secret" not in first.text + second.text
 
