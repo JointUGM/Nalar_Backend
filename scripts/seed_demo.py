@@ -11,7 +11,7 @@ import asyncpg
 import httpx
 
 from nalar.application.ports.ai_contract import ContextPackIn, WarmIn
-from nalar.bootstrap.seed import seed
+from nalar.bootstrap.seed import seed, seed_trail_demo
 from nalar.bootstrap.settings import Settings
 from nalar.infrastructure.ai.client import AiServiceClient, AiTimeouts
 from nalar.infrastructure.auth.admin import SupabaseAuthAdmin
@@ -21,7 +21,7 @@ from nalar.infrastructure.storage.supabase_storage import SupabaseStorage
 CONTENT = Path(__file__).resolve().parents[1] / "supabase" / "seed" / "gaya_dan_gerak.json"
 
 
-async def main(warm: bool) -> None:
+async def main(warm: bool, trail: bool) -> None:
     settings = Settings()
     password = settings.seed_password.get_secret_value()
     if not password:
@@ -38,6 +38,9 @@ async def main(warm: bool) -> None:
                 conn, content, SupabaseAuthAdmin(http), SupabaseStorage(http), password
             )
             print(f"seeded version {report.version_id}")
+            if trail:
+                async with conn.transaction():
+                    await seed_trail_demo(conn, content)
             if warm:
                 await _warm(settings, conn, report.pack, UUID(content["school"]["id"]))
         finally:
@@ -73,4 +76,8 @@ async def _warm(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--warm", action="store_true", help="validate the pack on the AI service")
-    asyncio.run(main(parser.parse_args().warm))
+    parser.add_argument(
+        "--trail", action="store_true", help="add the labelled synthetic two-mission trail data"
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.warm, args.trail))

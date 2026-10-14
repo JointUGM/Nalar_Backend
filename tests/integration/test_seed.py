@@ -5,7 +5,8 @@ from uuid import UUID, uuid4
 
 import asyncpg
 
-from nalar.bootstrap.seed import seed
+from nalar.bootstrap.seed import seed, seed_trail_demo
+from tests.integration.support.api import api_client, as_user
 
 CONTENT: dict[str, Any] = json.loads(
     (Path(__file__).resolve().parents[2] / "supabase/seed/gaya_dan_gerak.json").read_text(
@@ -27,6 +28,9 @@ TABLES = [
     "mission_versions",
     "mission_version_concepts",
     "mission_version_misconceptions",
+    "publications",
+    "sessions",
+    "session_concept_results",
 ]
 
 
@@ -81,3 +85,27 @@ async def test_seeded_version_is_reviewed_with_a_valid_pack(conn: asyncpg.Connec
     assert row["reviewed_at"] is not None
     assert json.loads(row["context_pack"]) == report.pack
     assert (row["max_turns"], row["max_duration_minutes"]) == (6, 20)
+
+
+async def test_trail_demo_is_idempotent_and_the_endpoint_reports_the_planned_numbers(
+    conn: asyncpg.Connection,
+) -> None:
+    await seed(conn, CONTENT, FakeUsers(conn), FakeBuckets(), password="x")
+    await seed_trail_demo(conn, CONTENT)
+    after_first = await counts(conn)
+    await seed_trail_demo(conn, CONTENT)
+    assert await counts(conn) == after_first
+    teacher_id = await conn.fetchval(
+        "select id from profiles where contact_email = $1", CONTENT["users"]["teacher"]["email"]
+    )
+    later = await conn.fetchval(
+        "select p.id from publications p join mission_versions v on v.id = p.mission_version_id"
+        " join missions m on m.id = v.mission_id where m.title like '% lanjutan (contoh)'"
+    )
+    async with api_client(conn) as api:
+        response = await api.get(
+            f"/publications/{later}/misconception-trail", headers=as_user(teacher_id)
+        )
+    [item] = response.json()["items"]
+    assert (item["held_count"], item["resolved_count"], item["still_held_count"]) == (14, 9, 4)
+    assert item["not_observed_count"] == 1
