@@ -20,6 +20,8 @@ ROUTES: list[tuple[str, str, str, dict[str, Any] | None]] = [
     ("teacher", "post", "/runs/{run}/close", None),
     ("teacher", "get", "/publications/{publication}/monitor", None),
     ("teacher", "get", "/publications/{publication}/class-map", None),
+    ("teacher", "get", "/publications/{publication}/misconception-trail", None),
+    ("teacher", "get", "/publications/{publication}/mgmp-package", None),
     ("teacher", "get", "/sessions/{session}/report", None),
     ("teacher", "post", "/sessions/{session}/safety-actions", {"action": "end"}),
     ("teacher", "get", "/teacher/publications?class_id={klass}", None),

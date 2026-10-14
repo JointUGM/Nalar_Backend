@@ -194,6 +194,9 @@ from nalar.application.features.results.commands.review_flag import ReviewFlagHa
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.class_students import ClassStudentsQuery
 from nalar.application.features.results.queries.export_scores import ExportScoresQuery
+from nalar.application.features.results.queries.misconception_trail import (
+    MisconceptionTrailQuery,
+)
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.results.queries.student_history import StudentHistoryQuery
@@ -707,6 +710,7 @@ class ApplicationProvider(Provider):
         MonitorQuery,
         SessionReportQuery,
         ClassMapQuery,
+        MisconceptionTrailQuery,
         ClassStudentsQuery,
         TeacherDashboardQuery,
         TeacherAttentionQuery,

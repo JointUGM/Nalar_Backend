@@ -3,6 +3,8 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import UUID
 
+import asyncpg
+
 from nalar.application.features.integrity.projections import project_report_flag_evidence
 from nalar.application.ports.administration import AdminRow
 from nalar.application.ports.results import (
@@ -16,6 +18,7 @@ from nalar.application.ports.results import (
     DashboardBucket,
     FlagAttention,
     KbReviewAttention,
+    MisconceptionStrategy,
     Monitor,
     MonitorFlag,
     MonitorRun,
@@ -31,6 +34,8 @@ from nalar.application.ports.results import (
     SafetyAttention,
     SessionReport,
     StudentConceptCounts,
+    TrailInput,
+    TrailPublication,
 )
 from nalar.domain.class_map import ConceptResult, StudentAttempt
 from nalar.domain.telemetry import TurnMetrics, metrics_by_turn
@@ -227,6 +232,17 @@ _VERSION_MISCONCEPTIONS = """
      where p.id = $1 order by m.statement, m.id
 """
 
+# "library" needs a published entry; its source_citations are never empty (0003 check).
+_STRATEGIES = """
+    select m.id, m.correct_understanding, m.counter_examples, m.detection_cues,
+           ml.id is not null as from_library, coalesce(ml.source_citations, '{}') as citations
+      from publications p
+      join mission_version_misconceptions mvm on mvm.mission_version_id = p.mission_version_id
+      join misconceptions m on m.id = mvm.misconception_id
+      left join misconception_library ml on ml.id = m.library_id and ml.status = 'published'
+     where p.id = $1 order by m.statement, m.id
+"""
+
 # TC-9: only each student's latest attempt counts; an older attempt is never reused.
 _LATEST_ATTEMPTS = """
     select distinct on (s.student_id) s.id, s.student_id, s.status::text as status,
@@ -241,6 +257,49 @@ _CONCEPT_RESULTS = """
     select session_id, concept_id, outcome::text as outcome, misconception_id,
            initial_misconception_id, resolved_in_session
       from session_concept_results where session_id = any($1::uuid[])
+"""
+
+_TRAIL_PUBLICATION = """
+    select p.id, p.class_id, p.created_at, p.mission_version_id, kb.school_subject_id,
+           mi.title, mv.version_number, c.name as class_name
+      from publications p
+      join classes c on c.id = p.class_id
+      join mission_versions mv on mv.id = p.mission_version_id
+      join missions mi on mi.id = mv.mission_id
+      join knowledge_bases kb on kb.id = mi.knowledge_base_id
+     where p.id = $1
+"""
+
+_TRAIL_NAMED_EARLIER = """
+    select p.id
+      from publications p
+      join mission_versions mv on mv.id = p.mission_version_id
+      join missions mi on mi.id = mv.mission_id
+      join knowledge_bases kb on kb.id = mi.knowledge_base_id
+     where p.id = $2 and p.id <> $1 and p.class_id = $3 and kb.school_subject_id = $4
+"""
+
+# Same eligibility rule as the class map (_LATEST_ATTEMPTS), never v_latest_sessions.
+_TRAIL_LATEST_EARLIER = """
+    select p.id
+      from publications p
+      join mission_versions mv on mv.id = p.mission_version_id
+      join missions mi on mi.id = mv.mission_id
+      join knowledge_bases kb on kb.id = mi.knowledge_base_id
+     where p.class_id = $2 and kb.school_subject_id = $3 and p.id <> $1
+       and p.cancelled_at is null and p.created_at < $4
+       and exists (select 1 from mission_version_concepts a
+                    join mission_version_concepts b on b.concept_id = a.concept_id
+                   where a.mission_version_id = p.mission_version_id
+                     and b.mission_version_id = $5)
+       and exists (select 1 from (
+                       select distinct on (s.student_id) s.status::text as status,
+                              e.status::text as evaluation_status
+                         from sessions s left join session_evaluations e on e.session_id = s.id
+                        where s.publication_id = p.id
+                        order by s.student_id, s.attempt_number desc, s.id desc) latest
+                    where latest.status = 'completed' and latest.evaluation_status = 'completed')
+     order by p.created_at desc, p.id desc limit 1
 """
 
 _CLASS_STUDENTS = """
@@ -615,21 +674,10 @@ class PgResultsRepo:
             flags=tuple(report_flags),
         )
 
-    async def class_map_input(self, publication_id: UUID) -> ClassMapInput | None:
-        exists = await self._conn.fetchval(
-            "select exists (select 1 from publications where id = $1)", publication_id
-        )
-        if not exists:
-            return None
-        concepts = await self._conn.fetch(_TARGETS, publication_id)
-        misconceptions = await self._conn.fetch(_VERSION_MISCONCEPTIONS, publication_id)
+    async def _latest_attempts(
+        self, publication_id: UUID
+    ) -> tuple[tuple[StudentAttempt, ...], tuple[ClassMapStudent, ...]]:
         latest = await self._conn.fetch(_LATEST_ATTEMPTS, publication_id)
-        edges = await self._conn.fetch(
-            "select concept_id, prerequisite_concept_id from concept_prerequisites"
-            " where concept_id = any($1::uuid[]) and prerequisite_concept_id = any($1::uuid[])"
-            " order by concept_id, prerequisite_concept_id",
-            [c["id"] for c in concepts],
-        )
         by_session: defaultdict[UUID, list[ConceptResult]] = defaultdict(list)
         for r in await self._conn.fetch(_CONCEPT_RESULTS, [a["id"] for a in latest]):
             by_session[r["session_id"]].append(
@@ -641,6 +689,34 @@ class PgResultsRepo:
                     r["resolved_in_session"],
                 )
             )
+        attempts = tuple(
+            StudentAttempt(
+                a["student_id"], a["status"], a["evaluation_status"], tuple(by_session[a["id"]])
+            )
+            for a in latest
+        )
+        students = tuple(
+            ClassMapStudent(a["student_id"], a["student_name"], a["id"])
+            for a in latest
+            if a["status"] == "completed" and a["evaluation_status"] == "completed"
+        )
+        return attempts, students
+
+    async def class_map_input(self, publication_id: UUID) -> ClassMapInput | None:
+        exists = await self._conn.fetchval(
+            "select exists (select 1 from publications where id = $1)", publication_id
+        )
+        if not exists:
+            return None
+        concepts = await self._conn.fetch(_TARGETS, publication_id)
+        misconceptions = await self._conn.fetch(_VERSION_MISCONCEPTIONS, publication_id)
+        edges = await self._conn.fetch(
+            "select concept_id, prerequisite_concept_id from concept_prerequisites"
+            " where concept_id = any($1::uuid[]) and prerequisite_concept_id = any($1::uuid[])"
+            " order by concept_id, prerequisite_concept_id",
+            [c["id"] for c in concepts],
+        )
+        attempts, students = await self._latest_attempts(publication_id)
         return ClassMapInput(
             prerequisites=tuple(
                 (edge["concept_id"], edge["prerequisite_concept_id"]) for edge in edges
@@ -649,17 +725,73 @@ class PgResultsRepo:
             misconceptions=tuple(
                 (m["id"], m["concept_id"], m["statement"]) for m in misconceptions
             ),
-            attempts=tuple(
-                StudentAttempt(
-                    a["student_id"], a["status"], a["evaluation_status"], tuple(by_session[a["id"]])
+            attempts=attempts,
+            students=students,
+            strategies=tuple(
+                MisconceptionStrategy(
+                    m["id"],
+                    m["correct_understanding"],
+                    tuple(m["counter_examples"]),
+                    tuple(m["detection_cues"]),
+                    "library" if m["from_library"] else "kb",
+                    tuple(m["citations"]),
                 )
-                for a in latest
+                for m in await self._conn.fetch(_STRATEGIES, publication_id)
             ),
-            students=tuple(
-                ClassMapStudent(a["student_id"], a["student_name"], a["id"])
-                for a in latest
-                if a["status"] == "completed" and a["evaluation_status"] == "completed"
-            ),
+        )
+
+    async def _trail_publication(
+        self, row: asyncpg.Record, attempts: tuple[StudentAttempt, ...]
+    ) -> TrailPublication:
+        misconceptions = await self._conn.fetch(_VERSION_MISCONCEPTIONS, row["id"])
+        return TrailPublication(
+            row["id"],
+            row["title"],
+            row["version_number"],
+            row["class_name"],
+            attempts,
+            tuple((m["id"], m["concept_id"], m["statement"]) for m in misconceptions),
+        )
+
+    async def misconception_trail_input(
+        self, publication_id: UUID, earlier_publication_id: UUID | None
+    ) -> TrailInput | None:
+        later = await self._conn.fetchrow(_TRAIL_PUBLICATION, publication_id)
+        if later is None:
+            return None
+        if earlier_publication_id is None:
+            earlier_id = await self._conn.fetchval(
+                _TRAIL_LATEST_EARLIER,
+                publication_id,
+                later["class_id"],
+                later["school_subject_id"],
+                later["created_at"],
+                later["mission_version_id"],
+            )
+        else:
+            earlier_id = await self._conn.fetchval(
+                _TRAIL_NAMED_EARLIER,
+                publication_id,
+                earlier_publication_id,
+                later["class_id"],
+                later["school_subject_id"],
+            )
+            if earlier_id is None:
+                return None
+        earlier = None
+        earlier_row = (
+            await self._conn.fetchrow(_TRAIL_PUBLICATION, earlier_id) if earlier_id else None
+        )
+        if earlier_row:
+            earlier_attempts, _ = await self._latest_attempts(earlier_id)
+            earlier = await self._trail_publication(earlier_row, earlier_attempts)
+        concepts = await self._conn.fetch(_TARGETS, publication_id)
+        attempts, students = await self._latest_attempts(publication_id)
+        return TrailInput(
+            to=await self._trail_publication(later, attempts),
+            earlier=earlier,
+            concepts=tuple((c["id"], c["name"]) for c in concepts),
+            students=students,
         )
 
     async def student_history(

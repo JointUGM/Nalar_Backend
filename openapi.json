@@ -3294,9 +3294,34 @@
       },
       "MisconceptionCountOut": {
         "properties": {
+          "citations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "correct_understanding": {
+            "title": "Correct Understanding",
+            "type": "string"
+          },
           "count": {
             "title": "Count",
             "type": "integer"
+          },
+          "counter_examples": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Counter Examples",
+            "type": "array"
+          },
+          "detection_cues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Detection Cues",
+            "type": "array"
           },
           "misconception_id": {
             "format": "uuid",
@@ -3306,6 +3331,14 @@
           "resolved_count": {
             "title": "Resolved Count",
             "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "library",
+              "kb"
+            ],
+            "title": "Source",
+            "type": "string"
           },
           "statement": {
             "title": "Statement",
@@ -3334,7 +3367,12 @@
           "count",
           "resolved_count",
           "student_ids",
-          "students"
+          "students",
+          "correct_understanding",
+          "counter_examples",
+          "detection_cues",
+          "source",
+          "citations"
         ],
         "title": "MisconceptionCountOut",
         "type": "object"
@@ -3539,6 +3577,45 @@
           "session_id"
         ],
         "title": "MisconceptionStudentOut",
+        "type": "object"
+      },
+      "MisconceptionTrailOut": {
+        "properties": {
+          "from": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrailEarlierOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrailItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "not_retested": {
+            "items": {
+              "$ref": "#/components/schemas/TrailNotRetestedOut"
+            },
+            "title": "Not Retested",
+            "type": "array"
+          },
+          "to": {
+            "$ref": "#/components/schemas/TrailLaterOut"
+          }
+        },
+        "required": [
+          "to",
+          "from",
+          "items",
+          "not_retested"
+        ],
+        "title": "MisconceptionTrailOut",
         "type": "object"
       },
       "MissionCardOut": {
@@ -6734,6 +6811,29 @@
         "title": "ReportTurnOut",
         "type": "object"
       },
+      "ResolvedBreakdownOut": {
+        "properties": {
+          "developing": {
+            "title": "Developing",
+            "type": "integer"
+          },
+          "mastered": {
+            "title": "Mastered",
+            "type": "integer"
+          },
+          "other_misconception": {
+            "title": "Other Misconception",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mastered",
+          "developing",
+          "other_misconception"
+        ],
+        "title": "ResolvedBreakdownOut",
+        "type": "object"
+      },
       "ReviewIn": {
         "additionalProperties": false,
         "properties": {
@@ -8785,6 +8885,161 @@
         "maxLength": 30000,
         "minLength": 1,
         "type": "string"
+      },
+      "TrailEarlierOut": {
+        "properties": {
+          "denominator": {
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "mission_version": {
+            "title": "Mission Version",
+            "type": "integer"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication_id",
+          "mission_title",
+          "mission_version",
+          "denominator"
+        ],
+        "title": "TrailEarlierOut",
+        "type": "object"
+      },
+      "TrailItemOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "concept_name": {
+            "title": "Concept Name",
+            "type": "string"
+          },
+          "held_count": {
+            "title": "Held Count",
+            "type": "integer"
+          },
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          },
+          "not_observed_count": {
+            "title": "Not Observed Count",
+            "type": "integer"
+          },
+          "resolved_breakdown": {
+            "$ref": "#/components/schemas/ResolvedBreakdownOut"
+          },
+          "resolved_count": {
+            "title": "Resolved Count",
+            "type": "integer"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          },
+          "still_held_count": {
+            "title": "Still Held Count",
+            "type": "integer"
+          },
+          "students_still_holding": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionStudentOut"
+            },
+            "title": "Students Still Holding",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concept_id",
+          "concept_name",
+          "misconception_id",
+          "statement",
+          "held_count",
+          "resolved_count",
+          "resolved_breakdown",
+          "still_held_count",
+          "not_observed_count",
+          "students_still_holding"
+        ],
+        "title": "TrailItemOut",
+        "type": "object"
+      },
+      "TrailLaterOut": {
+        "properties": {
+          "class_name": {
+            "title": "Class Name",
+            "type": "string"
+          },
+          "denominator": {
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "mission_title": {
+            "title": "Mission Title",
+            "type": "string"
+          },
+          "mission_version": {
+            "title": "Mission Version",
+            "type": "integer"
+          },
+          "publication_id": {
+            "format": "uuid",
+            "title": "Publication Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publication_id",
+          "mission_title",
+          "mission_version",
+          "denominator",
+          "class_name"
+        ],
+        "title": "TrailLaterOut",
+        "type": "object"
+      },
+      "TrailNotRetestedOut": {
+        "properties": {
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "held_count": {
+            "title": "Held Count",
+            "type": "integer"
+          },
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "concept_id",
+          "misconception_id",
+          "statement",
+          "held_count"
+        ],
+        "title": "TrailNotRetestedOut",
+        "type": "object"
       },
       "TypingEvent": {
         "additionalProperties": false,
@@ -13362,6 +13617,128 @@
         "summary": "Export Publication",
         "tags": [
           "teacher"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/mgmp-package": {
+      "get": {
+        "description": "Own-class counts only; no student names or ids (design rule 1).",
+        "operationId": "mgmp_package_api_v1_publications__publication_id__mgmp_package_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "const": "csv",
+              "default": "csv",
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Mgmp Package",
+        "tags": [
+          "results",
+          "teacher"
+        ]
+      }
+    },
+    "/api/v1/publications/{publication_id}/misconception-trail": {
+      "get": {
+        "operationId": "misconception_trail_api_v1_publications__publication_id__misconception_trail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publication_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Publication Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from_publication_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From Publication Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionTrailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Misconception Trail",
+        "tags": [
+          "results"
         ]
       }
     },

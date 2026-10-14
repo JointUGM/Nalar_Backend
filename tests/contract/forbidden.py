@@ -25,6 +25,16 @@ FORBIDDEN_KEYS = frozenset(
         "misconception_ids",
         "analysis",
         "turn_quality",
+        "students_still_holding",
+        "held_count",
+        "still_held_count",
+        "not_retested",
+        "resolved_breakdown",
+        "correct_understanding",
+        "counter_examples",
+        "detection_cues",
+        "citations",
+        "source_citations",
     }
 )
 FORBIDDEN_FRAGMENTS = ("score", "level", "rationale", "evidence")

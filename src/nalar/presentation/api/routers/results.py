@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import Literal
 from uuid import UUID
 
 from dishka.integrations.fastapi import DishkaRoute, FromDishka
@@ -10,6 +11,7 @@ from nalar.application.features.results.commands.override_score import (
 )
 from nalar.application.features.results.commands.review_flag import ReviewFlag, ReviewFlagHandler
 from nalar.application.features.results.queries.class_map import ClassMapQuery
+from nalar.application.features.results.queries.misconception_trail import MisconceptionTrailQuery
 from nalar.application.features.results.queries.monitor import MonitorQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.sessions.commands.safety_action import (
@@ -18,6 +20,7 @@ from nalar.application.features.sessions.commands.safety_action import (
 )
 from nalar.application.ports.clock import Clock
 from nalar.presentation.api.conditional import POLL_RESPONSES, PollRequestTag, conditional_response
+from nalar.presentation.api.csv_export import csv_response
 from nalar.presentation.api.deps import CurrentUser
 from nalar.presentation.api.schemas.results import (
     ClassMapEdgeOut,
@@ -29,6 +32,7 @@ from nalar.presentation.api.schemas.results import (
     InsightOut,
     MisconceptionCountOut,
     MisconceptionStudentOut,
+    MisconceptionTrailOut,
     MonitorFlagOut,
     MonitorOut,
     MonitorRunOut,
@@ -46,8 +50,13 @@ from nalar.presentation.api.schemas.results import (
     ReportSessionOut,
     ReportStudentOut,
     ReportTurnOut,
+    ResolvedBreakdownOut,
     SafetyActionIn,
     SafetyActionOut,
+    TrailEarlierOut,
+    TrailItemOut,
+    TrailLaterOut,
+    TrailNotRetestedOut,
 )
 
 router = APIRouter(tags=["results"], route_class=DishkaRoute)
@@ -89,6 +98,7 @@ async def class_map(
     names = dict(data.concepts)
     statements = {m: statement for m, _, statement in data.misconceptions}
     students = {s.student_id: MisconceptionStudentOut(**asdict(s)) for s in data.students}
+    strategies = {s.misconception_id: asdict(s) for s in data.strategies}
     return ClassMapOut(
         prerequisites=[
             ClassMapEdgeOut(concept_id=a, prerequisite_id=b) for a, b in data.prerequisites
@@ -117,6 +127,11 @@ async def class_map(
                         resolved_count=m.resolved_count,
                         student_ids=list(m.student_ids),
                         students=[students[s] for s in m.student_ids],
+                        **{
+                            k: v
+                            for k, v in strategies[m.misconception_id].items()
+                            if k != "misconception_id"
+                        },
                     )
                     for m in c.misconceptions
                 ],
@@ -124,6 +139,125 @@ async def class_map(
             for c in counts.concepts
         ],
     )
+
+
+@router.get(
+    "/publications/{publication_id}/misconception-trail", response_model=MisconceptionTrailOut
+)
+async def misconception_trail(
+    publication_id: UUID,
+    user: CurrentUser,
+    query: FromDishka[MisconceptionTrailQuery],
+    from_publication_id: UUID | None = None,
+) -> MisconceptionTrailOut:
+    data, found = await query.execute(user.id, publication_id, from_publication_id)
+    to = TrailLaterOut(
+        publication_id=data.to.publication_id,
+        mission_title=data.to.mission_title,
+        mission_version=data.to.mission_version,
+        class_name=data.to.class_name,
+        denominator=sum(a.eligible for a in data.to.attempts),
+    )
+    if data.earlier is None or found is None:
+        return MisconceptionTrailOut(to=to, from_=None, items=[], not_retested=[])
+    names = dict(data.concepts)
+    statements = {m: statement for m, _, statement in data.earlier.misconceptions}
+    students = {s.student_id: MisconceptionStudentOut(**asdict(s)) for s in data.students}
+    items = sorted(found.items, key=lambda i: (-i.held_count, statements[i.misconception_id]))
+    not_retested = sorted(
+        found.not_retested, key=lambda n: (-n.held_count, statements[n.misconception_id])
+    )
+    return MisconceptionTrailOut(
+        to=to,
+        from_=TrailEarlierOut(
+            publication_id=data.earlier.publication_id,
+            mission_title=data.earlier.mission_title,
+            mission_version=data.earlier.mission_version,
+            denominator=sum(a.eligible for a in data.earlier.attempts),
+        ),
+        items=[
+            TrailItemOut(
+                concept_id=i.concept_id,
+                concept_name=names[i.concept_id],
+                misconception_id=i.misconception_id,
+                statement=statements[i.misconception_id],
+                held_count=i.held_count,
+                resolved_count=i.resolved_count,
+                resolved_breakdown=ResolvedBreakdownOut(**asdict(i.resolved_breakdown)),
+                still_held_count=len(i.still_held_ids),
+                not_observed_count=i.not_observed_count,
+                students_still_holding=[students[s] for s in i.still_held_ids],
+            )
+            for i in items
+        ],
+        not_retested=[
+            TrailNotRetestedOut(
+                concept_id=n.concept_id,
+                misconception_id=n.misconception_id,
+                statement=statements[n.misconception_id],
+                held_count=n.held_count,
+            )
+            for n in not_retested
+        ],
+    )
+
+
+MGMP_FIELDS = [
+    "mission_title",
+    "mission_version",
+    "class_name",
+    "concept",
+    "misconception",
+    "students_holding",
+    "resolved_in_session",
+    "earlier_mission_title",
+    "earlier_students_holding",
+    "earlier_resolved",
+    "earlier_still_holding",
+    "earlier_not_observed",
+]
+
+
+@router.get(
+    "/publications/{publication_id}/mgmp-package",
+    tags=["teacher"],
+    responses={200: {"content": {"text/csv": {}}}},
+    response_class=Response,
+)
+async def mgmp_package(
+    publication_id: UUID,
+    user: CurrentUser,
+    class_map_query: FromDishka[ClassMapQuery],
+    trail_query: FromDishka[MisconceptionTrailQuery],
+    format: Literal["csv"] = "csv",
+) -> Response:
+    """Own-class counts only; no student names or ids (design rule 1)."""
+    data, counts, _ = await class_map_query.execute(user.id, publication_id)
+    trail_data, found = await trail_query.execute(user.id, publication_id, None)
+    earlier = trail_data.earlier
+    trail_items = {i.misconception_id: i for i in found.items} if found else {}
+    statements = {m: statement for m, _, statement in data.misconceptions}
+    names = dict(data.concepts)
+    rows = [
+        {
+            "mission_title": trail_data.to.mission_title,
+            "mission_version": trail_data.to.mission_version,
+            "class_name": trail_data.to.class_name,
+            "concept": names[c.concept_id],
+            "misconception": statements[m.misconception_id],
+            "students_holding": m.count,
+            "resolved_in_session": m.resolved_count,
+            "earlier_mission_title": earlier.mission_title if item and earlier else None,
+            "earlier_students_holding": item.held_count if item else None,
+            "earlier_resolved": item.resolved_count if item else None,
+            "earlier_still_holding": len(item.still_held_ids) if item else None,
+            "earlier_not_observed": item.not_observed_count if item else None,
+        }
+        for c in counts.concepts
+        for m in c.misconceptions
+        for item in [trail_items.get(m.misconception_id)]
+    ]
+    return csv_response(f"mgmp-{publication_id}.csv", MGMP_FIELDS, rows)
 
 
 @router.get("/sessions/{session_id}/report", response_model=ReportOut)
