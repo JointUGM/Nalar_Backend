@@ -210,18 +210,6 @@ class PgRosterRepo:
             student_id,
         )
 
-    async def ensure_parent_link(
-        self, parent_id: UUID, student_id: UUID, school_id: UUID, relationship: str | None
-    ) -> None:
-        await self._conn.execute(
-            "insert into parent_student_links (parent_id, student_id, school_id, relationship)"
-            " values ($1, $2, $3, $4) on conflict (parent_id, student_id) do nothing",
-            parent_id,
-            student_id,
-            school_id,
-            relationship,
-        )
-
     async def finish(
         self, import_id: UUID, total: int, errors: Sequence[RowError], now: datetime
     ) -> None:

@@ -31,12 +31,12 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
-    ParentSummaryIn,
-    ParentSummaryOut,
     ReviseMissionIn,
     ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
+    TeachingPlanIn,
+    TeachingPlanOut,
     WarmIn,
     WarmOut,
 )
@@ -127,15 +127,11 @@ class AiServiceClient:
             "/v1/s5/class-insight", body, ClassInsightOut, self._timeouts.s5_insight_s, request_id
         )
 
-    async def parent_summary(
-        self, body: ParentSummaryIn, request_id: str
-    ) -> AiResult[ParentSummaryOut]:
+    async def teaching_plan(
+        self, body: TeachingPlanIn, request_id: str
+    ) -> AiResult[TeachingPlanOut]:
         return await self._post(
-            "/v1/s5/parent-summaries/generate",
-            body,
-            ParentSummaryOut,
-            self._timeouts.s5_summary_s,
-            request_id,
+            "/v1/s5/teaching-plan", body, TeachingPlanOut, self._timeouts.s5_insight_s, request_id
         )
 
     async def detect_sections(

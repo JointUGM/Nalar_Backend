@@ -168,7 +168,7 @@ async def test_ineligible_account_never_queues_reset(
 
 
 @pytest.mark.parametrize("role", ["parent", "platform"])
-async def test_recovery_uses_parent_and_platform_scope_without_school_membership(
+async def test_recovery_rejects_parent_links_and_accepts_platform_scope(
     conn: asyncpg.Connection, world: World, role: str
 ) -> None:
     user_id = await create_user(conn)
@@ -183,9 +183,10 @@ async def test_recovery_uses_parent_and_platform_scope_without_school_membership
     else:
         await conn.execute("update profiles set is_platform_admin=true where id=$1", user_id)
     async with uow_on(conn) as uow:
-        assert await uow.password_resets.request(
+        reset_id = await uow.password_resets.request(
             email, FakeClock().now(), FakeClock().now() + timedelta(days=2), timedelta(minutes=1)
         )
+    assert (reset_id is not None) == (role == "platform")
 
 
 async def test_duplicate_delivery_binds_one_proof_without_changing_onboarding(

@@ -174,7 +174,6 @@ async def publications(
                 class_name=p.class_name,
                 run=RunSummaryOut(**vars(p.run)),
                 counts=CountsOut(**vars(p.counts)),
-                released_to_parents_at=p.released_to_parents_at,
             )
             for p in page.items
         ],

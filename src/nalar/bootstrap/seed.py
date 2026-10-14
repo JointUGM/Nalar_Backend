@@ -96,19 +96,8 @@ async def seed(
             subject_id,
             teacher_id,
         )
-        students = await _students(
-            conn, users, people["students"], password, school_id, class_id, year_id
-        )
-        for parent in people["parents"]:
-            parent_id = await _person(conn, users, parent, password)
-            for child in parent["children"]:
-                await conn.execute(
-                    "insert into parent_student_links (parent_id, student_id, school_id)"
-                    " values ($1, $2, $3) on conflict (parent_id, student_id) do nothing",
-                    parent_id,
-                    students[child],
-                    school_id,
-                )
+        await _students(conn, users, people["students"], password, school_id, class_id, year_id)
+
         kb_id = await _knowledge_base(conn, content, version, school_id, subject_id, teacher_id)
         version_id = await _mission(conn, content, version, pack, school_id, kb_id, teacher_id)
 
@@ -229,20 +218,23 @@ async def _knowledge_base(
             t.description,
             teacher_id,
         )
+    reviewed = content.get("misconception_content", {})
     for m in version.misconceptions:
+        extra = reviewed.get(str(m.id), {})
         # Inserted approved after their concepts, which is what migration 003's trigger requires.
         await conn.execute(
             "insert into misconceptions (id, school_id, knowledge_base_id, concept_id,"
-            " statement, correct_understanding, detection_cues, origin, review_status,"
-            " reviewed_by, reviewed_at) values ($1, $2, $3, $4, $5, $6, $7, 'seeded',"
-            " 'approved', $8, now()) on conflict (id) do nothing",
+            " statement, correct_understanding, detection_cues, counter_examples, origin,"
+            " review_status, reviewed_by, reviewed_at) values ($1, $2, $3, $4, $5, $6, $7, $8,"
+            " 'seeded', 'approved', $9, now()) on conflict (id) do nothing",
             m.id,
             school_id,
             kb_id,
             m.concept_id,
             m.statement,
-            content["correct_understanding"],
+            extra.get("correct_understanding", content["correct_understanding"]),
             list(m.detection_cues),
+            extra.get("counter_examples", []),
             teacher_id,
         )
     return kb_id

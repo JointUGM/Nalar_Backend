@@ -33,7 +33,7 @@ class PgPublicationsRepo:
     async def detail(self, publication_id: UUID) -> AdminRow | None:
         row = await self._conn.fetchrow(
             "select p.id, p.school_id, p.class_id, c.name as class_name, p.published_by,"
-            " p.created_at, p.cancelled_at, p.released_to_parents_at,"
+            " p.created_at, p.cancelled_at,"
             " mv.id as mission_version_id, mv.version_number, mi.id as mission_id,"
             " mi.title as mission_title, mi.knowledge_base_id"
             " from publications p join classes c on c.id = p.class_id"
@@ -70,7 +70,7 @@ class PgPublicationsRepo:
         )
         if cancel and publication.cancelled_at is not None:
             return publication.school_id
-        if publication.cancelled_at or publication.released_to_parents_at:
+        if publication.cancelled_at is not None:
             raise Conflict("PUBLICATION_NOT_EDITABLE")
         if await self._conn.fetchval(
             "select exists(select 1 from sessions where publication_id = $1)", publication_id
@@ -120,7 +120,7 @@ class PgPublicationsRepo:
     async def lock_for_grant(self, publication_id: UUID) -> GrantPublication | None:
         # Lifecycle writes must not block the foreign-key locks of a live session start.
         row = await self._conn.fetchrow(
-            "select school_id, class_id, cancelled_at, released_to_parents_at"
+            "select school_id, class_id, cancelled_at"
             " from publications where id = $1 for no key update",
             publication_id,
         )
@@ -307,7 +307,7 @@ class PgPublicationsRepo:
             f"""select p.id, mi.title, c.id as class_id, c.name as class_name, p.created_at,
                        ss.name as subject_name, mi.id as mission_id,
                        mv.version_number as mission_version,
-                       p.released_to_parents_at, r.id as run_id, r.mode::text as mode,
+                       r.id as run_id, r.mode::text as mode,
                        r.status::text as status, r.opens_at, r.closes_at, r.join_code,
                        (select count(*) from sessions s where s.publication_id = p.id) as started,
                        (select count(*) from sessions s where s.publication_id = p.id
@@ -350,7 +350,6 @@ class PgPublicationsRepo:
                 class_id=r["class_id"],
                 class_name=r["class_name"],
                 created_at=r["created_at"],
-                released_to_parents_at=r["released_to_parents_at"],
                 run=RunSummary(
                     r["run_id"],
                     RunMode(r["mode"]),

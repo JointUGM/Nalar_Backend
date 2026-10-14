@@ -69,7 +69,7 @@ class GrantAttemptHandler:
                 if prior.digest != digest:
                     raise Conflict("IDEMPOTENCY_CONFLICT")
                 return AttemptGranted(prior.run_id, prior.run_id)
-            if publication.cancelled_at or publication.released_to_parents_at:
+            if publication.cancelled_at:
                 raise Conflict("PUBLICATION_NOT_GRANTABLE")
             latest = await uow.sessions.latest_for_student(cmd.publication_id, cmd.student_id)
             now = self._clock.now()

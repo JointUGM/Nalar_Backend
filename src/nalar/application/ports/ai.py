@@ -27,12 +27,12 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
-    ParentSummaryIn,
-    ParentSummaryOut,
     ReviseMissionIn,
     ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
+    TeachingPlanIn,
+    TeachingPlanOut,
     WarmIn,
     WarmOut,
 )
@@ -97,9 +97,9 @@ class AiGateway(Protocol):
         self, body: ClassInsightIn, request_id: str
     ) -> AiResult[ClassInsightOut]: ...
 
-    async def parent_summary(
-        self, body: ParentSummaryIn, request_id: str
-    ) -> AiResult[ParentSummaryOut]: ...
+    async def teaching_plan(
+        self, body: TeachingPlanIn, request_id: str
+    ) -> AiResult[TeachingPlanOut]: ...
 
     async def detect_sections(
         self, pdf: bytes, fallback_title: str, request_id: str

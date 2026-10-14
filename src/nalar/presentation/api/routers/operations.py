@@ -15,7 +15,6 @@ from nalar.application.features.knowledge_base.queries.material_file import (
     MaterialFileQuery,
 )
 from nalar.application.features.notifications.inbox import InboxHandler
-from nalar.application.features.parents.commands.mark_seen import MarkSeenHandler
 from nalar.application.features.results.queries.export_scores import ExportScoresQuery
 from nalar.application.features.results.queries.session_report import SessionReportQuery
 from nalar.application.features.results.queries.student_history import StudentHistoryQuery
@@ -173,14 +172,6 @@ async def leave_lobby(
     run_id: UUID, user: CurrentUser, handler: FromDishka[RemoveParticipantHandler]
 ) -> Response:
     await handler.leave(user.id, run_id)
-    return Response(status_code=204)
-
-
-@router.post("/parent/children/{student_id}/seen", status_code=204, tags=["parent"])
-async def mark_seen(
-    student_id: UUID, user: CurrentUser, handler: FromDishka[MarkSeenHandler]
-) -> Response:
-    await handler.execute(user.id, student_id)
     return Response(status_code=204)
 
 

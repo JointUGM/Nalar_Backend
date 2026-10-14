@@ -11,9 +11,6 @@ COLUMNS = (
     "nisn",
     "class_name",
     "grade_level",
-    "parent_email",
-    "parent_name",
-    "relationship",
 )
 _NISN = re.compile(r"[0-9]{10}")
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
@@ -28,9 +25,6 @@ class RosterRow:
     nisn: str | None
     class_name: str | None
     grade_level: int | None
-    parent_email: str | None
-    parent_name: str | None
-    relationship: str | None
 
 
 @dataclass(frozen=True)
@@ -47,15 +41,13 @@ def _clean(value: str | None) -> str | None:
 
 def _check(raw: Mapping[str, str | None], seen_nisn: set[str]) -> tuple[str, str] | None:
     role, name = _clean(raw["role"]), _clean(raw["full_name"])
-    email, parent_email = _clean(raw["email"]), _clean(raw["parent_email"])
     if role not in ("student", "teacher"):
         return "role", "Peran harus student atau teacher."
     if not name:
         return "full_name", "Nama wajib diisi."
+    email = _clean(raw["email"])
     if email and not _EMAIL.fullmatch(email):
         return "email", "Format email tidak valid."
-    if parent_email and not _EMAIL.fullmatch(parent_email):
-        return "parent_email", "Format email orang tua tidak valid."
     if role == "teacher":
         return None if email else ("email", "Email guru wajib diisi.")
     nisn = _clean(raw["nisn"])
@@ -117,9 +109,6 @@ def parse_roster(text: str) -> tuple[list[RosterRow], list[RowError]]:
                 nisn=nisn if _clean(raw["role"]) == "student" else None,
                 class_name=_clean(raw["class_name"]),
                 grade_level=int(grade) if grade else None,
-                parent_email=(_clean(raw["parent_email"]) or "").lower() or None,
-                parent_name=_clean(raw["parent_name"]),
-                relationship=_clean(raw["relationship"]),
             )
         )
     return rows, errors

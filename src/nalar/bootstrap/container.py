@@ -51,7 +51,6 @@ from nalar.application.features.administration.commands.review_reference import 
 )
 from nalar.application.features.administration.commands.save_class import SaveClassHandler
 from nalar.application.features.administration.commands.set_curriculum import SetCurriculumHandler
-from nalar.application.features.administration.commands.set_parent_link import SetParentLinkHandler
 from nalar.application.features.administration.commands.set_school_status import (
     SetSchoolStatusHandler,
 )
@@ -162,12 +161,6 @@ from nalar.application.features.onboarding.commands.send_invitation import (
     SendAccountInvitationHandler,
 )
 from nalar.application.features.onboarding.queries.list_invitations import ListInvitationsQuery
-from nalar.application.features.parents.commands.mark_seen import MarkSeenHandler
-from nalar.application.features.parents.commands.set_preferences import SetPreferencesHandler
-from nalar.application.features.parents.queries.children import ChildrenQuery
-from nalar.application.features.parents.queries.preferences import PreferencesQuery
-from nalar.application.features.parents.queries.progress import ProgressQuery
-from nalar.application.features.parents.queries.reflections import ParentReflectionsQuery
 from nalar.application.features.publications.commands.edit_publication import EditPublicationHandler
 from nalar.application.features.publications.commands.grant_attempt import (
     GrantAttemptHandler,
@@ -184,13 +177,12 @@ from nalar.application.features.publications.queries.teacher_publications import
 from nalar.application.features.release.commands.finalize_publication import (
     FinalizePublicationHandler,
 )
-from nalar.application.features.release.commands.release import ReleaseHandler
-from nalar.application.features.release.commands.release_reminders import (
-    ReleaseRemindersHandler,
-)
-from nalar.application.features.release.queries.preview import ReleasePreviewQuery
 from nalar.application.features.results.commands.override_score import OverrideScoreHandler
 from nalar.application.features.results.commands.review_flag import ReviewFlagHandler
+from nalar.application.features.results.commands.teaching_plan import (
+    BuildTeachingPlanHandler,
+    RequestTeachingPlanHandler,
+)
 from nalar.application.features.results.queries.class_map import ClassMapQuery
 from nalar.application.features.results.queries.class_students import ClassStudentsQuery
 from nalar.application.features.results.queries.export_scores import ExportScoresQuery
@@ -218,12 +210,7 @@ from nalar.application.features.runs.commands.open_lobby import JoinCodes, OpenL
 from nalar.application.features.runs.commands.remove_participant import RemoveParticipantHandler
 from nalar.application.features.runs.commands.start_run import StartRunHandler
 from nalar.application.features.runs.commands.warm_run import WarmRunHandler
-from nalar.application.features.scheduler.commands.deliver_digest import DeliverDigestHandler
 from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
-from nalar.application.features.scheduler.commands.weekly_digest import (
-    DigestTiming,
-    WeeklyDigestHandler,
-)
 from nalar.application.features.sessions.commands.end_session import EndSessionHandler
 from nalar.application.features.sessions.commands.ingest_telemetry import IngestTelemetryHandler
 from nalar.application.features.sessions.commands.join_run import JoinRunHandler
@@ -255,7 +242,6 @@ from nalar.application.ports.auth import (
 from nalar.application.ports.auth_admin import AuthAdmin
 from nalar.application.ports.background import BackgroundWork
 from nalar.application.ports.clock import Clock
-from nalar.application.ports.mailer import Mailer
 from nalar.application.ports.missions import MissionRevisionPolicy
 from nalar.application.ports.national_references import ReferencePdf, ReferencePolicy
 from nalar.application.ports.password_resets import CredentialState
@@ -279,7 +265,6 @@ from nalar.infrastructure.config import load_integrity_config, load_narrative_le
 from nalar.infrastructure.db.pool import create_pool
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from nalar.infrastructure.documents.reference_pdf import NationalReferencePdf
-from nalar.infrastructure.email.smtp import DisabledMailer, GmailSmtpMailer
 from nalar.infrastructure.queue.pgmq import PgmqConsumer
 from nalar.infrastructure.readiness import PoolAndAiProbe
 from nalar.infrastructure.storage.supabase_storage import SupabaseStorage
@@ -479,37 +464,6 @@ class InfrastructureProvider(Provider):
         return PublishDefaults(planner_mode=self._settings.default_planner_mode)
 
     @provide(scope=Scope.APP)
-    def digest_timing(self) -> DigestTiming:
-        s = self._settings
-        return DigestTiming(
-            lease=timedelta(seconds=s.digest_lease_s),
-            retry_window=timedelta(seconds=s.digest_retry_window_s),
-            max_attempts=s.digest_max_attempts,
-            dispatch_ttl=timedelta(seconds=s.digest_dispatch_ttl_s),
-            retry_delays=tuple(timedelta(seconds=v) for v in s.digest_retry_delays_s),
-            daily_limit=s.digest_daily_limit,
-            batch_size=s.digest_batch_size,
-            sender_spacing=timedelta(seconds=s.digest_sender_spacing_s),
-            quota_cooldown=timedelta(seconds=s.digest_quota_cooldown_s),
-            auth_cooldown=timedelta(seconds=s.digest_auth_cooldown_s),
-        )
-
-    @provide(scope=Scope.APP)
-    def mailer(self) -> Mailer:
-        s = self._settings
-        if not s.email_enabled:
-            return DisabledMailer()
-        assert s.smtp_username and s.smtp_app_password
-        return GmailSmtpMailer(
-            s.smtp_username,
-            s.smtp_app_password.get_secret_value(),
-            s.email_from_name,
-            command_timeout_s=s.smtp_command_timeout_s,
-            data_timeout_s=s.smtp_data_timeout_s,
-            total_timeout_s=s.email_timeout_s,
-        )
-
-    @provide(scope=Scope.APP)
     async def token_verifier(self) -> AsyncIterator[TokenVerifier]:
         secret = self._settings.supabase_jwt_secret
         async with httpx.AsyncClient() as http:
@@ -631,7 +585,6 @@ class ApplicationProvider(Provider):
         ArchiveHandler,
         MaterialFileQuery,
         InboxHandler,
-        MarkSeenHandler,
         ExportScoresQuery,
         StudentHistoryQuery,
         RemoveParticipantHandler,
@@ -640,7 +593,6 @@ class ApplicationProvider(Provider):
         CreatePersonHandler,
         PlaceStudentsHandler,
         ReactivatePersonHandler,
-        SetParentLinkHandler,
         ListImportsQuery,
         EditPublicationHandler,
         GetPublicationQuery,
@@ -698,8 +650,6 @@ class ApplicationProvider(Provider):
         RunTurnStepHandler,
         IngestTelemetryHandler,
         TickHandler,
-        WeeklyDigestHandler,
-        DeliverDigestHandler,
         SendAccountInvitationHandler,
         RequestInvitationsHandler,
         ListInvitationsQuery,
@@ -724,20 +674,14 @@ class ApplicationProvider(Provider):
         ComputeLiveSessionFlagsHandler,
         ComputeSessionFlagsHandler,
         ComputePublicationSimilarityHandler,
-        ReleasePreviewQuery,
-        ReleaseHandler,
         FinalizePublicationHandler,
-        ReleaseRemindersHandler,
-        ChildrenQuery,
-        ProgressQuery,
-        ParentReflectionsQuery,
-        PreferencesQuery,
-        SetPreferencesHandler,
         CreateMissionHandler,
         ReviseMissionHandler,
         BuildRevisionHandler,
         GenerateMissionHandler,
         BuildMissionHandler,
+        RequestTeachingPlanHandler,
+        BuildTeachingPlanHandler,
         CreateVersionHandler,
         ReviewVersionHandler,
         ListMissionsQuery,

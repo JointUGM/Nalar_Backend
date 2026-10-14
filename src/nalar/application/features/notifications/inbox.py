@@ -13,7 +13,7 @@ class InboxHandler:
 
     async def _authorize(self, actor_id: UUID) -> None:
         me = await self._uow.identity.me(actor_id)
-        if me is None or not (me.roles or me.is_parent or me.is_platform_admin):
+        if me is None or not (me.roles or me.is_platform_admin):
             raise NotFound()
 
     async def page(self, actor_id: UUID, limit: int, cursor: str | None) -> AdminRow:

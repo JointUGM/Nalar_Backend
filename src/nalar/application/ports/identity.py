@@ -15,7 +15,6 @@ class Me:
     user_id: UUID
     full_name: str
     roles: tuple[RoleRef, ...]
-    is_parent: bool
     is_platform_admin: bool
     email: str | None = None
 

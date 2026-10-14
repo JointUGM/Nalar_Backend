@@ -7,12 +7,7 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator, model
 from nalar.presentation.api.schemas.common import Body
 
 type Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
-type Role = Literal["school_admin", "teacher", "student", "parent"]
-
-
-class LinkedPersonOut(BaseModel):
-    user_id: UUID
-    full_name: str
+type Role = Literal["school_admin", "teacher", "student"]
 
 
 class PersonOut(BaseModel):
@@ -24,8 +19,6 @@ class PersonOut(BaseModel):
     email: str | None
     class_name: str | None
     account_state: Literal["active", "inactive", "pending_activation"]
-    linked_parents: list[LinkedPersonOut]
-    linked_children: list[LinkedPersonOut]
 
 
 class PeoplePageOut(BaseModel):
@@ -56,18 +49,12 @@ class StudentPlacementIn(Body):
     user_ids: list[UUID] = Field(min_length=1, max_length=500)
 
 
-class ParentLinkIn(Body):
-    relationship: Literal["ayah", "ibu", "wali"] | None = None
-
-
 class PersonCreateIn(Body):
     full_name: Name
-    role: Literal["teacher", "student", "parent"]
+    role: Literal["teacher", "student"]
     email: str | None = Field(default=None, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     nisn: str | None = Field(default=None, pattern=r"^\d{10}$")
     class_id: UUID | None = None
-    child_ids: list[UUID] = Field(default_factory=list, max_length=100)
-    relationship: Literal["ayah", "ibu", "wali"] | None = None
     invite: bool = False
 
     @model_validator(mode="after")
@@ -75,14 +62,10 @@ class PersonCreateIn(Body):
         if self.email is not None:
             self.email = self.email.strip().lower()
         if self.role == "student":
-            if self.nisn is None or self.class_id is None or self.child_ids:
+            if self.nisn is None or self.class_id is None:
                 raise ValueError("A student requires nisn and class_id")
         elif self.email is None or self.nisn is not None or self.class_id is not None:
-            raise ValueError("A teacher or parent requires email")
-        if self.role == "parent" and not self.child_ids:
-            raise ValueError("A parent requires at least one child in this school")
-        if self.role != "parent" and (self.child_ids or self.relationship is not None):
-            raise ValueError("Child links belong to parents")
+            raise ValueError("A teacher requires email")
         if self.invite and self.email is None:
             raise ValueError("An invitation requires a real email")
         return self

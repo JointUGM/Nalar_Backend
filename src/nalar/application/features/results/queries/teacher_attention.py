@@ -34,7 +34,7 @@ def _decode(cursor: str, actor_id: UUID, school_id: UUID) -> AttentionCursor:
             or UUID(actor) != actor_id
             or UUID(school) != school_id
             or created_at.utcoffset() is None
-            or kind not in ("safety", "flag", "kb_review", "release_ready")
+            or kind not in ("safety", "flag", "kb_review")
         ):
             raise ValueError
         return created_at, kind, UUID(item)

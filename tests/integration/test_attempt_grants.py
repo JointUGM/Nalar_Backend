@@ -24,7 +24,7 @@ from tests.integration.support.factories import (
     evaluate,
     finish_session,
 )
-from tests.integration.test_release import settled
+from tests.integration.support.settling import settled
 from tests.unit.application.fakes import FakeClock
 
 
@@ -177,10 +177,6 @@ async def test_grant_retry_scopes_cards_and_starts_exactly_one_attempt(
         again = await api.post(start_url, json={"run_id": run}, headers=as_user(world.student_id))
         assert again.json() == started.json()
         teacher = as_user(world.teacher_id)
-        preview_url = f"/publications/{world.publication_id}/release-preview"
-        preview = (await api.get(preview_url, headers=teacher)).json()
-        assert preview["ready"] is False
-        assert {"code": "RUN_OPEN", "count": 1} in preview["blockers"]
         class_map_url = f"/publications/{world.publication_id}/class-map"
         pending = (await api.get(class_map_url, headers=teacher)).json()
         assert (pending["denominator"], pending["incomplete_count"]) == (0, 1)
@@ -189,20 +185,12 @@ async def test_grant_retry_scopes_cards_and_starts_exactly_one_attempt(
         await evaluate(conn, world, session_id)
         closed = await api.post(f"/runs/{run}/close", headers=teacher)
         assert closed.status_code == 200, closed.text
-        assert (await api.get(preview_url, headers=teacher)).json()["ready"] is True
         assert (await api.get(class_map_url, headers=teacher)).json()["denominator"] == 1
     assert (
         await conn.fetchval(
             "select content from session_reflections where session_id = $1", world.session_id
         )
         == "Kamu sudah memikirkan gaya gesek."
-    )
-    assert (
-        await conn.fetchval(
-            "select count(*) from parent_summaries where publication_id = $1",
-            world.publication_id,
-        )
-        == 1
     )
     assert (
         await conn.fetchval("select attempt_number from sessions where run_id = $1::uuid", run) == 2
@@ -218,14 +206,13 @@ async def test_grant_retry_scopes_cards_and_starts_exactly_one_attempt(
     )
 
 
-async def test_grant_rejects_released_and_unenrolled_before_lifecycle_errors(
+async def test_grant_rejects_cancelled_and_unenrolled_before_lifecycle_errors(
     conn: asyncpg.Connection, world: World
 ) -> None:
     await settled(conn, world)
     await conn.execute(
-        "update publications set released_to_parents_at = now(), released_by = $2 where id = $1",
+        "update publications set cancelled_at = now() where id = $1",
         world.publication_id,
-        world.teacher_id,
     )
     headers = as_user(world.teacher_id) | {"Idempotency-Key": str(uuid4())}
     url = f"/publications/{world.publication_id}/attempt-grants"

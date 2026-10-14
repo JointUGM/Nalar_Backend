@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -23,7 +24,6 @@ from nalar.application.ports.results import (
     MonitorFlag,
     MonitorRun,
     MonitorStudent,
-    ReleaseReadyAttention,
     ReportActivity,
     ReportConceptResult,
     ReportFlag,
@@ -34,6 +34,7 @@ from nalar.application.ports.results import (
     SafetyAttention,
     SessionReport,
     StudentConceptCounts,
+    TeachingPlanSource,
     TrailInput,
     TrailPublication,
 )
@@ -42,11 +43,10 @@ from nalar.domain.context_pack import PackMisconception, question_bank_from_pack
 from nalar.domain.mentoring import MentoringContext, MentoringTurn
 from nalar.domain.telemetry import TurnMetrics, metrics_by_turn
 from nalar.infrastructure.db.pool import DbConnection
-from nalar.infrastructure.db.repositories.release import ELIGIBLE_SQL
 
-_ATTENTION = f"""
+_ATTENTION = """
     with scoped_publications as materialized (
-        select p.id, p.class_id, p.created_at, p.released_to_parents_at, p.cancelled_at,
+        select p.id, p.class_id, p.created_at, p.cancelled_at,
                c.name as class_name, mi.title as mission_title
           from publications p
           join classes c on c.id = p.class_id and c.archived_at is null
@@ -78,38 +78,6 @@ _ATTENTION = f"""
                count(*) filter (where kind = 'concept')::int as pending_concepts,
                count(*) filter (where kind = 'misconception')::int as pending_misconceptions
           from pending_items group by knowledge_base_id
-    ), ready_publications as (
-        select p.*, eligible.eligible_count,
-               greatest(p.created_at, eligible.summary_at,
-                   (select max(r.closed_at) from publication_runs r where r.publication_id = p.id),
-                   (select max(s.ended_at) from scoped_sessions s where s.publication_id = p.id),
-                   (select max(e.evaluated_at) from session_evaluations e
-                     join scoped_sessions s on s.id = e.session_id where s.publication_id = p.id)
-               ) as ready_at
-          from scoped_publications p
-          cross join lateral (
-              select count(*)::int as eligible_count,
-                     count(*) filter (where ps.id is null) as missing_summaries,
-                     max(ps.generated_at) as summary_at
-                from ({ELIGIBLE_SQL.replace("$1", "p.id")}) el
-                left join parent_summaries ps
-                  on ps.publication_id = p.id and ps.student_id = el.student_id
-          ) eligible
-         where p.released_to_parents_at is null and p.cancelled_at is null
-           and eligible.eligible_count > 0 and eligible.missing_summaries = 0
-           and not exists (select 1 from publication_runs r
-                            where r.publication_id = p.id and r.status <> 'closed')
-           and not exists (select 1 from run_participants rp
-                            join publication_runs r on r.id = rp.run_id
-                           where r.publication_id = p.id and rp.status = 'waiting')
-           and not exists (select 1 from scoped_sessions s
-                            where s.publication_id = p.id
-                              and s.status in ('in_progress', 'paused_safety'))
-           and not exists (select 1 from scoped_sessions s
-                            where s.publication_id = p.id
-                              and s.status in ('completed', 'timed_out', 'ended_safety')
-                              and not exists (select 1 from session_evaluations e
-                                               where e.session_id = s.id))
     ), queue as materialized (
         select 'safety' as kind, s.id as item_id,
                coalesce(s.safety_paused_at, s.last_activity_at) as created_at,
@@ -129,16 +97,10 @@ _ATTENTION = f"""
                    'pending_concepts', pc.pending_concepts,
                    'pending_misconceptions', pc.pending_misconceptions)
           from scoped_kbs kb join pending_counts pc on pc.knowledge_base_id = kb.id
-        union all
-        select 'release_ready', p.id, p.ready_at,
-               jsonb_build_object('publication_id', p.id, 'class_name', p.class_name,
-                   'mission_title', p.mission_title, 'eligible_count', p.eligible_count)
-          from ready_publications p
     ), counts as (
         select count(*) filter (where kind = 'safety')::int as safety,
                count(*) filter (where kind = 'flag')::int as flag,
                count(*) filter (where kind = 'kb_review')::int as kb_review,
-               count(*) filter (where kind = 'release_ready')::int as release_ready,
                count(*)::int as total from queue
     ), page as (
         select * from queue
@@ -235,14 +197,45 @@ _VERSION_MISCONCEPTIONS = """
 """
 
 # "library" needs a published entry; its source_citations are never empty (0003 check).
+# The school's own examples win; an explicitly linked published entry fills an empty list.
 _STRATEGIES = """
-    select m.id, m.correct_understanding, m.counter_examples, m.detection_cues,
-           ml.id is not null as from_library, coalesce(ml.source_citations, '{}') as citations
+    select m.id, m.correct_understanding,
+           case when cardinality(m.counter_examples) > 0 then m.counter_examples
+                else coalesce(ml.counter_examples, '{}') end as counter_examples,
+           m.detection_cues,
+           ml.id is not null as from_library, coalesce(ml.source_citations, '{}') as citations,
+           tp.plan as teaching_plan
       from publications p
       join mission_version_misconceptions mvm on mvm.mission_version_id = p.mission_version_id
       join misconceptions m on m.id = mvm.misconception_id
       left join misconception_library ml on ml.id = m.library_id and ml.status = 'published'
+      left join teaching_plans tp on tp.publication_id = p.id and tp.misconception_id = m.id
      where p.id = $1 order by m.statement, m.id
+"""
+
+# TC-23 grounding: reviewed fields plus the frozen bank questions on the same concept.
+_PLAN_SOURCE = """
+    select p.school_id, coalesce(mv.title_snapshot, mi.title) as title,
+           coalesce(mv.learning_objective_snapshot, mi.learning_objective) as learning_objective,
+           c.name as concept_name, m.statement,
+           m.correct_understanding,
+           case when cardinality(m.counter_examples) > 0 then m.counter_examples
+                else coalesce(ml.counter_examples, '{}') end as counter_examples,
+           m.detection_cues,
+           array(select q->>'id' || chr(31) || (q->>'text')
+                   from jsonb_array_elements(mv.question_bank) q
+                  where q->>'concept_id' = m.concept_id::text
+                  order by (q->>'misconception_id' = m.id::text) is not true, q->>'id'
+                  limit 8) as questions
+      from publications p
+      join mission_versions mv on mv.id = p.mission_version_id
+      join missions mi on mi.id = mv.mission_id
+      join mission_version_misconceptions mvm
+        on mvm.mission_version_id = mv.id and mvm.misconception_id = $2
+      join misconceptions m on m.id = mvm.misconception_id
+      join concepts c on c.id = m.concept_id
+      left join misconception_library ml on ml.id = m.library_id and ml.status = 'published'
+     where p.id = $1
 """
 
 # TC-9: only each student's latest attempt counts; an older attempt is never reused.
@@ -468,7 +461,7 @@ class PgResultsRepo:
             _ATTENTION, actor_id, school_id, limit, *(after or (None, None, None))
         )
         counts = AttentionCounts(
-            *(rows[0][key] for key in ("safety", "flag", "kb_review", "release_ready", "total"))
+            *(rows[0][key] for key in ("safety", "flag", "kb_review", "total"))
         )
         items: list[AttentionItem] = []
         for row in rows:
@@ -509,17 +502,6 @@ class PgResultsRepo:
                         data["topic_title"],
                         data["pending_concepts"],
                         data["pending_misconceptions"],
-                    )
-                )
-            else:
-                items.append(
-                    ReleaseReadyAttention(
-                        item_id,
-                        created_at,
-                        UUID(data["publication_id"]),
-                        data["class_name"],
-                        data["mission_title"],
-                        data["eligible_count"],
                     )
                 )
         return items, counts
@@ -795,9 +777,70 @@ class PgResultsRepo:
                     tuple(m["detection_cues"]),
                     "library" if m["from_library"] else "kb",
                     tuple(m["citations"]),
+                    json.loads(m["teaching_plan"]) if m["teaching_plan"] else None,
                 )
                 for m in await self._conn.fetch(_STRATEGIES, publication_id)
             ),
+        )
+
+    async def teaching_plan_source(
+        self, publication_id: UUID, misconception_id: UUID
+    ) -> TeachingPlanSource | None:
+        row = await self._conn.fetchrow(_PLAN_SOURCE, publication_id, misconception_id)
+        if row is None:
+            return None
+        return TeachingPlanSource(
+            school_id=row["school_id"],
+            mission_title=row["title"],
+            learning_objective=row["learning_objective"],
+            concept_name=row["concept_name"],
+            statement=row["statement"],
+            correct_understanding=row["correct_understanding"],
+            counter_examples=tuple(e for e in row["counter_examples"] if e.strip()),
+            detection_cues=tuple(c for c in row["detection_cues"] if c.strip()),
+            questions=tuple(
+                (qid, text) for qid, _, text in (q.partition(chr(31)) for q in row["questions"])
+            ),
+        )
+
+    async def has_teaching_plan(self, publication_id: UUID, misconception_id: UUID) -> bool:
+        found: bool = await self._conn.fetchval(
+            "select exists (select 1 from teaching_plans"
+            " where publication_id = $1 and misconception_id = $2)",
+            publication_id,
+            misconception_id,
+        )
+        return found
+
+    async def active_teaching_plan_job(
+        self, publication_id: UUID, misconception_id: UUID
+    ) -> UUID | None:
+        job_id: UUID | None = await self._conn.fetchval(
+            "select id from jobs where kind = 'teaching_plan' and entity_id = $1"
+            " and status in ('queued', 'running') and result->>'misconception_id' = $2"
+            " order by created_at desc limit 1",
+            publication_id,
+            str(misconception_id),
+        )
+        return job_id
+
+    async def insert_teaching_plan(
+        self,
+        school_id: UUID,
+        publication_id: UUID,
+        misconception_id: UUID,
+        plan: dict[str, Any],
+        ai_invocation_id: UUID | None,
+    ) -> None:
+        await self._conn.execute(
+            "insert into teaching_plans (school_id, publication_id, misconception_id, plan,"
+            " ai_invocation_id) values ($1, $2, $3, $4::jsonb, $5)"
+            " on conflict (publication_id, misconception_id) do nothing",
+            school_id,
+            publication_id,
+            misconception_id,
+            json.dumps(plan, default=str),
+            ai_invocation_id,
         )
 
     async def publication_knowledge_base(self, publication_id: UUID) -> UUID | None:

@@ -11,7 +11,6 @@ from nalar.domain.placeholders import (
 LEX = NarrativeLexicon(
     number_words=frozenset({"satu", "dua", "tiga", "belas"}),
     count_claims=("sebagian besar", "semua siswa"),
-    score_terms=("skor", "level"),
 )
 C = "11111111-1111-4111-8111-111111111111"
 M = "22222222-2222-4222-8222-222222222222"
@@ -68,27 +67,3 @@ def test_a_placeholder_for_an_id_outside_the_snapshot_is_rejected() -> None:
     other = "33333333-3333-4333-8333-333333333333"
     with pytest.raises(PlaceholderError, match=f"unknown_key:count:{other}"):
         fill(f"{{{{count:{other}}}}} siswa", counts_from_snapshot(SNAPSHOT), LEX)
-
-
-def test_score_terms_are_rejected_only_in_parent_text() -> None:
-    text = "Anak Anda mencapai level baik."
-    assert quantity_problems(text, LEX) == []
-    assert quantity_problems(text, LEX, parent=True) == ["score_term:level"]
-
-
-def test_parent_explanation_can_use_number_words_for_a_science_example() -> None:
-    assert (
-        quantity_problems("Cobalah membandingkan dua permukaan bersama Ananda.", LEX, parent=True)
-        == []
-    )
-
-
-@pytest.mark.parametrize(
-    ("text", "problem"),
-    [
-        ("Ananda menjawab 3 pertanyaan.", "digit"),
-        ("Semua siswa mengerti.", "count_claim:semua siswa"),
-    ],
-)
-def test_parent_text_still_rejects_digits_and_class_counts(text: str, problem: str) -> None:
-    assert problem in quantity_problems(text, LEX, parent=True)

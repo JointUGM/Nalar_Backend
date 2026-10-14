@@ -21,11 +21,6 @@ _PEOPLE = """
     with members as (
         select user_id, role::text as role, status = 'active' as active
           from school_memberships where school_id = $1
-        union all
-        select l.parent_id, 'parent', bool_or(l.deactivated_at is null and exists(
-            select 1 from school_memberships m where m.school_id = l.school_id
-              and m.user_id = l.student_id and m.role = 'student' and m.status = 'active'))
-          from parent_student_links l where l.school_id = $1 group by l.parent_id
     ), people as (
         select p.id as user_id, p.full_name, p.contact_email, p.has_real_email,
                sp.nisn, array_agg(distinct m.role order by m.role) as roles,
@@ -46,17 +41,7 @@ _PEOPLE = """
            (select c.name from class_enrollments ce join classes c on c.id = ce.class_id
                join academic_years y on y.id = ce.academic_year_id
              where ce.school_id = $1 and ce.student_id = people.user_id and ce.status = 'active'
-             order by y.is_current desc, y.starts_on desc, c.id limit 1) as class_name,
-               coalesce((select jsonb_agg(jsonb_build_object(
-                 'user_id', pr.id, 'full_name', pr.full_name))
-             from parent_student_links l join profiles pr on pr.id = l.parent_id
-             where l.school_id = $1 and l.student_id = people.user_id
-               and l.deactivated_at is null), '[]') as linked_parents,
-               coalesce((select jsonb_agg(jsonb_build_object(
-                 'user_id', pr.id, 'full_name', pr.full_name))
-             from parent_student_links l join profiles pr on pr.id = l.student_id
-             where l.school_id = $1 and l.parent_id = people.user_id
-               and l.deactivated_at is null), '[]') as linked_children
+             order by y.is_current desc, y.starts_on desc, c.id limit 1) as class_name
       from people where ($4::uuid is null or user_id > $4) order by user_id limit $5
 """
 
@@ -110,7 +95,6 @@ class PgAdministrationRepo:
             details.class_id,
         ):
             raise NotFound()
-        await self._students(school_id, details.child_ids)
 
     async def place_students(self, school_id: UUID, class_id: UUID, user_ids: list[UUID]) -> None:
         await self._students(school_id, user_ids)
@@ -158,17 +142,6 @@ class PgAdministrationRepo:
             deactivated,
             ids("membership_ids"),
         )
-        links = await self._conn.fetch(
-            "update parent_student_links l set deactivated_at = null"
-            " where school_id = $1 and parent_id = $2 and deactivated_at = $3"
-            " and exists(select 1 from school_memberships m where m.school_id = $1"
-            " and m.user_id = l.student_id and m.role = 'student' and m.status = 'active')"
-            " and ($4::uuid[] is null or l.id = any($4)) returning id",
-            school_id,
-            user_id,
-            deactivated,
-            ids("parent_link_ids"),
-        )
         await self._conn.execute(
             "update class_enrollments ce set status = 'active', ended_at = null"
             " where ce.school_id = $1 and ce.student_id = $2 and ce.ended_at = $3"
@@ -184,64 +157,12 @@ class PgAdministrationRepo:
             deactivated,
             ids("enrollment_ids"),
         )
-        if changed or links:
+        if changed:
             await self._conn.execute(
                 "update profiles set credential_revision = credential_revision + 1 where id = $1",
                 user_id,
             )
-        return bool(changed or links)
-
-    async def set_parent_link(
-        self,
-        school_id: UUID,
-        parent_id: UUID,
-        student_id: UUID,
-        linked: bool,
-        relationship: str | None,
-    ) -> None:
-        await self._person(school_id, parent_id)
-        await self._students(school_id, [student_id], active=linked)
-        if not await self._conn.fetchval(
-            "select exists(select 1 from parent_student_links where school_id = $1"
-            " and parent_id = $2)",
-            school_id,
-            parent_id,
-        ):
-            raise NotFound()
-        if linked:
-            await self.attach_parent(school_id, parent_id, student_id, relationship, restore=True)
-        else:
-            await self._conn.execute(
-                "update parent_student_links set deactivated_at = now() where school_id = $1"
-                " and parent_id = $2 and student_id = $3 and deactivated_at is null",
-                school_id,
-                parent_id,
-                student_id,
-            )
-
-    async def attach_parent(
-        self,
-        school_id: UUID,
-        parent_id: UUID,
-        student_id: UUID,
-        relationship: str | None,
-        *,
-        restore: bool,
-    ) -> None:
-        row = await self._conn.fetchval(
-            "insert into parent_student_links(parent_id, student_id, school_id, relationship)"
-            " values($2,$3,$1,$4) on conflict(parent_id, student_id) do update"
-            " set relationship = excluded.relationship, deactivated_at = null"
-            " where parent_student_links.school_id = excluded.school_id"
-            " and ($5::bool or parent_student_links.deactivated_at is null) returning id",
-            school_id,
-            parent_id,
-            student_id,
-            relationship,
-            restore,
-        )
-        if row is None:
-            raise NotFound()
+        return bool(changed)
 
     async def roster_imports(
         self, school_id: UUID, year_id: UUID | None, cursor: UUID | None, limit: int
@@ -299,9 +220,7 @@ class PgAdministrationRepo:
 
     async def _person(self, school_id: UUID, user_id: UUID) -> None:
         if not await self._conn.fetchval(
-            "select exists(select 1 from school_memberships where school_id = $1 and user_id = $2)"
-            " or exists(select 1 from parent_student_links where school_id = $1 and"
-            " parent_id = $2)",
+            "select exists(select 1 from school_memberships where school_id = $1 and user_id = $2)",
             school_id,
             user_id,
         ):
@@ -319,8 +238,6 @@ class PgAdministrationRepo:
             real = data.pop("has_real_email")
             local, _, domain = (email or "").partition("@")
             data["email"] = f"{local[:1]}***@{domain}" if real and domain else None
-            data["linked_parents"] = json.loads(data["linked_parents"])
-            data["linked_children"] = json.loads(data["linked_children"])
             items.append(data)
         total = (
             rows[0]["total"]
@@ -328,8 +245,6 @@ class PgAdministrationRepo:
             else await self._conn.fetchval(
                 "select count(distinct m.user_id)::int from ("
                 " select user_id, role::text as role from school_memberships where school_id = $1"
-                " union all select parent_id, 'parent' from parent_student_links where"
-                " school_id = $1"
                 ") m join profiles p on p.id = m.user_id"
                 " left join student_profiles sp on sp.user_id = p.id"
                 " where ($2::text is null or m.role = $2) and ($3 = '' or position(lower($3)"
@@ -411,19 +326,13 @@ class PgAdministrationRepo:
             school_id,
             user_id,
         )
-        links = await self._conn.fetch(
-            "update parent_student_links set deactivated_at = now() where school_id = $1"
-            " and parent_id = $2 and deactivated_at is null returning id",
-            school_id,
-            user_id,
-        )
         enrollments = await self._conn.fetch(
             "update class_enrollments set status = 'inactive', ended_at = now()"
             " where school_id = $1 and student_id = $2 and status = 'active' returning id",
             school_id,
             user_id,
         )
-        if changed or links:
+        if changed:
             await self._conn.execute(
                 "update schools set pending_admin_id = null"
                 " where id = $1 and pending_admin_id = $2",
@@ -437,7 +346,6 @@ class PgAdministrationRepo:
             return {
                 "membership_ids": [str(row["id"]) for row in changed],
                 "enrollment_ids": [str(row["id"]) for row in enrollments],
-                "parent_link_ids": [str(row["id"]) for row in links],
             }
         return None
 
@@ -767,8 +675,7 @@ class PgAdministrationRepo:
             " on p.id = m.user_id where m.school_id = s.id and m.role = 'school_admin'"
             " and m.status = 'active' order by m.joined_at,m.id limit 1) as admin_name,"
             " (select count(distinct user_id)::int from (select user_id from school_memberships"
-            " where school_id = s.id and status = 'active' union select parent_id"
-            " from parent_student_links where school_id = s.id and deactivated_at is null) u)"
+            " where school_id = s.id and status = 'active') u)"
             " as user_count from schools s where ($2::uuid is null or s.id > $2) and ($1 = ''"
             " or position(lower($1) in lower(s.name || ' ' || coalesce(s.npsn,'') || ' '"
             " || coalesce(s.city,''))) > 0) order by s.id limit $3",
@@ -951,9 +858,7 @@ class PgAdministrationRepo:
             " where m.school_id = s.id and m.role = 'school_admin' and m.status = 'active'"
             " order by m.joined_at,m.id limit 1) as admin_name,"
             " (select count(distinct user_id)::int from (select user_id from school_memberships"
-            " where school_id = s.id and status = 'active' union select parent_id from "
-            "parent_student_links"
-            " where school_id = s.id and deactivated_at is null) users) as user_count "
+            " where school_id = s.id and status = 'active') users) as user_count "
             "from schools s where s.id = $1",
             school_id,
         )

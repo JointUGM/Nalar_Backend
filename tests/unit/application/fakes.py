@@ -35,17 +35,16 @@ from nalar.application.ports.ai_contract import (
     InvocationOut,
     NextTurnIn,
     NextTurnOut,
-    ParentSummaryIn,
-    ParentSummaryOut,
     ReviseMissionIn,
     ReviseMissionOut,
     SelectTargetsIn,
     SelectTargetsOut,
+    TeachingPlanIn,
+    TeachingPlanOut,
     WarmIn,
     WarmOut,
 )
 from nalar.application.ports.auth import AuthTokens, RecoveryProof
-from nalar.application.ports.mailer import BeforeSubmit, MailSubmission
 from nalar.application.ports.sessions import TurnContext
 from nalar.application.ports.turns import NewTurn, TurnAnalysis
 from nalar.domain.labels import SessionEndReason, SessionStatus
@@ -167,10 +166,10 @@ class ScriptedAiGateway:
     ) -> AiResult[ClassInsightOut]:
         return cast(AiResult[ClassInsightOut], await self._reply("class_insight", body))
 
-    async def parent_summary(
-        self, body: ParentSummaryIn, request_id: str
-    ) -> AiResult[ParentSummaryOut]:
-        return cast(AiResult[ParentSummaryOut], await self._reply("parent_summary", body))
+    async def teaching_plan(
+        self, body: TeachingPlanIn, request_id: str
+    ) -> AiResult[TeachingPlanOut]:
+        return cast(AiResult[TeachingPlanOut], await self._reply("teaching_plan", body))
 
     async def detect_sections(
         self, pdf: bytes, fallback_title: str, request_id: str
@@ -379,17 +378,3 @@ class FakeIdentityProvider:
         refresh = f"refresh-{self._issued}"
         self._live_refresh.add(refresh)
         return AuthTokens(self.user_id, f"access-{self._issued}", refresh, 1_900_000_000)
-
-
-class FakeMailer:
-    enabled = True
-    sender_key = "fake-gmail"
-
-    def __init__(self) -> None:
-        self.sent: list[tuple[str, str, str]] = []
-
-    async def send(self, submission: MailSubmission, *, before_submit: BeforeSubmit) -> bool:
-        if not await before_submit():
-            return False
-        self.sent.append((submission.recipient, submission.subject, submission.text))
-        return True

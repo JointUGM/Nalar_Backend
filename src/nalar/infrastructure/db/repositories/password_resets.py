@@ -16,14 +16,7 @@ _RECIPIENT = """
        and (u.banned_until is null or u.banned_until <= now())
        and (p.is_platform_admin
         or exists(select 1 from school_memberships m join schools s on s.id=m.school_id
-                   where m.user_id=p.id and m.status='active' and s.is_active)
-        or exists(select 1 from parent_student_links l
-                   join schools s on s.id=l.school_id and s.is_active
-                   join school_memberships m on m.user_id=l.student_id and m.school_id=l.school_id
-                    and m.role='student' and m.status='active'
-                   join class_enrollments e on e.student_id=l.student_id
-                    and e.school_id=l.school_id and e.status='active'
-                  where l.deactivated_at is null and l.parent_id=p.id))
+                   where m.user_id=p.id and m.status='active' and s.is_active))
 """
 
 

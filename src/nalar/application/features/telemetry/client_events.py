@@ -23,7 +23,7 @@ class ClientEventsHandler:
     async def execute(self, actor_id: UUID, events: list[ClientEvent]) -> int:
         async with self._uow:
             me = await self._uow.identity.me(actor_id)
-            if me is None or not (me.roles or me.is_parent or me.is_platform_admin):
+            if me is None or not (me.roles or me.is_platform_admin):
                 raise NotFound()
             now = self._clock.now()
             if any(

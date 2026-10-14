@@ -32,7 +32,7 @@ _TO_FINALIZE = """
           from jobs where kind = 'publication_finalize' group by entity_id)
     select p.id, p.school_id from publications p
       left join finalized f on f.entity_id = p.id
-     where p.released_to_parents_at is null and p.cancelled_at is null
+     where p.cancelled_at is null
        and not coalesce(f.busy, false)
        and exists (select 1 from sessions s where s.publication_id = p.id)
        and not exists (select 1 from publication_runs r
@@ -46,11 +46,8 @@ _TO_FINALIZE = """
                          join session_evaluations e on e.session_id = ls.id
                           and e.status = 'completed'
                         where ls.publication_id = p.id and ls.status = 'completed'
-                          and (not exists (select 1 from parent_summaries ps
-                                            where ps.publication_id = p.id
-                                              and ps.student_id = ls.student_id)
-                               or (f.runs < 2 and not exists (select 1 from class_map_insights i
-                                                               where i.publication_id = p.id)))))
+                          and f.runs < 2 and not exists (select 1 from class_map_insights i
+                                                         where i.publication_id = p.id)))
      order by p.created_at
      limit 50
 """

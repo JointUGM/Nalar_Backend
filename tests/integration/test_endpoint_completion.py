@@ -15,8 +15,8 @@ from tests.integration.support.factories import (
     create_student,
     create_user,
 )
+from tests.integration.support.settling import settled
 from tests.integration.test_kb_upload import PDF, upload
-from tests.integration.test_release import settled
 from tests.unit.application.fakes import FakeClock, FakeStorage
 
 
@@ -199,13 +199,13 @@ async def test_inbox_does_not_expose_invitation_payload_or_revoked_scope(
     notification_id = await conn.fetchval(
         "insert into notifications(recipient_id,school_id,type,payload,dedupe_key)"
         " values($1,$2,'account_invitation',$3::jsonb,$4) returning id",
-        world.parent_id,
+        world.teacher_id,
         world.school_id,
         json.dumps({"proof": "SECRET", "url": "SECRET"}),
         str(uuid4()),
     )
     async with api_client(conn) as api:
-        headers = as_user(world.parent_id)
+        headers = as_user(world.teacher_id)
         inbox = await api.get("/notifications", headers=headers)
         assert inbox.status_code == 200, inbox.text
         assert inbox.json()["unread_count"] == 1
@@ -220,33 +220,10 @@ async def test_inbox_does_not_expose_invitation_payload_or_revoked_scope(
             )
         ).status_code == 404
         await conn.execute(
-            "update parent_student_links set deactivated_at = now() where parent_id = $1",
-            world.parent_id,
+            "update school_memberships set status = 'inactive' where user_id = $1",
+            world.teacher_id,
         )
         assert (await api.get("/notifications", headers=headers)).status_code == 404
-
-
-async def test_parent_seen_and_subject_projection_never_include_unreleased_results(
-    conn: asyncpg.Connection, world: World
-) -> None:
-    await settled(conn, world)
-    async with api_client(conn) as api:
-        headers = as_user(world.parent_id)
-        children = await api.get("/parent/children", headers=headers)
-        assert children.status_code == 200, children.text
-        child = children.json()["items"][0]
-        assert child["class_name"] == "8A" and child["school_id"] == str(world.school_id)
-        assert child["last_seen_at"] is None
-        assert (
-            await api.post(f"/parent/children/{world.student_id}/seen", headers=headers)
-        ).status_code == 204
-        reflections = await api.get(
-            f"/parent/children/{world.student_id}/reflections", headers=headers
-        )
-        assert reflections.json()["items"] == []
-        assert (await api.get("/parent/children", headers=headers)).json()["items"][0][
-            "last_seen_at"
-        ]
 
 
 async def test_exports_escape_formulas_and_history_denies_other_teachers(
@@ -436,43 +413,6 @@ async def test_upload_retry_reuses_object_after_storage_acknowledgement_is_lost(
         )
         == 1
     )
-
-
-async def test_parent_digest_inbox_requires_currently_released_payload_items(
-    conn: asyncpg.Connection, world: World
-) -> None:
-    await settled(conn, world)
-    notification_id = await conn.fetchval(
-        "insert into notifications(recipient_id,school_id,type,payload,dedupe_key)"
-        " values($1,$2,'parent_periodic_summary',$3::jsonb,$4) returning id",
-        world.parent_id,
-        world.school_id,
-        json.dumps(
-            {
-                "items": [
-                    {
-                        "student_id": str(world.student_id),
-                        "publication_id": str(world.publication_id),
-                    }
-                ]
-            }
-        ),
-        str(uuid4()),
-    )
-    async with api_client(conn) as api:
-        headers = as_user(world.parent_id)
-        hidden = await api.get("/notifications", headers=headers)
-        assert hidden.status_code == 200, hidden.text
-        assert hidden.json() == {"items": [], "unread_count": 0, "next_cursor": None}
-        await conn.execute(
-            "update publications set released_to_parents_at = now(), released_by = published_by"
-            " where id = $1",
-            world.publication_id,
-        )
-        visible = await api.get("/notifications", headers=headers)
-        assert visible.json()["unread_count"] == 1
-        assert visible.json()["items"][0]["id"] == str(notification_id)
-        assert "publication_id" not in visible.text and "payload" not in visible.text
 
 
 async def test_student_leave_only_cancels_own_waiting_participant(

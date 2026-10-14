@@ -24,8 +24,6 @@ from nalar.presentation.api.routers import (
     missions,
     national_references,
     operations,
-    parent,
-    release,
     results,
     runs,
     student,
@@ -50,7 +48,6 @@ def create_app(
     app.state.public_config = {
         "password_reset_enabled": settings.password_reset_enabled,
         "account_email_enabled": settings.account_email_enabled,
-        "weekly_digest_enabled": settings.email_enabled,
     }
     app.state.session_cookie_name = settings.session_cookie_name
     app.state.session_lifetime_s = settings.session_lifetime_s
@@ -85,8 +82,6 @@ def create_app(
         runs.router,
         student.router,
         results.router,
-        release.router,
-        parent.router,
         operations.router,
         missions.router,
         national_references.router,

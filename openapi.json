@@ -414,10 +414,6 @@
             "title": "Kb Review",
             "type": "integer"
           },
-          "release_ready": {
-            "title": "Release Ready",
-            "type": "integer"
-          },
           "safety": {
             "title": "Safety",
             "type": "integer"
@@ -431,7 +427,6 @@
           "safety",
           "flag",
           "kb_review",
-          "release_ready",
           "total"
         ],
         "title": "AttentionCountsOut",
@@ -448,7 +443,6 @@
                 "mapping": {
                   "flag": "#/components/schemas/FlagAttentionOut",
                   "kb_review": "#/components/schemas/KbReviewAttentionOut",
-                  "release_ready": "#/components/schemas/ReleaseReadyAttentionOut",
                   "safety": "#/components/schemas/SafetyAttentionOut"
                 },
                 "propertyName": "kind"
@@ -462,9 +456,6 @@
                 },
                 {
                   "$ref": "#/components/schemas/KbReviewAttentionOut"
-                },
-                {
-                  "$ref": "#/components/schemas/ReleaseReadyAttentionOut"
                 }
               ]
             },
@@ -633,24 +624,6 @@
           "text"
         ],
         "title": "BankQuestionIn",
-        "type": "object"
-      },
-      "BlockerOut": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "count": {
-            "title": "Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "code",
-          "count"
-        ],
-        "title": "BlockerOut",
         "type": "object"
       },
       "Body_add_material_api_v1_knowledge_bases__kb_id__materials_post": {
@@ -1450,16 +1423,11 @@
           "password_reset_enabled": {
             "title": "Password Reset Enabled",
             "type": "boolean"
-          },
-          "weekly_digest_enabled": {
-            "title": "Weekly Digest Enabled",
-            "type": "boolean"
           }
         },
         "required": [
           "password_reset_enabled",
-          "account_email_enabled",
-          "weekly_digest_enabled"
+          "account_email_enabled"
         ],
         "title": "ConfigOut",
         "type": "object"
@@ -3096,25 +3064,6 @@
         "title": "LearningOutcomeOut",
         "type": "object"
       },
-      "LinkedPersonOut": {
-        "properties": {
-          "full_name": {
-            "title": "Full Name",
-            "type": "string"
-          },
-          "user_id": {
-            "format": "uuid",
-            "title": "User Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "user_id",
-          "full_name"
-        ],
-        "title": "LinkedPersonOut",
-        "type": "object"
-      },
       "LiveWarmupIn": {
         "additionalProperties": false,
         "properties": {
@@ -3308,10 +3257,6 @@
             "title": "Full Name",
             "type": "string"
           },
-          "is_parent": {
-            "title": "Is Parent",
-            "type": "boolean"
-          },
           "is_platform_admin": {
             "title": "Is Platform Admin",
             "type": "boolean"
@@ -3333,7 +3278,6 @@
           "user_id",
           "full_name",
           "roles",
-          "is_parent",
           "is_platform_admin"
         ],
         "title": "MeOut",
@@ -3406,6 +3350,17 @@
             },
             "title": "Students",
             "type": "array"
+          },
+          "teaching_plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TeachingPlanOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "TC-23 S5 draft for this misconception; teacher reviews it"
           }
         },
         "required": [
@@ -4536,273 +4491,6 @@
         "title": "PageSourceOut",
         "type": "object"
       },
-      "ParentChildOut": {
-        "properties": {
-          "class_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Class Name"
-          },
-          "last_seen_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Seen At"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "school_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "School Id"
-          },
-          "school_name": {
-            "title": "School Name",
-            "type": "string"
-          },
-          "student_id": {
-            "format": "uuid",
-            "title": "Student Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "student_id",
-          "name",
-          "school_name"
-        ],
-        "title": "ParentChildOut",
-        "type": "object"
-      },
-      "ParentChildrenOut": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ParentChildOut"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items",
-          "next_cursor"
-        ],
-        "title": "ParentChildrenOut",
-        "type": "object"
-      },
-      "ParentLinkIn": {
-        "additionalProperties": false,
-        "properties": {
-          "relationship": {
-            "anyOf": [
-              {
-                "enum": [
-                  "ayah",
-                  "ibu",
-                  "wali"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Relationship"
-          }
-        },
-        "title": "ParentLinkIn",
-        "type": "object"
-      },
-      "ParentPreferencesIn": {
-        "additionalProperties": false,
-        "properties": {
-          "weekly_digest_enabled": {
-            "title": "Weekly Digest Enabled",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "weekly_digest_enabled"
-        ],
-        "title": "ParentPreferencesIn",
-        "type": "object"
-      },
-      "ParentPreferencesOut": {
-        "properties": {
-          "weekly_digest_enabled": {
-            "title": "Weekly Digest Enabled",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "weekly_digest_enabled"
-        ],
-        "title": "ParentPreferencesOut",
-        "type": "object"
-      },
-      "ParentProgressOut": {
-        "properties": {
-          "concepts_developing": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Concepts Developing",
-            "type": "array"
-          },
-          "concepts_understood": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Concepts Understood",
-            "type": "array"
-          },
-          "sessions_completed": {
-            "title": "Sessions Completed",
-            "type": "integer"
-          },
-          "summaries": {
-            "items": {
-              "$ref": "#/components/schemas/ParentSummaryOut"
-            },
-            "title": "Summaries",
-            "type": "array"
-          }
-        },
-        "required": [
-          "sessions_completed",
-          "concepts_understood",
-          "concepts_developing",
-          "summaries"
-        ],
-        "title": "ParentProgressOut",
-        "type": "object"
-      },
-      "ParentReflectionOut": {
-        "properties": {
-          "completed_at": {
-            "format": "date-time",
-            "title": "Completed At",
-            "type": "string"
-          },
-          "content": {
-            "title": "Content",
-            "type": "string"
-          },
-          "mission_title": {
-            "title": "Mission Title",
-            "type": "string"
-          },
-          "session_id": {
-            "format": "uuid",
-            "title": "Session Id",
-            "type": "string"
-          },
-          "subject_name": {
-            "default": "",
-            "title": "Subject Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "mission_title",
-          "completed_at",
-          "content"
-        ],
-        "title": "ParentReflectionOut",
-        "type": "object"
-      },
-      "ParentReflectionsOut": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ParentReflectionOut"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items",
-          "next_cursor"
-        ],
-        "title": "ParentReflectionsOut",
-        "type": "object"
-      },
-      "ParentSummaryOut": {
-        "properties": {
-          "mission_title": {
-            "title": "Mission Title",
-            "type": "string"
-          },
-          "publication_id": {
-            "format": "uuid",
-            "title": "Publication Id",
-            "type": "string"
-          },
-          "released_at": {
-            "format": "date-time",
-            "title": "Released At",
-            "type": "string"
-          },
-          "text": {
-            "title": "Text",
-            "type": "string"
-          }
-        },
-        "required": [
-          "publication_id",
-          "mission_title",
-          "released_at",
-          "text"
-        ],
-        "title": "ParentSummaryOut",
-        "type": "object"
-      },
       "PasswordChangeIn": {
         "additionalProperties": false,
         "properties": {
@@ -4944,15 +4632,6 @@
       "PersonCreateIn": {
         "additionalProperties": false,
         "properties": {
-          "child_ids": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Child Ids",
-            "type": "array"
-          },
           "class_id": {
             "anyOf": [
               {
@@ -4998,27 +4677,10 @@
             ],
             "title": "Nisn"
           },
-          "relationship": {
-            "anyOf": [
-              {
-                "enum": [
-                  "ayah",
-                  "ibu",
-                  "wali"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Relationship"
-          },
           "role": {
             "enum": [
               "teacher",
-              "student",
-              "parent"
+              "student"
             ],
             "title": "Role",
             "type": "string"
@@ -5111,20 +4773,6 @@
             "title": "Full Name",
             "type": "string"
           },
-          "linked_children": {
-            "items": {
-              "$ref": "#/components/schemas/LinkedPersonOut"
-            },
-            "title": "Linked Children",
-            "type": "array"
-          },
-          "linked_parents": {
-            "items": {
-              "$ref": "#/components/schemas/LinkedPersonOut"
-            },
-            "title": "Linked Parents",
-            "type": "array"
-          },
           "nisn": {
             "anyOf": [
               {
@@ -5160,9 +4808,7 @@
           "nisn",
           "email",
           "class_name",
-          "account_state",
-          "linked_parents",
-          "linked_children"
+          "account_state"
         ],
         "title": "PersonOut",
         "type": "object"
@@ -5267,18 +4913,6 @@
             "title": "Published By",
             "type": "string"
           },
-          "released_to_parents_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Released To Parents At"
-          },
           "runs": {
             "items": {
               "$ref": "#/components/schemas/PublicationRunDetailOut"
@@ -5304,7 +4938,6 @@
           "published_by",
           "created_at",
           "cancelled_at",
-          "released_to_parents_at",
           "mission_version_id",
           "version_number",
           "mission_id",
@@ -5361,18 +4994,6 @@
             ],
             "title": "Mission Version"
           },
-          "released_to_parents_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Released To Parents At"
-          },
           "run": {
             "$ref": "#/components/schemas/RunSummaryOut"
           },
@@ -5388,8 +5009,7 @@
           "class_id",
           "class_name",
           "run",
-          "counts",
-          "released_to_parents_at"
+          "counts"
         ],
         "title": "PublicationOut",
         "type": "object"
@@ -6200,139 +5820,6 @@
         "title": "ReflectionOut",
         "type": "object"
       },
-      "ReleaseIn": {
-        "additionalProperties": false,
-        "properties": {
-          "expected_eligible_count": {
-            "minimum": 0.0,
-            "title": "Expected Eligible Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "expected_eligible_count"
-        ],
-        "title": "ReleaseIn",
-        "type": "object"
-      },
-      "ReleasePreviewOut": {
-        "properties": {
-          "blockers": {
-            "items": {
-              "$ref": "#/components/schemas/BlockerOut"
-            },
-            "title": "Blockers",
-            "type": "array"
-          },
-          "eligible_count": {
-            "title": "Eligible Count",
-            "type": "integer"
-          },
-          "ineligible_count": {
-            "title": "Ineligible Count",
-            "type": "integer"
-          },
-          "ready": {
-            "title": "Ready",
-            "type": "boolean"
-          },
-          "released_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Released At"
-          },
-          "summaries": {
-            "items": {
-              "$ref": "#/components/schemas/SummaryPreviewOut"
-            },
-            "title": "Summaries",
-            "type": "array"
-          }
-        },
-        "required": [
-          "ready",
-          "blockers",
-          "eligible_count",
-          "ineligible_count",
-          "summaries",
-          "released_at"
-        ],
-        "title": "ReleasePreviewOut",
-        "type": "object"
-      },
-      "ReleaseReadyAttentionOut": {
-        "properties": {
-          "class_name": {
-            "title": "Class Name",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "eligible_count": {
-            "title": "Eligible Count",
-            "type": "integer"
-          },
-          "item_id": {
-            "format": "uuid",
-            "title": "Item Id",
-            "type": "string"
-          },
-          "kind": {
-            "const": "release_ready",
-            "title": "Kind",
-            "type": "string"
-          },
-          "mission_title": {
-            "title": "Mission Title",
-            "type": "string"
-          },
-          "publication_id": {
-            "format": "uuid",
-            "title": "Publication Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "item_id",
-          "created_at",
-          "kind",
-          "publication_id",
-          "class_name",
-          "mission_title",
-          "eligible_count"
-        ],
-        "title": "ReleaseReadyAttentionOut",
-        "type": "object"
-      },
-      "ReleasedOut": {
-        "properties": {
-          "released_to_parents_at": {
-            "format": "date-time",
-            "title": "Released To Parents At",
-            "type": "string"
-          },
-          "summary_count": {
-            "title": "Summary Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "released_to_parents_at",
-          "summary_count"
-        ],
-        "title": "ReleasedOut",
-        "type": "object"
-      },
       "ReportActivityOut": {
         "properties": {
           "away_seconds": {
@@ -7026,8 +6513,7 @@
         "enum": [
           "school_admin",
           "teacher",
-          "student",
-          "parent"
+          "student"
         ],
         "type": "string"
       },
@@ -8750,30 +8236,6 @@
         "title": "SubjectOut",
         "type": "object"
       },
-      "SummaryPreviewOut": {
-        "properties": {
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "student_id": {
-            "format": "uuid",
-            "title": "Student Id",
-            "type": "string"
-          },
-          "summary_text": {
-            "title": "Summary Text",
-            "type": "string"
-          }
-        },
-        "required": [
-          "student_id",
-          "name",
-          "summary_text"
-        ],
-        "title": "SummaryPreviewOut",
-        "type": "object"
-      },
       "TabAwaySecondsOut": {
         "properties": {
           "seconds": {
@@ -8868,6 +8330,116 @@
           "timezone"
         ],
         "title": "TeacherDashboardOut",
+        "type": "object"
+      },
+      "TeachingPlanOut": {
+        "description": "TC-23 next-lesson activity drafted by S5 from reviewed content. No names or counts.",
+        "properties": {
+          "check_question": {
+            "title": "Check Question",
+            "type": "string"
+          },
+          "counter_example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The reviewed example the contrast uses",
+            "title": "Counter Example"
+          },
+          "look_for": {
+            "description": "Teacher-only: reasoning that shows the idea changed",
+            "title": "Look For",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/TeachingPlanStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "objective",
+          "steps",
+          "counter_example",
+          "check_question",
+          "look_for"
+        ],
+        "title": "TeachingPlanOut",
+        "type": "object"
+      },
+      "TeachingPlanQueuedOut": {
+        "properties": {
+          "job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when the plan already exists",
+            "title": "Job Id"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "TeachingPlanQueuedOut",
+        "type": "object"
+      },
+      "TeachingPlanRequestIn": {
+        "properties": {
+          "misconception_id": {
+            "format": "uuid",
+            "title": "Misconception Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "misconception_id"
+        ],
+        "title": "TeachingPlanRequestIn",
+        "type": "object"
+      },
+      "TeachingPlanStepOut": {
+        "properties": {
+          "ask": {
+            "title": "Ask",
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "elicit",
+              "contrast",
+              "explain"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "teacher_action": {
+            "title": "Teacher Action",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phase",
+          "teacher_action",
+          "ask"
+        ],
+        "title": "TeachingPlanStepOut",
         "type": "object"
       },
       "TelemetryAccepted": {
@@ -11991,307 +11563,6 @@
         ]
       }
     },
-    "/api/v1/parent/children": {
-      "get": {
-        "operationId": "children_api_v1_parent_children_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 20,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParentChildrenOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Children",
-        "tags": [
-          "parent"
-        ]
-      }
-    },
-    "/api/v1/parent/children/{student_id}/progress": {
-      "get": {
-        "operationId": "progress_api_v1_parent_children__student_id__progress_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParentProgressOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Progress",
-        "tags": [
-          "parent"
-        ]
-      }
-    },
-    "/api/v1/parent/children/{student_id}/reflections": {
-      "get": {
-        "operationId": "reflections_api_v1_parent_children__student_id__reflections_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 20,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParentReflectionsOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Reflections",
-        "tags": [
-          "parent"
-        ]
-      }
-    },
-    "/api/v1/parent/children/{student_id}/seen": {
-      "post": {
-        "operationId": "mark_seen_api_v1_parent_children__student_id__seen_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Mark Seen",
-        "tags": [
-          "parent"
-        ]
-      }
-    },
-    "/api/v1/parent/preferences": {
-      "get": {
-        "operationId": "preferences_api_v1_parent_preferences_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParentPreferencesOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Preferences",
-        "tags": [
-          "parent"
-        ]
-      },
-      "put": {
-        "operationId": "set_preferences_api_v1_parent_preferences_put",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ParentPreferencesIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParentPreferencesOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Set Preferences",
-        "tags": [
-          "parent"
-        ]
-      }
-    },
     "/api/v1/platform/ai-usage": {
       "get": {
         "operationId": "ai_usage_api_v1_platform_ai_usage_get",
@@ -13931,9 +13202,10 @@
         ]
       }
     },
-    "/api/v1/publications/{publication_id}/release": {
+    "/api/v1/publications/{publication_id}/teaching-plans": {
       "post": {
-        "operationId": "release_api_v1_publications__publication_id__release_post",
+        "description": "TC-23: queue one S5 next-lesson activity; poll GET /jobs/{id}, then the class map.",
+        "operationId": "request_teaching_plan_api_v1_publications__publication_id__teaching_plans_post",
         "parameters": [
           {
             "in": "path",
@@ -13950,18 +13222,18 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReleaseIn"
+                "$ref": "#/components/schemas/TeachingPlanRequestIn"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReleasedOut"
+                  "$ref": "#/components/schemas/TeachingPlanQueuedOut"
                 }
               }
             },
@@ -13983,57 +13255,9 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Release",
+        "summary": "Request Teaching Plan",
         "tags": [
-          "release"
-        ]
-      }
-    },
-    "/api/v1/publications/{publication_id}/release-preview": {
-      "get": {
-        "operationId": "preview_api_v1_publications__publication_id__release_preview_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "publication_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Publication Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReleasePreviewOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Preview",
-        "tags": [
-          "release"
+          "results"
         ]
       }
     },
@@ -15712,136 +14936,6 @@
           }
         ],
         "summary": "Create Person",
-        "tags": [
-          "administration"
-        ]
-      }
-    },
-    "/api/v1/schools/{school_id}/people/{parent_id}/children/{student_id}": {
-      "delete": {
-        "operationId": "unlink_child_api_v1_schools__school_id__people__parent_id__children__student_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "school_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "School Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "parent_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Parent Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Unlink Child",
-        "tags": [
-          "administration"
-        ]
-      },
-      "put": {
-        "operationId": "link_child_api_v1_schools__school_id__people__parent_id__children__student_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "school_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "School Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "parent_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Parent Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "student_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Student Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ParentLinkIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "summary": "Link Child",
         "tags": [
           "administration"
         ]

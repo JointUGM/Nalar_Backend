@@ -22,7 +22,7 @@ class AiPurpose(StrEnum):
     session_evaluation = "session_evaluation"
     reflection_generation = "reflection_generation"
     class_map_insight = "class_map_insight"
-    parent_summary = "parent_summary"
+    teaching_plan = "teaching_plan"
 
 
 class AnswerType(StrEnum):
@@ -499,62 +499,15 @@ class MoveSource(StrEnum):
     fallback_error = "fallback_error"
 
 
-class MisconceptionStatement(RootModel[str]):
-    root: Annotated[
-        str,
-        Field(
-            description="The held idea, or the idea the child moved away from when resolved",
-            max_length=1000,
-            title="Misconception Statement",
-        ),
-    ]
+class PlanQuestionIn(BaseModel):
+    id: Annotated[str, Field(max_length=64, min_length=1, title="Id")]
+    text: Annotated[str, Field(max_length=1000, min_length=1, title="Text")]
 
 
-class ParentConceptIn(BaseModel):
-    misconception_statement: Annotated[
-        MisconceptionStatement | None,
-        Field(
-            description="The held idea, or the idea the child moved away from when resolved",
-            title="Misconception Statement",
-        ),
-    ] = None
-    name: Annotated[str, Field(max_length=300, min_length=1, title="Name")]
-    outcome: Annotated[ConceptOutcome, Field(description="session_concept_results.outcome")]
-    resolved_in_session: Annotated[bool | None, Field(title="Resolved In Session")] = False
-
-
-class EvaluationSummary(RootModel[str]):
-    root: Annotated[
-        str,
-        Field(
-            description="session_evaluations.summary", max_length=2000, title="Evaluation Summary"
-        ),
-    ]
-
-
-class ParentSummaryIn(BaseModel):
-    concepts: Annotated[list[ParentConceptIn], Field(max_length=10, min_length=1, title="Concepts")]
-    evaluation_summary: Annotated[
-        EvaluationSummary | None,
-        Field(description="session_evaluations.summary", title="Evaluation Summary"),
-    ] = None
-    mission_title: Annotated[str, Field(max_length=300, min_length=1, title="Mission Title")]
-
-
-class Source(StrEnum):
-    model = "model"
-    template = "template"
-
-
-class ParentSummaryOut(BaseModel):
-    content: Annotated[str, Field(description="parent_summaries.content", title="Content")]
-    source: Annotated[
-        Source,
-        Field(
-            description="Not stored; 'template' after two blocked drafts (store ai_invocation_id null)",
-            title="Source",
-        ),
-    ]
+class PlanStepOut(BaseModel):
+    ask: Annotated[str, Field(title="Ask")]
+    phase: Annotated[str, Field(description="elicit, contrast, explain", title="Phase")]
+    teacher_action: Annotated[str, Field(title="Teacher Action")]
 
 
 class PlannerMode(StrEnum):
@@ -690,6 +643,11 @@ class SelectTargetsOut(BaseModel):
     ]
 
 
+class Source(StrEnum):
+    model = "model"
+    template = "template"
+
+
 class SessionReflectionOut(BaseModel):
     content: Annotated[str, Field(description="session_reflections.content", title="Content")]
     source: Annotated[
@@ -723,6 +681,47 @@ class TargetConceptIn(BaseModel):
     description: Annotated[str | None, Field(max_length=2000, title="Description")] = ""
     id: Annotated[UUID, Field(title="Id")]
     name: Annotated[str, Field(max_length=300, min_length=1, title="Name")]
+
+
+class TeachingPlanIn(BaseModel):
+    concept_name: Annotated[str, Field(max_length=300, min_length=1, title="Concept Name")]
+    correct_understanding: Annotated[
+        str, Field(max_length=2000, min_length=1, title="Correct Understanding")
+    ]
+    counter_examples: Annotated[list[str] | None, Field(max_length=5, title="Counter Examples")] = (
+        None
+    )
+    detection_cues: Annotated[list[str] | None, Field(max_length=5, title="Detection Cues")] = None
+    learning_objective: Annotated[
+        str, Field(max_length=2000, min_length=1, title="Learning Objective")
+    ]
+    misconception_id: Annotated[UUID, Field(title="Misconception Id")]
+    mission_title: Annotated[str, Field(max_length=300, min_length=1, title="Mission Title")]
+    questions: Annotated[
+        list[PlanQuestionIn] | None,
+        Field(
+            description="Approved bank questions on this concept", max_length=8, title="Questions"
+        ),
+    ] = None
+    statement: Annotated[str, Field(max_length=1000, min_length=1, title="Statement")]
+
+
+class TeachingPlanOut(BaseModel):
+    check_question: Annotated[str, Field(title="Check Question")]
+    counter_example: Annotated[
+        str | None,
+        Field(
+            description="The reviewed counter-example the contrast step uses, copied verbatim",
+            title="Counter Example",
+        ),
+    ]
+    look_for: Annotated[
+        str, Field(description="Teacher-only: the reasoning that shows change", title="Look For")
+    ]
+    misconception_id: Annotated[UUID, Field(title="Misconception Id")]
+    objective: Annotated[str, Field(title="Objective")]
+    question_ids: Annotated[list[str], Field(title="Question Ids")]
+    steps: Annotated[list[PlanStepOut], Field(title="Steps")]
 
 
 class TurnAction(StrEnum):
@@ -1192,12 +1191,6 @@ class EnvelopeNextTurnOut(BaseModel):
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 
-class EnvelopeParentSummaryOut(BaseModel):
-    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
-    result: ParentSummaryOut
-    warnings: Annotated[list[str], Field(title="Warnings")]
-
-
 class EnvelopeReviseMissionOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: ReviseMissionOut
@@ -1207,6 +1200,12 @@ class EnvelopeReviseMissionOut(BaseModel):
 class EnvelopeSelectTargetsOut(BaseModel):
     invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
     result: SelectTargetsOut
+    warnings: Annotated[list[str], Field(title="Warnings")]
+
+
+class EnvelopeTeachingPlanOut(BaseModel):
+    invocations: Annotated[list[InvocationOut], Field(title="Invocations")]
+    result: TeachingPlanOut
     warnings: Annotated[list[str], Field(title="Warnings")]
 
 

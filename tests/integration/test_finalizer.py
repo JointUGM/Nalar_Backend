@@ -1,6 +1,5 @@
 import asyncio
 from datetime import timedelta
-from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -13,18 +12,17 @@ from nalar.application.features.integrity.commands.compute_publication_similarit
 from nalar.application.features.release.commands.finalize_publication import (
     FinalizePublicationHandler,
 )
-from nalar.application.features.release.commands.release_reminders import ReleaseRemindersHandler
 from nalar.application.features.scheduler.commands.tick import SchedulerTiming, TickHandler
-from nalar.application.ports.ai import AiResult, AiServiceError
-from nalar.application.ports.ai_contract import ClassInsightIn, ClassInsightOut, ParentSummaryOut
+from nalar.application.ports.ai import AiResult
+from nalar.application.ports.ai_contract import ClassInsightIn, ClassInsightOut
 from nalar.infrastructure.config import load_integrity_config, load_narrative_lexicon
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.release import PgReleaseRepo
 from nalar.infrastructure.db.uow import PgUnitOfWork
 from tests.integration.support.api import api_client, as_user
 from tests.integration.support.factories import World, build_world, evaluate, finish_session
+from tests.integration.support.settling import close_runs
 from tests.integration.support.uow import uow_on
-from tests.integration.test_release import close_runs
 from tests.unit.application.fakes import (
     FakeClock,
     RecordingBackground,
@@ -61,13 +59,6 @@ def finalizer(conn: asyncpg.Connection, ai: ScriptedAiGateway) -> FinalizePublic
     )
 
 
-def summary(text: str, source: str = "model") -> AiResult[ParentSummaryOut]:
-    return AiResult(
-        ParentSummaryOut.model_validate({"content": text, "source": source}),
-        [invocation("parent_summary")],
-    )
-
-
 def insight_reply(body: BaseModel) -> AiResult[ClassInsightOut]:
     concept = next(c for c in body.concepts if c.mastered_count == 1).concept_id  # type: ignore[attr-defined]
     return AiResult(
@@ -86,25 +77,15 @@ def insight_reply(body: BaseModel) -> AiResult[ClassInsightOut]:
     )
 
 
-async def test_finalizer_stores_summaries_and_a_filled_insight(
+async def test_finalizer_stores_a_filled_insight_without_parent_calls(
     conn: asyncpg.Connection, world: World
 ) -> None:
     await settle(conn, world)
     ai = ScriptedAiGateway()
-    ai.script("parent_summary", summary(GOOD))
     ai.script("class_insight", insight_reply)
     job_id = await finalize_job(conn, world)
     await finalizer(conn, ai).execute(world.publication_id, job_id)
-    row = await conn.fetchrow(
-        "select content, ai_invocation_id from parent_summaries where publication_id = $1",
-        world.publication_id,
-    )
-    assert row is not None
-    assert row["content"] == GOOD and row["ai_invocation_id"] is not None
-    request: Any = dict(ai.calls)["parent_summary"]
-    sent = request.model_dump_json()
-    assert str(world.student_id) not in sent
-    assert "Pengguna Uji" not in sent
+    assert [method for method, _ in ai.calls] == ["class_insight"]
     async with api_client(conn) as api:
         body = (
             await api.get(
@@ -154,7 +135,6 @@ async def test_invalid_suggestion_stores_provenance_without_any_insight(
 ) -> None:
     await settle(conn, world)
     ai = ScriptedAiGateway()
-    ai.script("parent_summary", summary(GOOD))
 
     def invalid(body: BaseModel) -> AiResult[ClassInsightOut]:
         reply = insight_reply(body)
@@ -196,7 +176,6 @@ async def test_empty_suggestions_are_stored_once_and_legacy_insights_stay_unchan
             [],
         )
     ai = ScriptedAiGateway()
-    ai.script("parent_summary", summary(GOOD))
     await finalizer(conn, ai).execute(world.publication_id, await finalize_job(conn, world))
     assert "class_insight" not in {m for m, _ in ai.calls}
     async with api_client(conn) as api:
@@ -251,7 +230,6 @@ async def test_competing_finalizers_store_one_insight_and_one_ranked_suggestion_
             return reply
 
     ai = CompetingAi()
-    ai.script("parent_summary", summary(GOOD), summary(GOOD))
     ai.script("class_insight", insight_reply, insight_reply)
 
     async def run(job: UUID) -> None:
@@ -289,86 +267,6 @@ async def test_competing_finalizers_store_one_insight_and_one_ranked_suggestion_
         )
 
 
-async def test_template_summary_is_stored_without_an_invocation_id(
-    conn: asyncpg.Connection, world: World
-) -> None:
-    await settle(conn, world)
-    ai = ScriptedAiGateway()
-    ai.script("parent_summary", summary(GOOD, source="template"))
-    ai.script("class_insight", AiServiceError("upstream_unavailable", 503))
-    await finalizer(conn, ai).execute(world.publication_id, await finalize_job(conn, world))
-    assert (
-        await conn.fetchval(
-            "select ai_invocation_id from parent_summaries where publication_id = $1",
-            world.publication_id,
-        )
-        is None
-    )
-
-
-async def test_summary_with_a_number_is_not_stored(conn: asyncpg.Connection, world: World) -> None:
-    await settle(conn, world)
-    ai = ScriptedAiGateway()
-    ai.script("parent_summary", summary("Ananda menjawab 3 dari 4 pertanyaan."))
-    ai.script("class_insight", AiServiceError("upstream_unavailable", 503))
-    await finalizer(conn, ai).execute(world.publication_id, await finalize_job(conn, world))
-    assert (
-        await conn.fetchval(
-            "select count(*) from parent_summaries where publication_id = $1", world.publication_id
-        )
-        == 0
-    )
-    assert (
-        await conn.fetchval(
-            "select count(*) from ai_invocations"
-            " where school_id = $1 and purpose = 'parent_summary'",
-            world.school_id,
-        )
-        == 1
-    )
-
-
-async def test_s5_outage_leaves_summaries_pending_and_the_job_succeeds(
-    conn: asyncpg.Connection, world: World
-) -> None:
-    await settle(conn, world)
-    ai = ScriptedAiGateway()
-    down = AiServiceError("upstream_unavailable", 503, [invocation("parent_summary", "error")])
-    ai.script("parent_summary", down)
-    ai.script("class_insight", AiServiceError("upstream_unavailable", 503))
-    job_id = await finalize_job(conn, world)
-    await finalizer(conn, ai).execute(world.publication_id, job_id)
-    assert await conn.fetchval("select status::text from jobs where id = $1", job_id) == "succeeded"
-    async with api_client(conn) as api:
-        body = (
-            await api.get(
-                f"/publications/{world.publication_id}/release-preview",
-                headers=as_user(world.teacher_id),
-            )
-        ).json()
-    assert {"code": "SUMMARIES_PENDING", "count": 1} in body["blockers"]
-    assert (
-        await conn.fetchval(
-            "select count(*) from ai_invocations where school_id = $1 and status = 'failed'",
-            world.school_id,
-        )
-        == 1
-    )
-
-
-async def test_summaries_are_frozen_after_release(conn: asyncpg.Connection, world: World) -> None:
-    await settle(conn, world)
-    await conn.execute(
-        "update publications set released_to_parents_at = now(), released_by = $2 where id = $1",
-        world.publication_id,
-        world.teacher_id,
-    )
-    ai = ScriptedAiGateway()
-    ai.script("class_insight", AiServiceError("upstream_unavailable", 503))
-    await finalizer(conn, ai).execute(world.publication_id, await finalize_job(conn, world))
-    assert "parent_summary" not in {m for m, _ in ai.calls}
-
-
 async def test_a_finished_job_is_not_run_again(conn: asyncpg.Connection, world: World) -> None:
     await settle(conn, world)
     job_id = await finalize_job(conn, world)
@@ -398,25 +296,3 @@ async def test_tick_enqueues_the_finalizer_once_per_cooldown(
         )
         == 1
     )
-
-
-async def test_release_reminder_is_sent_once(conn: asyncpg.Connection, world: World) -> None:
-    await settle(conn, world)
-    await conn.execute(
-        "insert into parent_summaries (school_id, publication_id, student_id, content)"
-        " values ($1, $2, $3, $4)",
-        world.school_id,
-        world.publication_id,
-        world.student_id,
-        GOOD,
-    )
-    await conn.execute(
-        "insert into jobs (school_id, kind, entity_type, entity_id, status, updated_at)"
-        " values ($1, 'publication_finalize', 'publications', $2, 'succeeded',"
-        " now() - interval '2 days')",
-        world.school_id,
-        world.publication_id,
-    )
-    handler = ReleaseRemindersHandler(uow_on(conn), FakeClock())
-    assert await handler.execute() == 1
-    assert await handler.execute() == 0

@@ -72,7 +72,6 @@ class PublicationSummary:
     class_id: UUID
     class_name: str
     created_at: datetime
-    released_to_parents_at: datetime | None
     run: RunSummary
     counts: PublicationCounts
     subject_name: str = ""
@@ -85,7 +84,6 @@ class GrantPublication:
     school_id: UUID
     class_id: UUID
     cancelled_at: datetime | None
-    released_to_parents_at: datetime | None
 
 
 @dataclass(frozen=True)
