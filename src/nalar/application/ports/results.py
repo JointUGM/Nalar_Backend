@@ -5,6 +5,7 @@ from uuid import UUID
 
 from nalar.application.ports.administration import AdminRow
 from nalar.domain.class_map import StudentAttempt
+from nalar.domain.mentoring import HelpSignal, MentoringContext
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class MonitorStudent:
     session_id: UUID | None = None
     participant_id: UUID | None = None
     open_flags: tuple[MonitorFlag, ...] = ()
+    help_signal: HelpSignal | None = None
 
 
 @dataclass(frozen=True)
@@ -296,6 +298,12 @@ class ResultsRepo(Protocol):
 
     async def monitor(self, publication_id: UUID) -> Monitor | None:
         """Every actively enrolled student of the class, with their latest attempt."""
+        ...
+
+    async def monitor_help_inputs(
+        self, publication_id: UUID, run_id: UUID, session_ids: list[UUID]
+    ) -> tuple[MentoringContext, ...]:
+        """Last two answered turns and frozen content of the selected active sessions."""
         ...
 
     async def report(self, session_id: UUID) -> SessionReport | None: ...

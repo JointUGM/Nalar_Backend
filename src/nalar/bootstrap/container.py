@@ -621,6 +621,11 @@ class InfrastructureProvider(Provider):
 
 class ApplicationProvider(Provider):
     scope = Scope.REQUEST
+
+    @provide
+    def monitor_query(self, uow: UnitOfWork, clock: Clock, settings: Settings) -> MonitorQuery:
+        return MonitorQuery(uow, clock, settings.monitor_help_limit)
+
     handlers = provide_all(
         PlatformOperationsHandler,
         ArchiveHandler,
@@ -707,7 +712,6 @@ class ApplicationProvider(Provider):
         PasswordMutationHandler,
         EvaluateSessionHandler,
         ReflectionQuery,
-        MonitorQuery,
         SessionReportQuery,
         ClassMapQuery,
         MisconceptionTrailQuery,

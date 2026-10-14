@@ -5,6 +5,8 @@ from typing import Any
 FORBIDDEN_KEYS = frozenset(
     {
         "answer_state",
+        "help_signal",
+        "misconception_statement",
         "detected_misconception_id",
         "secondary_misconception_id",
         "allowed_moves",
