@@ -23,6 +23,14 @@ class MonitorFlagOut(BaseModel):
     created_at: datetime
 
 
+class HelpSignalOut(BaseModel):
+    reason: Literal["frustration", "repeated_evasive", "persistent_misconception"]
+    misconception_statement: str | None
+    suggestion: str
+    turn_index: int
+    rank: int = Field(ge=1, le=5)
+
+
 class MonitorStudentOut(BaseModel):
     student_id: UUID
     participant_id: UUID | None
@@ -35,6 +43,7 @@ class MonitorStudentOut(BaseModel):
     open_flag_count: int
     safety_paused: bool
     open_flags: list[MonitorFlagOut] = Field(default_factory=list)
+    help_signal: HelpSignalOut | None = None
 
 
 class MonitorOut(BaseModel):

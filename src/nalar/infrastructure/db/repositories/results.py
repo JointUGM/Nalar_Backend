@@ -38,6 +38,8 @@ from nalar.application.ports.results import (
     TrailPublication,
 )
 from nalar.domain.class_map import ConceptResult, StudentAttempt
+from nalar.domain.context_pack import PackMisconception, question_bank_from_pack
+from nalar.domain.mentoring import MentoringContext, MentoringTurn
 from nalar.domain.telemetry import TurnMetrics, metrics_by_turn
 from nalar.infrastructure.db.pool import DbConnection
 from nalar.infrastructure.db.repositories.release import ELIGIBLE_SQL
@@ -575,6 +577,64 @@ class PgResultsRepo:
             max_turns=run["max_turns"],
             waiting_count=run["waiting_count"],
             students=students,
+        )
+
+    async def monitor_help_inputs(
+        self, publication_id: UUID, run_id: UUID, session_ids: list[UUID]
+    ) -> tuple[MentoringContext, ...]:
+        rows = await self._conn.fetch(
+            "with answered as ("
+            " select s.id as session_id, s.deadline_at, t.turn_index,"
+            " coalesce(t.answer_submitted_at, t.prompt_shown_at) as answer_submitted_at,"
+            " t.answer_state::text as state, t.detected_misconception_id,"
+            " t.frustration_signal, t.prompt_strategy::text as move,"
+            " t.question_bank_id, t.target_concept_id,"
+            " row_number() over (partition by s.id order by t.turn_index desc) as position"
+            " from sessions s join session_turns t on t.session_id = s.id"
+            " where s.publication_id = $1 and s.run_id = $2 and s.id = any($3::uuid[])"
+            " and s.status = 'in_progress' and t.answer_text is not null"
+            ") select a.*, case when row_number() over"
+            " (order by a.session_id, a.turn_index desc) = 1 then mv.context_pack end"
+            " as context_pack from answered a"
+            " join publications p on p.id = $1"
+            " join mission_versions mv on mv.id = p.mission_version_id"
+            " where a.position <= 2 order by a.session_id, a.turn_index desc",
+            publication_id,
+            run_id,
+            session_ids,
+        )
+        by_session: dict[UUID, list[MentoringTurn]] = defaultdict(list)
+        deadlines: dict[UUID, datetime] = {}
+        if not rows:
+            return ()
+        pack = json.loads(rows[0]["context_pack"])
+        misconceptions = tuple(
+            PackMisconception(
+                UUID(m["id"]),
+                UUID(m["concept_id"]),
+                m["statement"],
+                tuple(m.get("detection_cues", ())),
+            )
+            for m in pack.get("misconceptions", ())
+        )
+        questions = question_bank_from_pack(pack)
+        for row in rows:
+            deadlines[row["session_id"]] = row["deadline_at"]
+            by_session[row["session_id"]].append(
+                MentoringTurn(
+                    row["turn_index"],
+                    row["answer_submitted_at"],
+                    row["state"],
+                    row["detected_misconception_id"],
+                    row["frustration_signal"],
+                    row["move"],
+                    row["question_bank_id"],
+                    row["target_concept_id"],
+                )
+            )
+        return tuple(
+            MentoringContext(id_, deadlines[id_], tuple(turns), misconceptions, questions)
+            for id_, turns in by_session.items()
         )
 
     async def report(self, session_id: UUID) -> SessionReport | None:

@@ -2178,6 +2178,53 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HelpSignalOut": {
+        "properties": {
+          "misconception_statement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Misconception Statement"
+          },
+          "rank": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "frustration",
+              "repeated_evasive",
+              "persistent_misconception"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "suggestion": {
+            "title": "Suggestion",
+            "type": "string"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reason",
+          "misconception_statement",
+          "suggestion",
+          "turn_index",
+          "rank"
+        ],
+        "title": "HelpSignalOut",
+        "type": "object"
+      },
       "HiddenEvent": {
         "additionalProperties": false,
         "properties": {
@@ -4213,6 +4260,16 @@
               }
             ],
             "title": "Deadline At"
+          },
+          "help_signal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HelpSignalOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "max_turns": {
             "title": "Max Turns",
