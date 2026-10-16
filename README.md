@@ -269,21 +269,21 @@ Siapkan schema sebelum merilis kode yang bergantung padanya. Panduan lokal ini t
 
 ## 13. Environment staging — Railway
 
-Konfigurasi berikut dipisahkan untuk layanan **API `Nalar_Backend`** dan **worker**. Masukkan melalui tab Variables pada layanan Railway yang sesuai. Ganti placeholder secret dengan nilai dari pengelola secret; contoh ini tidak berisi kredensial infrastruktur aktif.
+Konfigurasi berikut dipisahkan untuk layanan **API `Nalar_Backend`** dan **worker**. Masukkan melalui tab Variables pada layanan Railway yang sesuai. Nilai staging dicantumkan sesuai konfigurasi yang diberikan pengelola; referensi worker tetap memakai variabel layanan API.
 
 ### API — Nalar_Backend
 
 ```dotenv
 NALAR_ENV="staging"
-NALAR_DATABASE_URL="postgresql://postgres.jhqehdxyxlvndjskalwq:<DATABASE_PASSWORD>@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
+NALAR_DATABASE_URL="postgresql://postgres.jhqehdxyxlvndjskalwq:pO4ANTYjPgCI9lB6@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres"
 NALAR_SUPABASE_URL="https://jhqehdxyxlvndjskalwq.supabase.co"
-NALAR_SUPABASE_SERVICE_ROLE_KEY="<SUPABASE_SERVICE_ROLE_KEY>"
-NALAR_SUPABASE_ANON_KEY="<SUPABASE_ANON_KEY>"
+NALAR_SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpocWVoZHh5eGx2bmRqc2thbHdxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDU3Nzk0NywiZXhwIjoyMTA2MTUzOTQ3fQ.MnN2TdFQk71ZpN8W2ceXaW41J_bLvq0u1539MlTRNtQ"
+NALAR_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpocWVoZHh5eGx2bmRqc2thbHdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1Nzc5NDcsImV4cCI6MjEwNjE1Mzk0N30.bv7Iy_bgkOKlfi9drd3t_GPxW4OAk636STXxAlZi4WU"
 NALAR_AI_BASE_URL="http://nalarai.railway.internal:8080"
-NALAR_AI_SERVICE_KEY="<AI_SERVICE_KEY>"
+NALAR_AI_SERVICE_KEY="46cUu1Ip5dJWtlhzRaUyO9T3K6YT-0ZesqYlOY96ntEIqkW5JLENokUVNYINGPNe"
 NALAR_CORS_ORIGINS="[\"http://localhost:5173\",\"https://nalar-academy.vercel.app\"]"
 NALAR_DB_POOL_MAX_SIZE="8"
-NALAR_REDIS_URL="rediss://default:<REDIS_PASSWORD>@great-garfish-321431.upstash.io:6379"
+NALAR_REDIS_URL="rediss://default:gQAAAAAABOeXAAIgcDI5MTA1YWEwZWRkZjM0NmM2YjIzNTc0YTY2MDdlZWQ4MQ@great-garfish-321431.upstash.io:6379"
 NALAR_DEFAULT_PHASE="D"
 NALAR_KB_BUILD_STALE_AFTER_S="3600"
 NALAR_ACCOUNT_EMAIL_ENABLED="true"
@@ -337,4 +337,4 @@ Buka [NALAR](https://nalar-academy.vercel.app), lalu masuk menggunakan salah sat
 
 Gunakan platform admin untuk pengelolaan tingkat platform, admin sekolah untuk administrasi sekolah, guru untuk menyiapkan dan memantau pembelajaran, serta siswa untuk mengikuti sesi. Hak akses aktual mengikuti peran dan penugasan yang tersimpan pada database.
 
-**Bagian akun uji ini hanya untuk distribusi terbatas.** Hapus password dari salinan README yang dipublikasikan dan bagikan kredensial melalui kanal privat. Rotasi secret infrastruktur yang telah dibagikan melalui chat; perbarui Railway dan layanan terkait setelah rotasi.
+README ini memuat kredensial staging dan akun uji yang dicantumkan atas permintaan pengelola. Siapa pun yang memiliki akses ke file atau riwayat Git dapat membacanya.
