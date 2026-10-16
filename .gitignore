@@ -1,5 +1,6 @@
-# Docs, plans, CLAUDE.md and READMEs are local only (team rule)
+# Internal Markdown stays local; the root README can be published.
 *.md
+!/README.md
 
 # Secrets
 .env
